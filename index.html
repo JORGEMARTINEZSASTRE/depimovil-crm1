@@ -1333,7 +1333,7 @@ td .bold{color:var(--text);font-weight:500}
             <option>Río Negro</option><option>Tacuarembó</option><option>Treinta y Tres</option>
             <option>Cerro Largo</option><option>San José</option><option>Flores</option>
             <option>Florida</option><option>Lavalleja</option><option>Rocha</option>
-            <option>Durazno</option><option>Argentina</option><option>Brasil</option>
+            <option>Durazno</option><option>Argentina</option>
           </select>
         </div>
         <div class="form-field">
@@ -2150,9 +2150,8 @@ function initData(){
     mismoDia: (d==='Maldonado'||d==='Salto'),
     activa: true,
   }));
-  // Argentina / Brasil
+  // Argentina
   reglas.push({departamento:'Argentina',diasAntes:3,diasDespues:3,mismoDia:false,activa:true});
-  reglas.push({departamento:'Brasil',diasAntes:3,diasDespues:3,mismoDia:false,activa:true});
   DB.set('reglas_logisticas', reglas);
 
   // Pagos de ejemplo
@@ -3464,7 +3463,6 @@ function resetReglasLogisticas(){
     mismoDia:(d==='Maldonado'||d==='Salto'), activa:true,
   }));
   reglas.push({departamento:'Argentina',diasAntes:3,diasDespues:3,mismoDia:false,activa:true});
-  reglas.push({departamento:'Brasil',diasAntes:3,diasDespues:3,mismoDia:false,activa:true});
   DB.set('reglas_logisticas', reglas);
   showToast('↺ Reglas restauradas al default');
   renderLogistica();
