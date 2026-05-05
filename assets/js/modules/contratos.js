@@ -1,0 +1,117 @@
+/* ══════════════════════════════════
+   CONTRATOS
+══════════════════════════════════ */
+let contratoFilter = {search:'', estado:''};
+
+function getContratos(){
+  return JSON.parse(localStorage.getItem('dm_contratos') || '[]');
+}
+
+function setContratos(contratos){
+  localStorage.setItem('dm_contratos', JSON.stringify(contratos));
+  _contratos = contratos;
+  _ctrNextId = contratos.length ? Math.max(...contratos.map(c=>c.id||0)) + 1 : 1;
+}
+
+function badgeContrato(estado){
+  const map = {
+    activo: ['badge-green','Activo'],
+    finalizado: ['badge-blue','Finalizado'],
+    anulado: ['badge-red','Anulado'],
+  };
+  const cfg = map[estado] || ['badge-gray', estado || 'Sin estado'];
+  return `<span class="badge ${cfg[0]}">${cfg[1]}</span>`;
+}
+
+function renderContratos(){
+  const tbody = document.getElementById('contratosTableBody');
+  if(!tbody) return;
+  const q = (contratoFilter.search || '').toLowerCase();
+  const contratos = getContratos().filter(c=>{
+    const op = getOp(c.operadoraId);
+    const maq = getMaq(c.maquinaId);
+    const hay = [
+      c.id, c.nombre, c.ci, c.ciudad, c.maquina, c.serial,
+      op && `${op.nombre} ${op.apellido || ''}`,
+      maq && `${maq.codigo} ${maq.nombre}`
+    ].filter(Boolean).join(' ').toLowerCase();
+    return (!q || hay.includes(q)) && (!contratoFilter.estado || c.estado === contratoFilter.estado);
+  }).sort((a,b)=>(b.id||0)-(a.id||0));
+
+  updateContratosBadge();
+  if(!contratos.length){
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Sin contratos</h3><p>No hay contratos para mostrar. <button class="btn-add" onclick="openContratoModal()" style="margin-left:8px">+ Nuevo Contrato</button></p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = contratos.map(c=>{
+    const op = getOp(c.operadoraId);
+    const maq = getMaq(c.maquinaId);
+    const nombre = c.nombre || (op ? `${op.nombre} ${op.apellido || ''}` : '—');
+    const maquina = c.maquina || (maq ? `${maq.codigo} — ${maq.nombre}` : '—');
+    const monto = formatMonto(c.monto || 0, c.moneda || 'UYU');
+    const garantia = c.garantia ? formatMonto(c.garantia, c.moneda || 'UYU') : '—';
+    return `<tr>
+      <td><span style="font-family:monospace;color:var(--accent);font-size:11px">CTR-${String(c.id||0).padStart(3,'0')}</span></td>
+      <td><span class="bold">${nombre}</span><div style="font-size:11px;color:var(--text3)">${c.ci || 'Sin CI/RUT'}</div></td>
+      <td>${maquina}</td>
+      <td>${fmtDate(c.fechaInicio)} → ${fmtDate(c.fechaFin)}</td>
+      <td>${monto}</td>
+      <td>${garantia}</td>
+      <td>${badgeContrato(c.estado || 'activo')}</td>
+      <td>
+        <button class="action-btn" onclick="previewContrato(${c.id})">👁 Ver/PDF</button>
+        <button class="action-btn danger" onclick="deleteContrato(${c.id})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterContratos(q){
+  contratoFilter.search = q || '';
+  renderContratos();
+}
+
+function filterContratoEstado(estado){
+  contratoFilter.estado = estado || '';
+  renderContratos();
+}
+
+function previewContrato(id){
+  const c = getContratos().find(x=>x.id === parseInt(id));
+  if(!c) return;
+  openContratoModal(c.operadoraId);
+  document.getElementById('ctrNombre').value = c.nombre || '';
+  document.getElementById('ctrCI').value = c.ci || '';
+  document.getElementById('ctrDomicilio').value = c.domicilio || '';
+  document.getElementById('ctrCiudad').value = c.ciudad || '';
+  document.getElementById('ctrMaquina').value = c.maquinaId || '';
+  document.getElementById('ctrSerial').value = c.serial || '';
+  document.getElementById('ctrFechaInicio').value = c.fechaInicio || '';
+  document.getElementById('ctrFechaFin').value = c.fechaFin || '';
+  document.getElementById('ctrMonto').value = c.monto || '';
+  document.getElementById('ctrMoneda').value = c.moneda || 'UYU';
+  document.getElementById('ctrFormaPago').value = c.formaPago || 'Transferencia bancaria';
+  document.getElementById('ctrGarantia').value = c.garantia || '';
+  document.getElementById('ctrObs').value = c.obs || '';
+  calcDuracion();
+  switchContratoTab('preview');
+}
+
+function deleteContrato(id){
+  if(!confirm('¿Eliminar este contrato del listado?')) return;
+  const contratos = getContratos().filter(c=>c.id !== parseInt(id));
+  setContratos(contratos);
+  renderContratos();
+  showToast('🗑 Contrato eliminado');
+}
+
+function updateContratosBadge(){
+  const badge = document.getElementById('navBadgeContratos');
+  if(!badge) return;
+  const count = getContratos().filter(c=>(c.estado || 'activo') === 'activo').length;
+  badge.textContent = count;
+  badge.style.display = count ? 'inline-flex' : 'none';
+}
+
+updateContratosBadge();

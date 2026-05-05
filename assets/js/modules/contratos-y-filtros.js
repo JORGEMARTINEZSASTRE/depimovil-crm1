@@ -194,6 +194,8 @@ function saveContrato() {
   _contratos.push(contrato);
   localStorage.setItem('dm_contratos', JSON.stringify(_contratos));
   closeModal('modalContrato');
+  if (typeof renderContratos === 'function') renderContratos();
+  if (typeof updateContratosBadge === 'function') updateContratosBadge();
   if (typeof showToast === 'function') showToast('Contrato guardado correctamente');
 }
 // === FIN CONTRATO ===

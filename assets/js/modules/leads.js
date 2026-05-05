@@ -75,7 +75,6 @@ function renderLeads(){
     <td>${l.gabinete||'—'}</td>
     <td>${l.ciudad||'—'}</td>
     <td>${l.whatsapp?`<a href="https://wa.me/${l.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">💬 ${l.whatsapp}</a>`:'—'}</td>
-      <a class="nav-item" onclick="openContratoModal()"><span class="nav-icon">📋</span>Contratos</a>
     <td><span style="font-size:12px;color:var(--text2)">${LEAD_FUENTES[l.fuente]||l.fuente||'—'}</span></td>
     <td>${badgeLead(l.estado)}</td>
     <td>${(()=>{

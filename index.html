@@ -103,6 +103,10 @@
             <span class="icon">💳</span> Pagos y Señas
             <span class="nav-badge" id="navBadgePagos" style="display:none">0</span>
           </button>
+          <button class="nav-item" data-view="contratos" onclick="navigate('contratos')">
+            <span class="icon">📋</span> Contratos
+            <span class="nav-badge" id="navBadgeContratos" style="display:none">0</span>
+          </button>
         </div>
         <div class="nav-section">
           <div class="nav-section-label">Logística</div>
@@ -315,6 +319,30 @@
         <div class="view" id="view-pago-ficha">
           <button class="back-btn" onclick="navigate('pagos')">← Volver a Pagos</button>
           <div id="fichaPagoContent"></div>
+        </div>
+
+        <!-- CONTRATOS -->
+        <div class="view" id="view-contratos">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>📋 Contratos de Alquiler</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, máquina, CI…" oninput="filterContratos(this.value)"/>
+                <select class="filter-select" onchange="filterContratoEstado(this.value)" id="filterContratoStatus">
+                  <option value="">Todos los estados</option>
+                  <option value="activo">Activos</option>
+                  <option value="finalizado">Finalizados</option>
+                  <option value="anulado">Anulados</option>
+                </select>
+                <button class="btn-add" onclick="openContratoModal()">+ Nuevo Contrato</button>
+              </div>
+            </div>
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Operadora</th><th>Máquina</th><th>Vigencia</th><th>Monto</th><th>Garantía</th><th>Estado</th><th>Acciones</th>
+              </tr></thead><tbody id="contratosTableBody"></tbody>
+            </table>
+          </div>
         </div>
 
         <!-- WHATSAPP -->
@@ -1484,5 +1512,6 @@
 <script data-cfasync="false" src="assets/js/core/boot.js"></script>
 <script data-cfasync="false" src="assets/js/modules/transportistas.js"></script>
 <script data-cfasync="false" src="assets/js/modules/contratos-y-filtros.js"></script>
+<script data-cfasync="false" src="assets/js/modules/contratos.js"></script>
 </body>
 </html>
