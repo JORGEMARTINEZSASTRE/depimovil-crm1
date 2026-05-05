@@ -57,6 +57,10 @@
           <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')">
             <span class="icon">👩‍💼</span> Operadoras
           </button>
+          <button class="nav-item" data-view="documentos" onclick="navigate('documentos')">
+            <span class="icon">🪪</span> Documentos
+            <span class="nav-badge" id="navBadgeDocumentos" style="display:none">0</span>
+          </button>
           <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')">
             <span class="icon">⚙️</span> Máquinas
             <span class="nav-badge" id="navBadgeMaq" style="display:none">0</span>
@@ -187,6 +191,30 @@
         <div class="view" id="view-operadora-ficha">
           <button class="back-btn" onclick="navigate('operadoras')">← Volver a Operadoras</button>
           <div id="fichaOpContent"></div>
+        </div>
+
+        <!-- DOCUMENTOS -->
+        <div class="view" id="view-documentos">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>🪪 Documentos de Operadoras</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, ciudad, documento…" oninput="filterDocumentos(this.value)"/>
+                <select class="filter-select" onchange="filterDocumentosEstado(this.value)">
+                  <option value="">Todos</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="completo">Completos</option>
+                  <option value="contrato_pendiente">Contrato pendiente</option>
+                </select>
+              </div>
+            </div>
+            <div id="documentosResumen" class="docs-summary-grid"></div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Operadora</th><th>Cédula</th><th>Contratos</th><th>Portal</th><th>Acciones</th>
+              </tr></thead><tbody id="documentosTableBody"></tbody></table>
+            </div>
+          </div>
         </div>
 
         <!-- MÁQUINAS LIST -->
@@ -1518,6 +1546,7 @@
 <script data-cfasync="false" src="assets/js/core/navigation.js"></script>
 <script data-cfasync="false" src="assets/js/modules/dashboard.js"></script>
 <script data-cfasync="false" src="assets/js/modules/operadoras.js"></script>
+<script data-cfasync="false" src="assets/js/modules/documentos.js"></script>
 <script data-cfasync="false" src="assets/js/modules/maquinas.js"></script>
 <script data-cfasync="false" src="assets/js/modules/reservas.js"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js"></script>

@@ -705,6 +705,13 @@ select,input,textarea,button{font-size:14px !important}
 .contrato-tabs{display:flex;gap:8px;margin-bottom:16px}
 .contrato-tab{padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
 .contrato-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.docs-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:12px;margin:0 0 16px}
+.docs-summary-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.docs-summary-card .label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.docs-summary-card .value{font-size:22px;font-weight:700;color:var(--text)}
+.docs-doc-list{display:flex;flex-wrap:wrap;gap:6px}
+.docs-line{font-size:11px;color:var(--text3);margin-top:4px}
+@media(max-width:760px){.docs-summary-grid{grid-template-columns:1fr 1fr}}
 @media print{
   body *{visibility:hidden!important}
   #contratoPreviewPrint,#contratoPreviewPrint *{visibility:visible!important}

@@ -7,7 +7,7 @@
    DOCUMENTOS OPERADORA (parche)
 ================================== */
 function copyPortalLink(token){
-  var url=window.location.origin+'/app3/portal.html?token='+token;
+  var url=window.location.origin+'/portal.html?token='+token;
   navigator.clipboard.writeText(url).then(function(){showToast('📋 Link del portal copiado');}).catch(function(){prompt('Copiá este link:',url);});
 }
 async function loadOpDocs(opId){
@@ -15,13 +15,17 @@ async function loadOpDocs(opId){
   try{
     var docs=await api('/api/portal/docs/'+opId);
     var cedula=(docs||[]).find(function(d){return d.tipo==='cedula';});
+    var cedulaDorso=(docs||[]).find(function(d){return d.tipo==='cedula_dorso';});
     var contratos=(docs||[]).filter(function(d){return d.tipo==='contrato';});
     var reservas=(DB.get('reservas')||[]).filter(function(r){return r.operadoraId===opId&&['confirmada','activa','aprobada','solicitud_recibida','pendiente_aprobacion'].includes(r.estado);});
     var h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
     h+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">';
     h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🪨 Cédula</div>';
-    if(cedula){h+='<span class="badge badge-green">✓ Subida</span>';h+='<div style="font-size:11px;color:var(--text3);margin-top:4px">'+new Date(cedula.created_at).toLocaleDateString('es-UY')+'</div>';}
-    else{h+='<span class="badge badge-red">✗ Pendiente</span>';}
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    h+=cedula?'<span class="badge badge-green">✓ Frente</span>':'<span class="badge badge-red">✗ Frente</span>';
+    h+=cedulaDorso?'<span class="badge badge-green">✓ Dorso</span>':'<span class="badge badge-red">✗ Dorso</span>';
+    h+='</div>';
+    if(cedula){h+='<div style="font-size:11px;color:var(--text3);margin-top:4px">Frente subida '+new Date(cedula.created_at).toLocaleDateString('es-UY')+'</div>';}
     h+='</div>';
     h+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">';
     h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📋 Contratos</div>';

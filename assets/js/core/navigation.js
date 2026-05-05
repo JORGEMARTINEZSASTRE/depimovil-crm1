@@ -3,6 +3,7 @@
 ══════════════════════════════════ */
 const viewTitles={'transportistas':'Transportistas',
   dashboard:'Dashboard',operadoras:'Operadoras','operadora-ficha':'Ficha de Operadora',
+  documentos:'Documentos de Operadoras',
   maquinas:'Máquinas','maquina-ficha':'Ficha de Máquina',
   reservas:'Reservas','reserva-ficha':'Ficha de Reserva',
   calendario:'Calendario de Reservas',
@@ -29,6 +30,7 @@ function navigate(view){
   closeSidebar();
   if(view==='dashboard')renderDashboard();
   if(view==='operadoras')renderOperadoras();
+  if(view==='documentos')renderDocumentos();
   if(view==='maquinas')renderMaquinas();
   if(view==='reservas')renderReservas();
   if(view==='calendario')renderCalendario();
