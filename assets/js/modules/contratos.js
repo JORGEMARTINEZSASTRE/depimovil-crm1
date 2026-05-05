@@ -23,6 +23,11 @@ function badgeContrato(estado){
   return `<span class="badge ${cfg[0]}">${cfg[1]}</span>`;
 }
 
+function badgeFirmaContrato(c){
+  if(c.firmado) return `<span class="badge badge-green">Firmado</span>${c.fechaFirma ? `<div style="font-size:11px;color:var(--text3);margin-top:3px">${fmtDate(c.fechaFirma)}</div>` : ''}`;
+  return '<span class="badge badge-yellow">Pendiente firma</span>';
+}
+
 function renderContratos(){
   const tbody = document.getElementById('contratosTableBody');
   if(!tbody) return;
@@ -58,7 +63,7 @@ function renderContratos(){
       <td>${fmtDate(c.fechaInicio)} → ${fmtDate(c.fechaFin)}</td>
       <td>${monto}</td>
       <td>${garantia}</td>
-      <td>${badgeContrato(c.estado || 'activo')}</td>
+      <td>${badgeContrato(c.estado || 'activo')}<div style="margin-top:6px">${badgeFirmaContrato(c)}</div></td>
       <td>
         <button class="action-btn" onclick="previewContrato(${c.id})">👁 Ver/PDF</button>
         <button class="action-btn danger" onclick="deleteContrato(${c.id})">🗑</button>
@@ -93,6 +98,15 @@ function previewContrato(id){
   document.getElementById('ctrMoneda').value = c.moneda || 'UYU';
   document.getElementById('ctrFormaPago').value = c.formaPago || 'Transferencia bancaria';
   document.getElementById('ctrGarantia').value = c.garantia || '';
+  document.getElementById('ctrFirmado').value = c.firmado ? 'firmado' : 'pendiente';
+  document.getElementById('ctrFechaFirma').value = c.fechaFirma || '';
+  if(typeof _ctrDocumentos !== 'undefined'){
+    _ctrDocumentos = { frente: c.cedulaFrente || null, dorso: c.cedulaDorso || null };
+    if(typeof updateContratoDocumentoInfo === 'function'){
+      updateContratoDocumentoInfo('frente');
+      updateContratoDocumentoInfo('dorso');
+    }
+  }
   document.getElementById('ctrObs').value = c.obs || '';
   calcDuracion();
   switchContratoTab('preview');

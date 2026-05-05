@@ -15,10 +15,34 @@ function filterOperadorasByDepto(){var s=document.getElementById('resOperadoraId
 // === CONTRATO DE ALQUILER ===
 var _contratos = JSON.parse(localStorage.getItem('dm_contratos') || '[]');
 var _ctrNextId = _contratos.length ? Math.max(..._contratos.map(c=>c.id)) + 1 : 1;
+var _ctrDocumentos = { frente: null, dorso: null };
+
+function resetContratoForm() {
+  ['ctrNombre','ctrCI','ctrDomicilio','ctrCiudad','ctrSerial','ctrFechaFin','ctrDuracion','ctrMonto','ctrGarantia','ctrObs'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var moneda = document.getElementById('ctrMoneda');
+  if (moneda) moneda.value = 'UYU';
+  var formaPago = document.getElementById('ctrFormaPago');
+  if (formaPago) formaPago.value = 'Transferencia bancaria';
+  var firmado = document.getElementById('ctrFirmado');
+  if (firmado) firmado.value = 'pendiente';
+  var fechaFirma = document.getElementById('ctrFechaFirma');
+  if (fechaFirma) fechaFirma.value = '';
+  ['ctrCedulaFrente','ctrCedulaDorso'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  _ctrDocumentos = { frente: null, dorso: null };
+  updateContratoDocumentoInfo('frente');
+  updateContratoDocumentoInfo('dorso');
+}
 
 function openContratoModal(opId) {
   var modal = document.getElementById('modalContrato');
   if (!modal) return;
+  resetContratoForm();
   
   // Populate operadoras select
   var ops = JSON.parse(localStorage.getItem('dm_operadoras') || '[]');
@@ -64,7 +88,7 @@ function openContratoModal(opId) {
   document.getElementById('ctrFechaFin').onchange = calcDuracion;
   
   switchContratoTab('form');
-  modal.style.cssText='display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center';
+  openModal('modalContrato');
 }
 
 function onCtrOperadoraChange() {
@@ -90,6 +114,24 @@ function calcDuracion() {
   }
 }
 
+function updateContratoDocumentoInfo(lado) {
+  var info = document.getElementById(lado === 'frente' ? 'ctrCedulaFrenteInfo' : 'ctrCedulaDorsoInfo');
+  if (!info) return;
+  var doc = _ctrDocumentos[lado];
+  info.textContent = doc ? doc.name + ' listo para guardar' : 'Sin archivo cargado';
+}
+
+function setContratoDocumento(lado, file) {
+  if (!file) return;
+  _ctrDocumentos[lado] = {
+    name: file.name,
+    type: file.type || 'archivo',
+    size: file.size || 0,
+    cargadoEn: new Date().toISOString()
+  };
+  updateContratoDocumentoInfo(lado);
+}
+
 function switchContratoTab(tab) {
   var tabs = document.querySelectorAll('.contrato-tab');
   tabs[0].classList.toggle('active', tab === 'form');
@@ -113,6 +155,8 @@ function renderContratoPreview() {
   var moneda = document.getElementById('ctrMoneda').value || 'UYU';
   var formaPago = document.getElementById('ctrFormaPago').value || 'Transferencia bancaria';
   var garantia = document.getElementById('ctrGarantia').value || '0';
+  var firmado = document.getElementById('ctrFirmado').value === 'firmado';
+  var fechaFirma = document.getElementById('ctrFechaFirma').value || '';
   var obs = document.getElementById('ctrObs').value || '';
   
   // Format dates
@@ -156,6 +200,10 @@ function renderContratoPreview() {
   }
   
   h += '<div class="clausula">Ambas partes firman de conformidad en la ciudad de '+ciudad+', a los ______ d\u00edas del mes de ______________ de 20____.</div>';
+  if (firmado) {
+    h += '<div class="clausula"><div class="clausula-title">CONSTANCIA DE FIRMA</div>';
+    h += 'Contrato marcado como firmado por la operadora'+(fechaFirma ? ' el <strong>'+fmtD(fechaFirma)+'</strong>' : '')+'.</div>';
+  }
   
   h += '<div class="firmas">';
   h += '<div class="firma-box"><div class="firma-line">EL ARRENDADOR<br>DepiM\u00f3vil</div></div>';
@@ -187,6 +235,10 @@ function saveContrato() {
     moneda: document.getElementById('ctrMoneda').value,
     formaPago: document.getElementById('ctrFormaPago').value,
     garantia: parseFloat(document.getElementById('ctrGarantia').value) || 0,
+    firmado: document.getElementById('ctrFirmado').value === 'firmado',
+    fechaFirma: document.getElementById('ctrFechaFirma').value,
+    cedulaFrente: _ctrDocumentos.frente,
+    cedulaDorso: _ctrDocumentos.dorso,
     obs: document.getElementById('ctrObs').value,
     creadoEn: new Date().toISOString(),
     estado: 'activo'

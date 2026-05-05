@@ -54,6 +54,9 @@ a{color:var(--accent);text-decoration:none}
 .upload-area p{font-size:13px;color:var(--text2)}
 .upload-area small{font-size:11px;color:var(--text3);display:block;margin-top:6px}
 .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.upload-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+.preview-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
 
 .preview-img{max-width:200px;max-height:150px;border-radius:8px;margin-top:12px;border:1px solid var(--border)}
 
@@ -107,6 +110,9 @@ a{color:var(--accent);text-decoration:none}
 /* Success check */
 .success-icon{width:48px;height:48px;background:rgba(82,196,138,0.12);border-radius:50%;
   display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px}
+@media(max-width:560px){
+  .upload-grid,.preview-row{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -136,7 +142,7 @@ a{color:var(--accent);text-decoration:none}
     <!-- CÉDULA -->
     <div class="card" id="cedulaCard">
       <h3>🪪 Cédula de Identidad <span id="cedulaStatus"></span></h3>
-      <p class="desc">Subí una foto clara de tu cédula de identidad (frente). Solo es necesario hacerlo una vez.</p>
+      <p class="desc">Subí fotos claras de tu cédula de identidad, frente y dorso. Solo es necesario hacerlo una vez.</p>
       <div id="cedulaBody"></div>
     </div>
 
@@ -210,59 +216,74 @@ function renderCedula() {
   } else {
     statusEl.innerHTML = '<span class="status status-missing">Pendiente</span>';
     bodyEl.innerHTML = `
-      <div class="upload-area" id="cedulaUpload" ondragover="event.preventDefault();this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')" ondrop="handleDrop(event)">
-        <div class="icon">📸</div>
-        <p>Arrastrá o tocá para subir la foto de tu cédula</p>
-        <small>JPG, PNG, PDF o WebP · Máximo 10 MB</small>
-        <input type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="uploadCedula(this.files[0])"/>
+      <div class="upload-grid">
+        <div class="upload-area" id="cedulaUploadFrente" ondragover="event.preventDefault();this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')" ondrop="handleDrop(event,'frente')">
+          <div class="icon">📸</div>
+          <div class="upload-title">Frente</div>
+          <p>Foto del frente</p>
+          <small>JPG, PNG, PDF o WebP · Máximo 10 MB</small>
+          <input type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="uploadCedula('frente', this.files[0])"/>
+        </div>
+        <div class="upload-area" id="cedulaUploadDorso" ondragover="event.preventDefault();this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')" ondrop="handleDrop(event,'dorso')">
+          <div class="icon">📸</div>
+          <div class="upload-title">Dorso</div>
+          <p>Foto del dorso</p>
+          <small>JPG, PNG, PDF o WebP · Máximo 10 MB</small>
+          <input type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="uploadCedula('dorso', this.files[0])"/>
+        </div>
       </div>
-      <div id="cedulaPreview"></div>
+      <div class="preview-row">
+        <div id="cedulaPreviewFrente"></div>
+        <div id="cedulaPreviewDorso"></div>
+      </div>
       <div id="cedulaActions" style="display:none;margin-top:14px;text-align:center">
         <button class="btn btn-primary" id="btnConfirmCedula" onclick="confirmCedula()">📤 Confirmar y Enviar</button>
       </div>`;
   }
 }
 
-let _pendingFile = null;
+let _pendingFiles = { frente: null, dorso: null };
 
-function handleDrop(e) {
+function handleDrop(e, lado) {
   e.preventDefault();
   e.target.closest('.upload-area').classList.remove('dragging');
   const file = e.dataTransfer.files[0];
-  if (file) previewCedula(file);
+  if (file) previewCedula(lado, file);
 }
 
-function previewCedula(file) {
-  _pendingFile = file;
-  const preview = document.getElementById('cedulaPreview');
+function previewCedula(lado, file) {
+  _pendingFiles[lado] = file;
+  const preview = document.getElementById(lado === 'frente' ? 'cedulaPreviewFrente' : 'cedulaPreviewDorso');
   if (file.type.startsWith('image/')) {
     const reader = new FileReader();
     reader.onload = e => {
-      preview.innerHTML = `<img src="${e.target.result}" class="preview-img" alt="Preview"/>`;
+      preview.innerHTML = `<img src="${e.target.result}" class="preview-img" alt="Preview ${lado}"/>`;
     };
     reader.readAsDataURL(file);
   } else {
     preview.innerHTML = `<div style="margin-top:12px;font-size:13px;color:var(--text2)">📄 ${file.name}</div>`;
   }
-  document.getElementById('cedulaActions').style.display = '';
+  document.getElementById('cedulaActions').style.display = (_pendingFiles.frente && _pendingFiles.dorso) ? '' : 'none';
 }
 
-function uploadCedula(file) {
-  if (file) previewCedula(file);
+function uploadCedula(lado, file) {
+  if (file) previewCedula(lado, file);
 }
 
 async function confirmCedula() {
-  if (!_pendingFile) return;
+  if (!_pendingFiles.frente || !_pendingFiles.dorso) return;
   const btn = document.getElementById('btnConfirmCedula');
   btn.disabled = true; btn.textContent = 'Subiendo...';
   try {
     const fd = new FormData();
-    fd.append('archivo', _pendingFile);
+    fd.append('archivo', _pendingFiles.frente);
+    fd.append('frente', _pendingFiles.frente);
+    fd.append('dorso', _pendingFiles.dorso);
     const r = await fetch(`${API}/${TOKEN}/cedula`, { method: 'POST', body: fd });
     if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
     const res = await r.json();
     DATA.cedula = { created_at: new Date().toISOString(), archivo_url: res.archivo_url };
-    _pendingFile = null;
+    _pendingFiles = { frente: null, dorso: null };
     renderCedula();
     toast('✅ Cédula subida correctamente');
   } catch (e) {
