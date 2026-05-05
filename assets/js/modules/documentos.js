@@ -22,6 +22,17 @@ function docsPortalUrl(token){
   return token ? window.location.origin + '/portal.html?token=' + token : '';
 }
 
+function docsFileUrl(doc){
+  if(!doc || !doc.archivo_url) return '';
+  if(/^https?:\/\//.test(doc.archivo_url)) return doc.archivo_url;
+  return window.location.origin + doc.archivo_url;
+}
+
+function docsFileLink(doc, label){
+  const url = docsFileUrl(doc);
+  return url ? `<a class="action-btn" href="${url}" target="_blank" rel="noopener">${label}</a>` : `<span class="badge badge-red">${label} pendiente</span>`;
+}
+
 function getReservasActivasOp(opId){
   return (DB.get('reservas') || []).filter(function(r){
     return r.operadoraId === opId && ['confirmada','activa','aprobada','solicitud_recibida','pendiente_aprobacion'].includes(r.estado);
@@ -129,6 +140,7 @@ function renderDocumentosRows(){
         ${portal ? `<button class="action-btn" onclick="copyPortalLink('${op.portalToken}')">Copiar link</button>` : '<span class="badge badge-gray">Sin token</span>'}
       </td>
       <td style="white-space:nowrap">
+        <button class="action-btn" onclick="openDocumentosModal(${op.id})">Ver documentos</button>
         <button class="action-btn" onclick="showOpFicha(${op.id})">Ver ficha</button>
         ${portal ? `<a class="action-btn" href="${portal}" target="_blank" rel="noopener">Abrir portal</a>` : ''}
       </td>
@@ -144,4 +156,55 @@ function updateDocumentosBadge(){
   }).length;
   badge.textContent = pendientes;
   badge.style.display = pendientes ? 'inline-flex' : 'none';
+}
+
+function openDocumentosModal(opId){
+  const row = documentosCache.find(function(r){ return r.op.id === opId; });
+  if(!row) return;
+  const op = row.op;
+  const portal = docsPortalUrl(op.portalToken);
+  const body = document.getElementById('modalDocumentosBody');
+  const contratosHTML = row.reservas.length ? row.reservas.map(function(r){
+    const firmado = row.contratosDocs.find(function(ct){ return ct.maquina_id === r.maquinaId; });
+    const maq = getMaq(r.maquinaId);
+    return `<div class="docs-detail-row">
+      <div>
+        <div class="bold">${maq ? maq.nombre : 'Máquina #' + r.maquinaId}</div>
+        <div class="docs-line">${r.codigo || 'Reserva'} · ${maq ? maq.codigo : ''}</div>
+      </div>
+      <div>${firmado ? `<span class="badge badge-green">Firmado</span><div class="docs-line">${fmtDate(firmado.firmado_en || firmado.created_at)}</div>` : '<span class="badge badge-yellow">Pendiente firma</span>'}</div>
+    </div>`;
+  }).join('') : '<div class="empty-state" style="padding:14px">Sin reservas activas con contrato.</div>';
+
+  body.innerHTML = `
+    <div class="docs-detail-head">
+      <div>
+        <h2>${op.nombre} ${op.apellido || ''}</h2>
+        <p>${op.gabinete || 'Sin gabinete'} · ${op.ciudad || 'Sin ciudad'}, ${op.departamento || ''}</p>
+      </div>
+      <div class="docs-doc-list">
+        ${portal ? `<button class="action-btn" onclick="copyPortalLink('${op.portalToken}')">Copiar portal</button>` : '<span class="badge badge-gray">Sin portal</span>'}
+        ${portal ? `<a class="action-btn" href="${portal}" target="_blank" rel="noopener">Abrir portal</a>` : ''}
+      </div>
+    </div>
+    <div class="docs-detail-grid">
+      <div class="docs-detail-card">
+        <div class="docs-detail-title">Cédula de identidad</div>
+        <div class="docs-doc-list">
+          ${docsFileLink(row.cedulaFrente, 'Ver frente')}
+          ${docsFileLink(row.cedulaDorso, 'Ver dorso')}
+        </div>
+        <div class="docs-line">${row.cedulaFrente ? 'Frente subida ' + fmtDate(row.cedulaFrente.created_at) : 'Falta frente'} · ${row.cedulaDorso ? 'Dorso cargado' : 'Falta dorso'}</div>
+      </div>
+      <div class="docs-detail-card">
+        <div class="docs-detail-title">Estado de contratos</div>
+        <span class="badge ${row.contratosPendientes ? 'badge-yellow' : 'badge-green'}">${row.contratosFirmados}/${row.reservas.length} firmados</span>
+        <div class="docs-line">${row.contratosPendientes ? row.contratosPendientes + ' contrato(s) pendiente(s)' : 'Sin pendientes de firma'}</div>
+      </div>
+    </div>
+    <div class="docs-detail-card" style="margin-top:12px">
+      <div class="docs-detail-title">Contratos por máquina</div>
+      ${contratosHTML}
+    </div>`;
+  openModal('modalDocumentos');
 }
