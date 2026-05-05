@@ -75,6 +75,12 @@ input,select,textarea{font-family:inherit}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;
   padding:2px 6px;border-radius:10px;min-width:18px;text-align:center;}
 .sidebar-footer{padding:16px;border-top:1px solid var(--border);}
+.sidebar-bottom-logo{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;
+  border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.02)}
+.sidebar-bottom-logo-mark{width:34px;height:34px;border-radius:8px;background-image:url(/logo.jpg?v=4);
+  background-size:cover;background-position:center;flex-shrink:0;box-shadow:0 6px 18px rgba(212,169,106,0.16)}
+.sidebar-bottom-logo strong{display:block;font-size:13px;color:var(--text);line-height:1.2}
+.sidebar-bottom-logo span{display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
 .user-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
   background:var(--surface2);border:1px solid var(--border);}
 .user-avatar{width:32px;height:32px;border-radius:8px;
