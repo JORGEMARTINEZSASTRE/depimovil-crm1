@@ -1,0 +1,165 @@
+/* ══════════════════════════════════
+   OPERADORAS
+══════════════════════════════════ */
+let opFilter={search:'',status:''};
+function badgeOp(e){
+  const m={activa:'badge-green',prospecto:'badge-blue',inactiva:'badge-gray',suspendida:'badge-red'};
+  const l={activa:'Activa',prospecto:'Prospecto',inactiva:'Inactiva',suspendida:'Suspendida'};
+  return `<span class="badge ${m[e]||'badge-gray'}">${l[e]||e}</span>`;
+}
+function renderOperadoras(){
+  const ops=(DB.get('operadoras')||[]).filter(o=>{
+    const q=opFilter.search.toLowerCase();
+    const ms=!q||(o.nombre+' '+o.apellido+' '+o.gabinete+' '+o.ciudad).toLowerCase().includes(q);
+    return ms&&(!opFilter.status||o.estado===opFilter.status);
+  });
+  const tbody=document.getElementById('opTableBody');
+  if(!ops.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">👩‍💼</div><h3>Sin resultados</h3><p>No hay operadoras que coincidan.</p></div></td></tr>`;return;}
+  tbody.innerHTML=ops.map(o=>`<tr>
+    <td><span class="bold">${o.nombre} ${o.apellido}</span></td>
+    <td>${o.gabinete||'—'}</td><td>${o.ciudad}</td><td>${o.departamento}</td>
+    <td>${badgeOp(o.estado)}</td><td><span style="color:var(--text2)">${o.nivel}</span></td>
+    <td style="white-space:nowrap">
+      <button class="action-btn" onclick="showOpFicha(${o.id})">Ver</button>
+      ${canEdit()?`<button class="action-btn" onclick="openOpModal(${o.id})" style="margin-left:4px">Editar</button>`:''}
+    </td></tr>`).join('');
+}
+function filterOperadoras(v){opFilter.search=v;renderOperadoras();}
+function filterOpStatus(v){opFilter.status=v;renderOperadoras();}
+function showOpFicha(id){
+  const ops=DB.get('operadoras')||[];const o=ops.find(x=>x.id===id);if(!o)return;
+  const reservas=(DB.get('reservas')||[]).filter(r=>r.operadoraId===id);
+  navigate('operadora-ficha');
+  document.getElementById('fichaOpContent').innerHTML=`
+    <div class="ficha-header">
+      <div class="ficha-header-left">
+        <div class="ficha-avatar op">${o.nombre.charAt(0)}${o.apellido.charAt(0)}</div>
+        <div class="ficha-title"><h2>${o.nombre} ${o.apellido}</h2><p>${o.gabinete||''} · ${o.ciudad}, ${o.departamento}</p></div>
+      </div>
+      <div class="ficha-actions">
+        ${badgeOp(o.estado)}
+        ${canEdit()?`<button class="btn-secondary" onclick="openOpModal(${o.id})">✏️ Editar</button>`:''}
+        ${isSuperAdmin()?`<button class="btn-danger" onclick="deleteOperadora(${o.id})">🗑</button>`:''}
+      </div>
+    </div>
+    <div class="ficha-grid">
+      <div class="info-card">
+        <h4>📋 Datos Personales</h4>
+        ${ir('Nombre completo',o.nombre+' '+o.apellido)}${ir('Email',o.email||'—')}
+        ${ir('WhatsApp',o.whatsapp||'—')}${ir('Teléfono',o.telefono||'—')}
+        ${ir('Fecha de alta',fmtDate(o.fechaAlta))}${ir('Estado',badgeOp(o.estado))}
+        ${ir('Nivel',`<span class="badge badge-blue">${o.nivel}</span>`)}
+      </div>
+      <div class="info-card">
+        <h4>📍 Ubicación & Entrega</h4>
+        ${ir('Gabinete',o.gabinete||'—')}${ir('Ciudad',o.ciudad)}
+        ${ir('Departamento',o.departamento)}${ir('País',o.pais)}
+        ${o.direccionEntrega?ir('📦 Dir. Entrega',`<span style="color:var(--accent);font-weight:600">${o.direccionEntrega}</span><span class="badge ${o.tipoDireccion==='trabajo'?'badge-blue':'badge-purple'}" style="margin-left:8px">${o.tipoDireccion==='trabajo'?'🏢 Trabajo':'🏠 Domicilio'}</span>`):ir('📦 Dir. Entrega','<span style="color:var(--red);font-size:12px">⚠️ Sin dirección</span>')}
+      </div>
+      <div class="info-card">
+        <h4>📅 Reservas (${reservas.length})</h4>
+        ${reservas.length?reservas.slice(0,5).map(r=>{
+          const maq=getMaq(r.maquinaId);
+          return `<div class="dash-list-item"><div><div class="name">${maq?maq.nombre:'—'}</div><div class="sub">${fmtDate(r.fechaInicio)} → ${fmtDate(r.fechaFin)}</div></div><div style="display:flex;gap:6px;align-items:center">${badgeRes(r.estado)}<button class="action-btn" onclick="showResFicha(${r.id})">Ver</button></div></div>`;
+        }).join(''):`<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin reservas registradas.</div>`}
+      </div>
+      <div class="info-card full">
+        <h4>📝 Observaciones Internas</h4>
+        <div class="obs-text">${o.obs||'Sin observaciones.'}</div>
+      </div>
+      <div class="info-card full">
+        <h4>💳 Resumen Financiero</h4>
+        ${(()=>{
+          const opPagos=(DB.get('pagos')||[]).filter(p=>p.operadoraId===id);
+          const deuda=opPagos.filter(p=>p.estado==='deuda_vencida');
+          const pendSena=opPagos.filter(p=>p.estado==='sena_pendiente');
+          const validados=opPagos.filter(p=>p.estado==='validado');
+          const totalSaldo=opPagos.reduce((s,p)=>s+(p.saldoPendiente||0),0);
+          if(!opPagos.length) return `<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin pagos registrados. <button class="action-btn" onclick="navigate('pagos')">Ver módulo de pagos</button></div>`;
+          return `<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+            <div class="fin-cell"><div class="fc-label">Total pagos</div><div class="fc-value" style="color:var(--text)">${opPagos.length}</div></div>
+            <div class="fin-cell"><div class="fc-label">Saldo pendiente</div><div class="fc-value" style="color:${totalSaldo>0?'var(--yellow)':'var(--green)'}">${totalSaldo.toLocaleString()} UYU</div></div>
+            <div class="fin-cell"><div class="fc-label">Validados</div><div class="fc-value" style="color:var(--green)">${validados.length}</div></div>
+          </div>
+          ${deuda.length?`<div class="alert-banner danger" style="padding:8px 12px"><span class="ab-icon">🚨</span><strong>${deuda.length} deuda${deuda.length>1?'s':''} vencida${deuda.length>1?'s':''}</strong> — Esta operadora tiene deudas sin regularizar.</div>`:''}
+          ${pendSena.length?`<div class="alert-banner warn" style="margin-top:8px;padding:8px 12px"><span class="ab-icon">💰</span><strong>${pendSena.length} seña${pendSena.length>1?'s':''} pendiente${pendSena.length>1?'s':''}</strong> — Esperando confirmación de pago.</div>`:''}
+          <div style="text-align:right;margin-top:8px"><button class="action-btn" onclick="navigate('pagos')">Ver todos los pagos →</button></div>`;
+        })()}
+      </div>
+      <div class="info-card full" id="docsPanel_${o.id}">
+        <h4 style="display:flex;align-items:center;justify-content:space-between">
+          🪨 Documentos & Contrato
+          ${o.portalToken?`<button class="btn-add" style="font-size:11px;padding:4px 10px" onclick="copyPortalLink('${o.portalToken}')">📋 Copiar Link Portal</button>`:'<span style="font-size:11px;color:var(--text3)">Sin token</span>'}
+        </h4>
+        <div id="docsBody_${o.id}" style="padding:8px 0;color:var(--text3);font-size:13px">Cargando documentos...</div>
+      </div>
+      ${renderHabPanel(o.id)}
+      ${renderCapPanel(o.id)}
+    </div>`;
+  loadOpDocs(o.id);
+}
+function openOpModal(id){
+  document.getElementById('modalOpTitle').textContent=id?'Editar Operadora':'Nueva Operadora';
+  if(id){
+    const o=(DB.get('operadoras')||[]).find(x=>x.id===id);if(!o)return;
+    sv('opId',o.id);sv('opNombre',o.nombre);sv('opApellido',o.apellido);sv('opGabinete',o.gabinete);
+    sv('opCiudad',o.ciudad);sv('opDepartamento',o.departamento);sv('opPais',o.pais);
+    sv('opWhatsapp',o.whatsapp);sv('opTelefono',o.telefono);sv('opEmail',o.email);
+    sv('opFechaAlta',o.fechaAlta);sv('opEstado',o.estado);sv('opNivel',o.nivel);sv('opObs',o.obs);
+    sv('opDireccionEntrega',o.direccionEntrega||'');sv('opTipoDireccion',o.tipoDireccion||'trabajo');
+  } else {
+    ['opId','opNombre','opApellido','opGabinete','opCiudad','opDepartamento','opWhatsapp','opTelefono','opEmail','opObs','opDireccionEntrega'].forEach(f=>sv(f,''));
+    sv('opTipoDireccion','trabajo');
+    sv('opPais','Uruguay');sv('opFechaAlta',today());sv('opEstado','prospecto');sv('opNivel','Inicial');
+  }
+  openModal('modalOp');
+}
+async function saveOperadora(){
+  const id=gv('opId');
+  const payload={
+    nombre:gv('opNombre').trim(),apellido:gv('opApellido').trim(),gabinete:gv('opGabinete').trim(),
+    ciudad:gv('opCiudad').trim(),departamento:gv('opDepartamento').trim(),pais:gv('opPais').trim(),
+    whatsapp:gv('opWhatsapp').trim(),telefono:gv('opTelefono').trim(),email:gv('opEmail').trim(),
+    fecha_alta:gv('opFechaAlta'),estado:gv('opEstado'),nivel:gv('opNivel'),obs:gv('opObs').trim(),
+    direccion_entrega:gv('opDireccionEntrega').trim(),tipo_direccion:gv('opTipoDireccion')};
+  if(!payload.nombre||!payload.apellido){showToast('\u26a0\ufe0f Nombre y apellido son obligatorios','warn');return;}
+  try{
+    let saved;
+    if(id){
+      saved=await api('/api/operadoras/'+id,{method:'PUT',body:JSON.stringify(payload)});
+      showToast('\u2705 Operadora actualizada');
+    }else{
+      saved=await api('/api/operadoras',{method:'POST',body:JSON.stringify(payload)});
+      showToast('\u2705 Operadora creada');
+      const leadId=document._leadConvertiendo;
+      if(leadId&&saved.id){
+        _completarConversionLead(leadId,saved.id);
+        delete document._leadConvertiendo;
+        document.getElementById('modalOpTitle').textContent='Nueva Operadora';
+        showToast('\ud83c\udf89 Lead convertido en operadora \u2713');
+      }
+    }
+    const ops=await api('/api/operadoras');
+    DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
+      gabinete:o.gabinete||'',ciudad:o.ciudad||'',departamento:o.departamento||'',
+      pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
+      email:o.email||'',fechaAlta:o.fecha_alta,estado:o.estado,
+      nivel:o.nivel||'Intermedio',obs:o.obs||'',
+      direccionEntrega:o.direccion_entrega||'',tipoDireccion:o.tipo_direccion||'trabajo',portalToken:o.portal_token||''})));
+    closeModal('modalOp');renderOperadoras();
+  }catch(e){showToast('\u274c Error: '+e.message,'error');}
+}
+async function deleteOperadora(id){
+  if(!confirm('\u00bfEliminar esta operadora?'))return;
+  try{
+    await api('/api/operadoras/'+id,{method:'DELETE'});
+    const ops=await api('/api/operadoras');
+    DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
+      gabinete:o.gabinete||'',ciudad:o.ciudad||'',departamento:o.departamento||'',
+      pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
+      email:o.email||'',fechaAlta:o.fecha_alta,estado:o.estado,
+      nivel:o.nivel||'Intermedio',obs:o.obs||'',
+      direccionEntrega:o.direccion_entrega||'',tipoDireccion:o.tipo_direccion||'trabajo',portalToken:o.portal_token||''})));
+    showToast('\ud83d\uddd1 Operadora eliminada');navigate('operadoras');
+  }catch(e){showToast('\u274c Error: '+e.message,'error');}
+}
