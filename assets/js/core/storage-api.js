@@ -64,6 +64,24 @@ function mapContrato(c){
     token:c.token||''
   };
 }
+async function syncContratosLocales(contratosApi){
+  const locales = DB.get('contratos') || [];
+  if ((contratosApi || []).length || !locales.length) return contratosApi;
+  const subidos = [];
+  for (const c of locales) {
+    try {
+      const creado = await api('/api/contratos', {method:'POST', body:JSON.stringify({
+        operadora_id:c.operadoraId, maquina_id:c.maquinaId, nombre:c.nombre, ci:c.ci,
+        domicilio:c.domicilio, ciudad:c.ciudad, maquina:c.maquina, serial:c.serial,
+        fecha_inicio:c.fechaInicio, fecha_fin:c.fechaFin, monto:c.monto, moneda:c.moneda,
+        forma_pago:c.formaPago, garantia:c.garantia, firmado:c.firmado, fecha_firma:c.fechaFirma,
+        cedula_frente_meta:c.cedulaFrente, cedula_dorso_meta:c.cedulaDorso, obs:c.obs
+      })});
+      subidos.push(creado);
+    } catch(e) {}
+  }
+  return subidos.length ? subidos : contratosApi;
+}
 async function loadAllData(){
   try{
     const[ops,maqs,reservas,pagos,leads,contratos]=await Promise.all([
@@ -93,7 +111,8 @@ async function loadAllData(){
       fuente:l.canal||'',interes:'',tecnologia:'',estado:l.estado||'nuevo',
       obs:l.obs||'',fechaAlta:l.created_at?l.created_at.split('T')[0]:'',
       fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',operadoraId:null})));
-    DB.set('contratos',contratos.map(mapContrato));
+    const contratosFinales = await syncContratosLocales(contratos);
+    DB.set('contratos',contratosFinales.map(mapContrato));
   }catch(e){
     console.error('Error cargando datos:',e);
     showToast('⚠️ Error conectando con el servidor','warn');
