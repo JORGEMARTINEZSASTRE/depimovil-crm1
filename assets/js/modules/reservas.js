@@ -102,6 +102,10 @@ function renderReservas(){
   if(alertas.urgentes.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🚨</span><div><strong>${alertas.urgentes.length} reserva${alertas.urgentes.length>1?'s':''} vencida${alertas.urgentes.length>1?'s':''}</strong> — Actualizá el estado.</div></div>`;
   if(alertas.sinAprobacion.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">📥</span><div><strong>${alertas.sinAprobacion.length} solicitud${alertas.sinAprobacion.length>1?'es':''} sin revisar</strong> — Requieren aprobación o rechazo.</div></div>`;
   if(alertas.proximas.length) alertsHTML+=`<div class="alert-banner info"><span class="ab-icon">⏰</span><div><strong>${alertas.proximas.length} reserva${alertas.proximas.length>1?'s':''}</strong> vence${alertas.proximas.length>1?'n':''} en los próximos 5 días.</div></div>`;
+  if(typeof updateReservasAutomatizacionBadge==='function'){
+    const bloqueadas=updateReservasAutomatizacionBadge();
+    if(bloqueadas) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⛔</span><div><strong>${bloqueadas} reserva${bloqueadas>1?'s':''} bloqueada${bloqueadas>1?'s':''}</strong> — Revisá documentos, contrato, pagos o logística antes de confirmar.</div></div>`;
+  }
   document.getElementById('resAlerts').innerHTML=alertsHTML;
 
   const filtered=reservas.filter(r=>{
@@ -115,7 +119,7 @@ function renderReservas(){
   });
 
   const tbody=document.getElementById('resTableBody');
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">📅</div><h3>Sin reservas</h3><p>No hay reservas que coincidan.</p></div></td></tr>`;return;}
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="10"><div class="empty-state"><div class="icon">📅</div><h3>Sin reservas</h3><p>No hay reservas que coincidan.</p></div></td></tr>`;return;}
 
   tbody.innerHTML=filtered.map(r=>{
     const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId);
@@ -129,6 +133,7 @@ function renderReservas(){
       <td>${isVencida?`<span style="color:var(--red)">${fmtDate(fechaDisplay)}</span>`:fmtDate(fechaDisplay)}</td>
       <td>${r.tipo!=='jornada'?(isVencida?`<span style="color:var(--red)">${fmtDate(r.fechaFin)} ⚠️</span>`:fmtDate(r.fechaFin)):'—'}</td>
       <td><span style="font-size:12px;color:var(--text2)">${r.deptLogistica||'—'}</span></td>
+      <td>${typeof renderReservaAutomatizacionBadge==='function'?renderReservaAutomatizacionBadge(r):'—'}</td>
       <td>${badgeRes(r.estado)}</td>
       <td style="white-space:nowrap">
         <button class="action-btn" onclick="showResFicha(${r.id})">Ver</button>
@@ -173,6 +178,7 @@ function showResFicha(id){
         return `<div class="alert-banner warn"><span class="ab-icon">⚙️</span><strong>Pendiente para confirmar:</strong> ${viab.motivo}</div>`;
       return '';
     })()}
+    ${typeof renderReservaAutomatizacionPanel==='function'?renderReservaAutomatizacionPanel(r):''}
     <div class="ficha-grid">
       <div class="info-card">
         <h4>📋 Datos de la Reserva</h4>
@@ -334,10 +340,11 @@ function onResSelectionChange(){
   const dept=gv('resDeptLogistica');
   const divDisp=document.getElementById('resDisponibilidad');
   const msgEl=document.getElementById('resDisponibilidadMsg');
-  if(!maqId||!fi){divDisp.style.display='none';return;}
+  if(!maqId||!fi){divDisp.style.display='none';if(typeof renderReservaModalAutomatizacion==='function')renderReservaModalAutomatizacion();return;}
   const chk=checkDisponibilidad(parseInt(maqId),fi,ff||fi,excluir,dept);
   divDisp.style.display='block';
   msgEl.innerHTML=`<div class="${chk.ok?'avail-ok':'avail-err'}">${chk.msg}</div>`;
+  if(typeof renderReservaModalAutomatizacion==='function')renderReservaModalAutomatizacion();
 }
 
 async function saveReserva(){
@@ -366,6 +373,15 @@ async function saveReserva(){
     bloque_logistico:gv('resBloqueLogistico')==='true',
     monto:parseFloat(gv('resMonto'))||0,moneda:gv('resMoneda'),notas:gv('resNotas').trim(),
   };
+  if(payload.estado==='confirmada'&&typeof validarReservaAutomatica==='function'){
+    const temp={id:parseInt(id)||0,operadoraId:opId,maquinaId:maqId,tipo,fechaJornada,fechaInicio,fechaFin,
+      estado:payload.estado,deptLogistica:payload.dept_logistica,bloqueLogistico:payload.bloque_logistico,monto:payload.monto};
+    const validacion=validarReservaAutomatica(temp);
+    if(!validacion.puede){
+      showToast('⛔ No se puede confirmar: '+validacion.motivo,'warn');
+      return;
+    }
+  }
   try{
     const saved=id
       ?await api(`/api/reservas/${id}`,{method:'PUT',body:JSON.stringify(payload)})
@@ -397,6 +413,13 @@ async function confirmarCambioEstadoRes(){
   const idx=reservas.findIndex(x=>x.id===id); if(idx<0)return;
   const prevEstado=reservas[idx].estado;
   if(prevEstado===nuevoEstado){showToast('⚠️ El estado es igual al actual','warn');return;}
+  if(nuevoEstado==='confirmada'&&typeof validarReservaAutomatica==='function'){
+    const validacion=validarReservaAutomatica(reservas[idx]);
+    if(!validacion.puede){
+      showToast('⛔ No se puede confirmar: '+validacion.motivo,'warn');
+      return;
+    }
+  }
   try{
     await api(`/api/reservas/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado:nuevoEstado,motivo})});
     reservas[idx].estado=nuevoEstado;

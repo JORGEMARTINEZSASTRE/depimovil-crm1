@@ -395,7 +395,7 @@
             <div style="overflow-x:auto">
               <table><thead><tr>
                 <th>Código</th><th>Operadora</th><th>Máquina</th><th>Tipo</th>
-                <th>Fecha Jornada / Inicio</th><th>Fin</th><th>Depto.</th><th>Estado</th><th>Acciones</th>
+                <th>Fecha Jornada / Inicio</th><th>Fin</th><th>Depto.</th><th>Control</th><th>Estado</th><th>Acciones</th>
               </tr></thead><tbody id="resTableBody"></tbody></table>
             </div>
           </div>
@@ -841,10 +841,11 @@
         <div class="form-field full" id="resDisponibilidad" style="display:none">
           <div id="resDisponibilidadMsg"></div>
         </div>
+        <div class="form-field full" id="resAutomatizacion" style="display:none"></div>
         <div class="form-section-title">Logística (para bloqueo por departamento)</div>
         <div class="form-field">
           <label>Departamento Logístico</label>
-          <select id="resDeptLogistica">
+          <select id="resDeptLogistica" onchange="onResSelectionChange()">
             <option value="">— Sin asignar —</option>
             <option>Montevideo</option><option>Canelones</option><option>Maldonado</option>
             <option>Salto</option><option>Paysandú</option><option>Rivera</option>
@@ -857,7 +858,7 @@
         </div>
         <div class="form-field">
           <label>Bloqueo Logístico</label>
-          <select id="resBloqueLogistico">
+          <select id="resBloqueLogistico" onchange="onResSelectionChange()">
             <option value="false">No bloqueado</option>
             <option value="true">Bloqueado (preparar envío)</option>
           </select>
@@ -865,7 +866,7 @@
         <div class="form-section-title">Tarifa</div>
         <div class="form-field">
           <label>Monto</label>
-          <input type="number" id="resMonto" placeholder="0"/>
+          <input type="number" id="resMonto" placeholder="0" oninput="onResSelectionChange()"/>
         </div>
         <div class="form-field">
           <label>Moneda</label>
@@ -1699,6 +1700,7 @@
 <script data-cfasync="false" src="assets/js/modules/reservas.js"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js"></script>
 <script data-cfasync="false" src="assets/js/modules/pagos.js"></script>
+<script data-cfasync="false" src="assets/js/modules/reserva-automatizacion.js"></script>
 <script data-cfasync="false" src="assets/js/modules/whatsapp.js"></script>
 <script data-cfasync="false" src="assets/js/modules/envios.js"></script>
 <script data-cfasync="false" src="assets/js/modules/configuracion.js"></script>

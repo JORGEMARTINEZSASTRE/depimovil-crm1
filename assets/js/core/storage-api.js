@@ -86,10 +86,11 @@ async function loadAllData(){
   try{
     const results=await Promise.allSettled([
       api('/api/operadoras'),api('/api/maquinas'),api('/api/reservas'),
-      api('/api/pagos'),api('/api/leads'),api('/api/contratos')
+      api('/api/pagos'),api('/api/leads'),api('/api/contratos'),
+      api('/api/auth/operadoras/revision')
     ]);
     const val=function(i, fallback){return results[i].status==='fulfilled'?results[i].value:fallback};
-    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]);
+    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]);
     DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
       gabinete:o.gabinete||'',ciudad:o.ciudad,departamento:o.departamento||'',
       pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
@@ -115,6 +116,13 @@ async function loadAllData(){
       fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',operadoraId:null})));
     const contratosFinales = await syncContratosLocales(contratos);
     DB.set('contratos',contratosFinales.map(mapContrato));
+    DB.set('revision_operadoras',revisiones||[]);
+    const docsResults=await Promise.allSettled((ops||[]).map(o=>api('/api/portal/docs/'+o.id)));
+    const docs=[];
+    docsResults.forEach(function(r){
+      if(r.status==='fulfilled'&&Array.isArray(r.value)) docs.push(...r.value);
+    });
+    DB.set('documentos_operadora',docs);
   }catch(e){
     console.error('Error cargando datos:',e);
     showToast('⚠️ Error conectando con el servidor','warn');

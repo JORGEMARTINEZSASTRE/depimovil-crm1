@@ -255,6 +255,9 @@ td .bold{color:var(--text);font-weight:500}
 .check-grid input{width:auto;padding:0;accent-color:var(--accent)}
 .revision-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .revision-actions{flex-wrap:wrap}
+.auto-check-list{margin:8px 0 0 16px;color:var(--text2);font-size:12px;line-height:1.5}
+.auto-check-list li.bloqueo{color:var(--red)}
+.auto-check-list li.aviso{color:var(--yellow)}
 
 /* EMPTY STATE */
 .empty-state{padding:60px 20px;text-align:center;}
