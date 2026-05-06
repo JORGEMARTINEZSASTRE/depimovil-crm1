@@ -218,7 +218,8 @@ function printContrato() {
   setTimeout(function(){ window.print(); }, 300);
 }
 
-function saveContrato() {
+async function saveContrato() {
+  renderContratoPreview();
   var contrato = {
     id: _ctrNextId++,
     operadoraId: parseInt(document.getElementById('ctrOperadora').value) || null,
@@ -243,6 +244,34 @@ function saveContrato() {
     creadoEn: new Date().toISOString(),
     estado: 'activo'
   };
+  try {
+    var payload = {
+      operadora_id: contrato.operadoraId,
+      maquina_id: contrato.maquinaId,
+      nombre: contrato.nombre,
+      ci: contrato.ci,
+      domicilio: contrato.domicilio,
+      ciudad: contrato.ciudad,
+      maquina: contrato.maquina,
+      serial: contrato.serial,
+      fecha_inicio: contrato.fechaInicio,
+      fecha_fin: contrato.fechaFin,
+      monto: contrato.monto,
+      moneda: contrato.moneda,
+      forma_pago: contrato.formaPago,
+      garantia: contrato.garantia,
+      firmado: contrato.firmado,
+      fecha_firma: contrato.fechaFirma,
+      cedula_frente_meta: contrato.cedulaFrente,
+      cedula_dorso_meta: contrato.cedulaDorso,
+      obs: contrato.obs,
+      contenido: document.getElementById('contratoPreviewPrint').innerText || ''
+    };
+    var creado = await api('/api/contratos', {method:'POST', body:JSON.stringify(payload)});
+    contrato = typeof mapContrato === 'function' ? mapContrato(creado) : contrato;
+  } catch(e) {
+    if (typeof showToast === 'function') showToast('⚠️ No se pudo guardar en servidor. Guardado local temporal.');
+  }
   _contratos.push(contrato);
   localStorage.setItem('dm_contratos', JSON.stringify(_contratos));
   closeModal('modalContrato');

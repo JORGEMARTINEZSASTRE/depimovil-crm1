@@ -36,11 +36,39 @@ function mapReserva(r){
     monto:parseFloat(r.monto)||0,moneda:r.moneda||'UYU',
     notas:r.notas||'',creadaEn:r.created_at?r.created_at.split('T')[0]:''};
 }
+function mapContrato(c){
+  return {
+    id:c.id,
+    reservaId:c.reserva_id||null,
+    operadoraId:c.operadora_id||null,
+    nombre:c.nombre||c.operadora_nombre||'',
+    ci:c.ci||'',
+    domicilio:c.domicilio||'',
+    ciudad:c.ciudad||'',
+    maquinaId:c.maquina_id||null,
+    maquina:c.maquina||'',
+    serial:c.serial||'',
+    fechaInicio:c.fecha_inicio?c.fecha_inicio.split('T')[0]:'',
+    fechaFin:c.fecha_fin?c.fecha_fin.split('T')[0]:'',
+    monto:parseFloat(c.monto)||0,
+    moneda:c.moneda||'UYU',
+    formaPago:c.forma_pago||'Transferencia bancaria',
+    garantia:parseFloat(c.garantia)||0,
+    firmado:c.estado==='firmado'||!!c.firmado_en,
+    fechaFirma:c.firmado_en?c.firmado_en.split('T')[0]:'',
+    cedulaFrente:c.cedula_frente_meta||null,
+    cedulaDorso:c.cedula_dorso_meta||null,
+    obs:c.obs||'',
+    creadoEn:c.created_at||'',
+    estado:c.estado==='pendiente'?'activo':(c.estado||'activo'),
+    token:c.token||''
+  };
+}
 async function loadAllData(){
   try{
-    const[ops,maqs,reservas,pagos,leads]=await Promise.all([
+    const[ops,maqs,reservas,pagos,leads,contratos]=await Promise.all([
       api('/api/operadoras'),api('/api/maquinas'),api('/api/reservas'),
-      api('/api/pagos'),api('/api/leads')
+      api('/api/pagos'),api('/api/leads'),api('/api/contratos')
     ]);
     DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
       gabinete:o.gabinete||'',ciudad:o.ciudad,departamento:o.departamento||'',
@@ -65,6 +93,7 @@ async function loadAllData(){
       fuente:l.canal||'',interes:'',tecnologia:'',estado:l.estado||'nuevo',
       obs:l.obs||'',fechaAlta:l.created_at?l.created_at.split('T')[0]:'',
       fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',operadoraId:null})));
+    DB.set('contratos',contratos.map(mapContrato));
   }catch(e){
     console.error('Error cargando datos:',e);
     showToast('⚠️ Error conectando con el servidor','warn');

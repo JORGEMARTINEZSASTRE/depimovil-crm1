@@ -112,8 +112,13 @@ function previewContrato(id){
   switchContratoTab('preview');
 }
 
-function deleteContrato(id){
+async function deleteContrato(id){
   if(!confirm('¿Eliminar este contrato del listado?')) return;
+  try{
+    await api('/api/contratos/'+parseInt(id), {method:'DELETE'});
+  }catch(e){
+    showToast('⚠️ No se pudo eliminar en servidor. Se quita de esta vista.');
+  }
   const contratos = getContratos().filter(c=>c.id !== parseInt(id));
   setContratos(contratos);
   renderContratos();
