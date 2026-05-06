@@ -168,5 +168,6 @@ function startApp(){
   updateEnviosBadge();
   updateMaqBadge();
   updateLeadsBadge();
+  if(typeof updateRevisionOperadorasBadge==='function') updateRevisionOperadorasBadge();
   navigate('dashboard');
 }

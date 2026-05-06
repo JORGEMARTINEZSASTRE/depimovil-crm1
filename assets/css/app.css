@@ -253,6 +253,8 @@ td .bold{color:var(--text);font-weight:500}
 .check-grid label{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);
   border-radius:9px;padding:10px 12px;color:var(--text);font-size:13px;text-transform:none;letter-spacing:0}
 .check-grid input{width:auto;padding:0;accent-color:var(--accent)}
+.revision-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.revision-actions{flex-wrap:wrap}
 
 /* EMPTY STATE */
 .empty-state{padding:60px 20px;text-align:center;}
@@ -660,7 +662,7 @@ td .bold{color:var(--text);font-weight:500}
   .sidebar-overlay.open{display:block}.main{margin-left:0}.menu-toggle{display:block}
   .content{padding:16px}.dashboard-grid{grid-template-columns:1fr}
   .ficha-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}
-  .check-grid{grid-template-columns:1fr}
+  .check-grid{grid-template-columns:1fr}.revision-detail-grid{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:repeat(2,1fr)}table{font-size:12px}td,th{padding:10px 10px}
   .topbar{padding:0 16px}.table-header{flex-direction:column;align-items:flex-start}
   .search-input{width:100%}

@@ -140,6 +140,10 @@
           <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')">
             <span class="icon">👩‍💼</span> Operadoras
           </button>
+          <button class="nav-item" data-view="revision-operadoras" onclick="navigate('revision-operadoras')">
+            <span class="icon">☑</span> Revisión
+            <span class="nav-badge" id="navBadgeRevisionOps" style="display:none">0</span>
+          </button>
           <button class="nav-item" data-view="documentos" onclick="navigate('documentos')">
             <span class="icon">🪪</span> Documentos
             <span class="nav-badge" id="navBadgeDocumentos" style="display:none">0</span>
@@ -268,6 +272,32 @@
                 <th>Nombre</th><th>Gabinete / Actividad</th><th>Ciudad</th><th>Departamento</th>
                 <th>Estado</th><th>Nivel</th><th>Acciones</th>
               </tr></thead><tbody id="opTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- REVISION OPERADORAS -->
+        <div class="view" id="view-revision-operadoras">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>☑ Operadoras pendientes de revisión</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, ciudad, WhatsApp…" oninput="filterRevisionOperadoras(this.value)"/>
+                <select class="filter-select" onchange="filterRevisionEstado(this.value)">
+                  <option value="">Todas</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="documentos_solicitados">Documentos solicitados</option>
+                  <option value="observada">Observadas</option>
+                  <option value="aprobada">Aprobadas</option>
+                  <option value="rechazada">Rechazadas</option>
+                </select>
+              </div>
+            </div>
+            <div id="revisionOpsResumen" class="docs-summary-grid"></div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Operadora</th><th>Registro</th><th>Experiencia</th><th>Estado revisión</th><th>Acciones</th>
+              </tr></thead><tbody id="revisionOpsTableBody"></tbody></table>
             </div>
           </div>
         </div>
@@ -1637,6 +1667,24 @@
   </div>
 </div>
 
+<!-- MODAL REVISION OPERADORA -->
+<div class="modal-overlay" id="modalRevisionOperadora">
+  <div class="modal-box" style="max-width:820px">
+    <div class="modal-head">
+      <h3 id="modalRevisionTitle">Revisión de operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalRevisionOperadora')">✕</button>
+    </div>
+    <div class="modal-body" id="modalRevisionBody"></div>
+    <div class="modal-foot revision-actions">
+      <button class="btn-secondary" onclick="closeModal('modalRevisionOperadora')">Cerrar</button>
+      <button class="btn-secondary" onclick="guardarRevisionOperadora('pedir_documentos')">Pedir documentos</button>
+      <button class="btn-secondary" onclick="guardarRevisionOperadora('observar')">Observar</button>
+      <button class="btn-danger" onclick="guardarRevisionOperadora('rechazar')">Rechazar</button>
+      <button class="btn-add" onclick="guardarRevisionOperadora('aprobar')">Aprobar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"><span class="toast-icon" id="toastIcon">✓</span><span id="toastMsg"></span></div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="assets/js/core/storage-api.js"></script>
@@ -1645,6 +1693,7 @@
 <script data-cfasync="false" src="assets/js/core/navigation.js"></script>
 <script data-cfasync="false" src="assets/js/modules/dashboard.js"></script>
 <script data-cfasync="false" src="assets/js/modules/operadoras.js"></script>
+<script data-cfasync="false" src="assets/js/modules/revision-operadoras.js"></script>
 <script data-cfasync="false" src="assets/js/modules/documentos.js"></script>
 <script data-cfasync="false" src="assets/js/modules/maquinas.js"></script>
 <script data-cfasync="false" src="assets/js/modules/reservas.js"></script>

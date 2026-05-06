@@ -143,6 +143,17 @@ async function notifyAdminNuevaOperadora(payload, operadoraId) {
   }
 }
 
+function makePortalToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
+async function ensurePortalToken(client, operadoraId, currentToken) {
+  if (currentToken) return currentToken;
+  const token = makePortalToken();
+  await client.query('UPDATE operadoras SET portal_token = $1, updated_at = NOW() WHERE id = $2', [token, operadoraId]);
+  return token;
+}
+
 /**
  * POST /api/auth/login
  * Body: { email, password }
@@ -370,9 +381,9 @@ router.post('/operadora/register', async (req, res) => {
     const operadoraResult = await client.query(
       `INSERT INTO operadoras (
         nombre, apellido, gabinete, ciudad, departamento, pais, whatsapp, telefono, email,
-        fecha_alta, estado, nivel, obs
+        fecha_alta, estado, nivel, obs, portal_token
       )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_DATE,$10,$11,$12)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_DATE,$10,$11,$12,$13)
        RETURNING *`,
       [
         payload.nombre,
@@ -386,7 +397,8 @@ router.post('/operadora/register', async (req, res) => {
         '',
         'activa',
         payload.experiencia || 'Inicial',
-        obs
+        obs,
+        makePortalToken()
       ]
     );
     const operadora = operadoraResult.rows[0];
@@ -422,6 +434,115 @@ router.post('/operadora/register', async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Operadora register error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * GET /api/auth/operadoras/revision
+ * Bandeja administrativa de operadoras registradas desde la web.
+ */
+router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  try {
+    const estado = cleanText(req.query.estado, 40);
+    const params = [];
+    let query = `
+      SELECT
+        u.id AS usuario_id, u.nombre AS usuario_nombre, u.email AS usuario_email, u.whatsapp,
+        u.requiere_revision_admin, u.revision_admin_estado, u.revision_admin_obs,
+        u.registro_origen, u.metadata, u.created_at AS usuario_created_at, u.updated_at AS usuario_updated_at,
+        o.id AS operadora_id, o.nombre, o.apellido, o.gabinete, o.ciudad, o.departamento,
+        o.estado AS operadora_estado, o.nivel, o.obs, o.portal_token
+      FROM usuarios u
+      LEFT JOIN operadoras o ON o.id = u.operadora_id
+      WHERE u.rol = 'operadora'
+        AND (u.registro_origen = 'registro_web_operadora' OR u.requiere_revision_admin = true)
+    `;
+    if (estado) {
+      params.push(estado);
+      query += ` AND u.revision_admin_estado = $${params.length}`;
+    }
+    query += ` ORDER BY u.requiere_revision_admin DESC, u.created_at DESC`;
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Revision list error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+/**
+ * POST /api/auth/operadoras/revision/:usuarioId
+ * Acciones: aprobar, observar, rechazar, pedir_documentos.
+ */
+router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const usuarioId = parseInt(req.params.usuarioId, 10);
+    const accion = cleanText(req.body.accion, 40);
+    const obs = cleanText(req.body.obs, 1000);
+    const acciones = ['aprobar', 'observar', 'rechazar', 'pedir_documentos'];
+    if (!usuarioId || !acciones.includes(accion)) {
+      return res.status(400).json({ error: 'Acción inválida' });
+    }
+    const { rows } = await client.query(
+      `SELECT u.*, o.id AS operadora_id, o.nombre, o.apellido, o.whatsapp AS op_whatsapp, o.portal_token
+       FROM usuarios u
+       LEFT JOIN operadoras o ON o.id = u.operadora_id
+       WHERE u.id = $1 AND u.rol = 'operadora'
+       LIMIT 1`,
+      [usuarioId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Registro no encontrado' });
+    const row = rows[0];
+    if (!row.operadora_id) return res.status(400).json({ error: 'Usuario sin operadora vinculada' });
+
+    const estadoMap = {
+      aprobar: 'aprobada',
+      observar: 'observada',
+      rechazar: 'rechazada',
+      pedir_documentos: 'documentos_solicitados'
+    };
+    const requiereRevision = accion !== 'aprobar';
+    await client.query('BEGIN');
+    const portalToken = await ensurePortalToken(client, row.operadora_id, row.portal_token);
+    await client.query(
+      `UPDATE usuarios
+       SET requiere_revision_admin = $1,
+           revision_admin_estado = $2,
+           revision_admin_obs = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [requiereRevision, estadoMap[accion], obs || null, usuarioId]
+    );
+    if (accion === 'rechazar') {
+      await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['suspendida', row.operadora_id]);
+    } else if (accion === 'aprobar') {
+      await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['activa', row.operadora_id]);
+    }
+    await client.query(
+      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+      [`REVISION_${accion.toUpperCase()}`, 'operadora', row.operadora_id, obs || estadoMap[accion], req.user.id, req.ip]
+    );
+    await client.query('COMMIT');
+
+    const wa = row.whatsapp || row.op_whatsapp;
+    if (wa && ['observar', 'rechazar', 'pedir_documentos'].includes(accion)) {
+      const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${portalToken}`;
+      const mensajeMap = {
+        observar: `DepiMóvil revisó tu registro y necesita aclarar algunos datos.${obs ? `\n\nObservación: ${obs}` : ''}`,
+        rechazar: `DepiMóvil revisó tu registro y por ahora no quedó aprobado.${obs ? `\n\nMotivo: ${obs}` : ''}`,
+        pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${obs ? `\n\nNota: ${obs}` : ''}\n\nSubilos acá: ${portalUrl}`
+      };
+      await enviarMensaje(wa, mensajeMap[accion]);
+    }
+
+    res.json({ ok: true, estado: estadoMap[accion], portal_token: portalToken });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Revision action error:', err);
     res.status(500).json({ error: 'Error interno' });
   } finally {
     client.release();
