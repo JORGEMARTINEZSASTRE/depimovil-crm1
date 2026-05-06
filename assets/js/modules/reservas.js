@@ -393,6 +393,10 @@ async function saveReserva(){
     } else {
       reservas.push(mapped);
     }
+    if(!id && typeof encolarNotificacion==='function'){
+      const map={solicitud_recibida:'reserva_nueva',aprobada:'reserva_aprobada',confirmada:'reserva_confirmada',rechazada:'reserva_rechazada',cancelada:'reserva_rechazada'};
+      if(map[mapped.estado]) encolarNotificacion(map[mapped.estado], mapped.operadoraId, {reservaId:mapped.id, monto:mapped.monto, moneda:mapped.moneda});
+    }
     DB.set('reservas',reservas);
     showToast(id?'✅ Reserva actualizada':'✅ Reserva creada · '+saved.codigo);
     closeModal('modalRes'); renderReservas(); updateReservasBadge();
@@ -427,6 +431,10 @@ async function confirmarCambioEstadoRes(){
     // Auto-crear envío al confirmar reserva con bloqueo logístico
     if(nuevoEstado==='confirmada'&&reservas[idx].bloqueLogistico){
       crearEnvioDesdeReserva(reservas[idx]);
+    }
+    if(typeof encolarNotificacion==='function'){
+      const map={solicitud_recibida:'reserva_nueva',aprobada:'reserva_aprobada',confirmada:'reserva_confirmada',rechazada:'reserva_rechazada',cancelada:'reserva_rechazada'};
+      if(map[nuevoEstado]) encolarNotificacion(map[nuevoEstado], reservas[idx].operadoraId, {reservaId:id, monto:reservas[idx].monto, moneda:reservas[idx].moneda});
     }
     closeModal('modalResEstado');
     showToast(`🔄 Estado: ${RES_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);

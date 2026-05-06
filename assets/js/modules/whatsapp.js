@@ -54,25 +54,66 @@ function encolarNotificacion(plantillaId, operadoraId, ctx){
   updateWABadge();
 }
 
-function simularEnvio(id){
+async function simularEnvio(id){
   const notifs = DB.get('wa_notificaciones')||[];
   const idx = notifs.findIndex(n=>n.id===id);
   if(idx<0) return;
+  const n = notifs[idx];
+  if(!n.numero){
+    showToast('⚠️ La operadora no tiene WhatsApp cargado','warn');
+    return;
+  }
+  if(!confirm('¿Enviar este WhatsApp real ahora?')) return;
+  try{
+    const result = await api('/api/webhook/whatsapp/send', {
+      method:'POST',
+      body:JSON.stringify({telefono:n.numero, mensaje:n.mensaje, contexto:n.plantillaId + (n.reservaId ? ' reserva #' + n.reservaId : '')})
+    });
+    notifs[idx].messageId = result.messageId || null;
+    notifs[idx].simulado = !!result.simulado;
+  }catch(e){
+    notifs[idx].estado = 'error';
+    notifs[idx].error = e.message;
+    DB.set('wa_notificaciones', notifs);
+    updateWABadge();
+    showToast('❌ '+e.message,'error');
+    renderWA(waActiveTab);
+    return;
+  }
   notifs[idx].estado = 'enviada';
   notifs[idx].tsSent = new Date().toISOString();
   DB.set('wa_notificaciones', notifs);
   updateWABadge();
-  showToast('💬 Notificación marcada como enviada');
+  showToast('💬 WhatsApp enviado');
   renderWA(document.querySelector('.view-tab.active')?.textContent?.toLowerCase().includes('historial') ? 'historial' : 'pendientes');
 }
 
-function simularEnviarTodas(){
+async function simularEnviarTodas(){
   const notifs = DB.get('wa_notificaciones')||[];
+  const pend = notifs.filter(n=>n.estado==='pendiente');
+  if(!pend.length) return;
+  if(!confirm(`¿Enviar ${pend.length} WhatsApp reales ahora?`)) return;
   let count = 0;
-  notifs.forEach(n=>{ if(n.estado==='pendiente'){n.estado='enviada';n.tsSent=new Date().toISOString();count++;} });
+  for(const n of pend){
+    if(!n.numero) continue;
+    try{
+      const result = await api('/api/webhook/whatsapp/send', {
+        method:'POST',
+        body:JSON.stringify({telefono:n.numero, mensaje:n.mensaje, contexto:n.plantillaId + (n.reservaId ? ' reserva #' + n.reservaId : '')})
+      });
+      n.estado='enviada';
+      n.tsSent=new Date().toISOString();
+      n.messageId=result.messageId||null;
+      n.simulado=!!result.simulado;
+      count++;
+    }catch(e){
+      n.estado='error';
+      n.error=e.message;
+    }
+  }
   DB.set('wa_notificaciones', notifs);
   updateWABadge();
-  showToast(`💬 ${count} notificaciones marcadas como enviadas`);
+  showToast(`💬 ${count} WhatsApp enviados`);
   renderWA('historial');
 }
 
@@ -131,7 +172,7 @@ function renderWA(tab){
               <div style="font-size:11px;color:var(--accent);margin:2px 0">${pt?.evento||n.plantillaId} ${res?'· '+res.codigo:''}</div>
               <div class="wa-bubble" style="margin-top:8px;max-width:100%">${n.mensaje.replace(/\n/g,'<br>')}</div>
               <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
-                <button class="action-btn" onclick="simularEnvio(${n.id})" style="color:var(--green);border-color:rgba(82,196,138,.3)">✔ Marcar enviada</button>
+                <button class="action-btn" onclick="simularEnvio(${n.id})" style="color:var(--green);border-color:rgba(82,196,138,.3)">Enviar ahora</button>
                 <button class="action-btn danger" onclick="eliminarNotif(${n.id})">✕ Descartar</button>
                 <button class="action-btn" onclick="verPayload(${n.id})">{ } Payload API</button>
               </div>
@@ -160,6 +201,7 @@ function renderWA(tab){
             <div class="notif-name">${op?op.nombre+' '+op.apellido:'—'}</div>
             <div style="font-size:11px;color:var(--text3);margin:2px 0">${pt?.evento||n.plantillaId}</div>
             <div class="notif-msg">${n.mensaje.split('\n')[0]}</div>
+            ${n.error?`<div style="font-size:11px;color:var(--red);margin-top:4px">Error: ${n.error}</div>`:''}
             ${n.tsSent?`<div style="font-size:11px;color:var(--green);margin-top:4px">Enviada: ${fmtDate(n.tsSent.split('T')[0])} ${n.tsSent.split('T')[1]?.slice(0,5)}</div>`:''}
           </div>
           <div class="notif-time">${fmtDate(n.ts.split('T')[0])}</div>
