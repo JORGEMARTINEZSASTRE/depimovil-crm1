@@ -74,6 +74,66 @@ async function verifyWhatsappCode(){
   }
 }
 
+function openOperadoraRegistro(){
+  document.getElementById('modalRegistroOperadora').classList.add('open');
+  const waPhone=document.getElementById('waLoginPhone');
+  const regPhone=document.getElementById('regOpWhatsapp');
+  if(waPhone && regPhone && waPhone.value.trim() && !regPhone.value.trim()){
+    regPhone.value=waPhone.value.trim();
+  }
+}
+
+function toggleRegistroTrabajoExtra(){
+  const wrap=document.getElementById('regOpTrabajoExtraWrap');
+  const value=document.getElementById('regOpTrabajoNoEstetico').value;
+  wrap.style.display=value==='si'?'':'none';
+}
+
+function getCheckedValues(name){
+  return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el=>el.value);
+}
+
+async function submitOperadoraRegistro(){
+  const err=document.getElementById('loginError');
+  err.style.display='none';
+  const btn=document.getElementById('regOpSubmitBtn');
+  const payload={
+    nombre:document.getElementById('regOpNombre').value.trim(),
+    apellido:document.getElementById('regOpApellido').value.trim(),
+    whatsapp:document.getElementById('regOpWhatsapp').value.trim(),
+    documento:document.getElementById('regOpDocumento').value.replace(/\D/g,''),
+    ciudad:document.getElementById('regOpCiudad').value.trim(),
+    departamento:document.getElementById('regOpDepartamento').value.trim(),
+    lugares_trabajo:document.getElementById('regOpLugares').value.trim(),
+    experiencia:document.getElementById('regOpExperiencia').value,
+    tratamientos:getCheckedValues('regTratamientos'),
+    tratamientos_otros:document.getElementById('regOpTratamientosOtros').value.trim(),
+    trabajo_no_estetico:document.getElementById('regOpTrabajoNoEstetico').value==='si',
+    trabajo_no_estetico_detalle:document.getElementById('regOpTrabajoExtra').value.trim()
+  };
+  if(!payload.nombre||!payload.apellido||!payload.whatsapp||!payload.documento||!payload.ciudad){
+    showToast('⚠️ Nombre, apellido, WhatsApp, cédula/DNI y ciudad son obligatorios','warn');
+    return;
+  }
+  btn.disabled=true;
+  btn.textContent='Creando registro...';
+  try{
+    const data=await api('/api/auth/operadora/register',{method:'POST',body:JSON.stringify(payload)});
+    closeModal('modalRegistroOperadora');
+    switchLoginMode('whatsapp');
+    document.getElementById('waLoginRol').value='operadora';
+    document.getElementById('waLoginPhone').value=data.whatsapp||payload.whatsapp;
+    showToast('✅ Registro creado. Ahora pedí el código de WhatsApp para ingresar.');
+  }catch(e){
+    err.textContent=e.message||'No se pudo crear el registro';
+    err.style.display='block';
+    showToast('❌ '+err.textContent,'error');
+  }finally{
+    btn.disabled=false;
+    btn.textContent='Crear registro';
+  }
+}
+
 function doLogout(){
   TOKEN.del();currentUser=null;
   document.getElementById('app').style.display='none';

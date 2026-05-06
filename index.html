@@ -43,7 +43,7 @@
         <input type="text" id="waLoginCode" placeholder="123456" maxlength="6" inputmode="numeric"/></div>
       <button class="btn-primary" id="waRequestBtn" onclick="requestWhatsappCode()">Enviar código por WhatsApp</button>
       <button class="btn-primary" id="waVerifyBtn" onclick="verifyWhatsappCode()" style="display:none;margin-top:10px">Ingresar con código</button>
-      <button class="btn-secondary full-width" onclick="showToast('Registro de operadora nueva: próxima etapa')" style="margin-top:10px">Soy operadora nueva</button>
+      <button class="btn-secondary full-width" onclick="openOperadoraRegistro()" style="margin-top:10px">Soy operadora nueva</button>
     </div>
     <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
     <div class="login-demo" id="loginDemoBox">
@@ -51,6 +51,68 @@
       <div class="demo-row"><span>Super Admin</span><span>admin@depimovil.com / admin123</span></div>
       <div class="demo-row"><span>Operaciones</span><span>ops@depimovil.com / ops123</span></div>
       <div class="demo-row"><span>Operadora</span><span>operadora@depimovil.com / op123</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTRO NUEVA OPERADORA -->
+<div class="modal-overlay" id="modalRegistroOperadora">
+  <div class="modal-box registro-modal">
+    <div class="modal-head">
+      <h3>Registro de Operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalRegistroOperadora')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="registro-intro">Completá tus datos para quedar activa en DepiMóvil. El administrador revisa la ficha y puede pedir documentos después.</div>
+      <div class="form-grid">
+        <div class="form-section-title">Datos principales</div>
+        <div class="form-field"><label>Nombre</label><input type="text" id="regOpNombre" autocomplete="given-name"/></div>
+        <div class="form-field"><label>Apellido</label><input type="text" id="regOpApellido" autocomplete="family-name"/></div>
+        <div class="form-field"><label>WhatsApp</label><input type="tel" id="regOpWhatsapp" placeholder="099921164" inputmode="tel"/></div>
+        <div class="form-field"><label>Cédula / DNI</label><input type="text" id="regOpDocumento" placeholder="Solo número" inputmode="numeric"/></div>
+        <div class="form-field"><label>Ciudad</label><input type="text" id="regOpCiudad"/></div>
+        <div class="form-field"><label>Departamento</label><input type="text" id="regOpDepartamento"/></div>
+        <div class="form-field full"><label>Sucursales o lugares esporádicos donde trabaja</label>
+          <textarea id="regOpLugares" placeholder="Ej: Salto centro, consultorio propio, estética asociada..."></textarea></div>
+
+        <div class="form-section-title">Experiencia</div>
+        <div class="form-field full"><label>Experiencia en estética</label>
+          <select id="regOpExperiencia">
+            <option value="">Seleccionar</option>
+            <option>Estoy comenzando</option>
+            <option>Menos de 1 año</option>
+            <option>1 a 3 años</option>
+            <option>3 a 5 años</option>
+            <option>Más de 5 años</option>
+            <option>Soy profesional/formadora con experiencia avanzada</option>
+          </select>
+        </div>
+        <div class="form-field full"><label>Tratamientos que brinda</label>
+          <div class="check-grid">
+            <label><input type="checkbox" name="regTratamientos" value="Depilación láser"> Depilación láser</label>
+            <label><input type="checkbox" name="regTratamientos" value="HIFU"> HIFU</label>
+            <label><input type="checkbox" name="regTratamientos" value="Criolipólisis"> Criolipólisis</label>
+            <label><input type="checkbox" name="regTratamientos" value="Radiofrecuencia"> Radiofrecuencia</label>
+            <label><input type="checkbox" name="regTratamientos" value="Limpieza facial"> Limpieza facial</label>
+            <label><input type="checkbox" name="regTratamientos" value="Peluquería"> Peluquería</label>
+          </div>
+        </div>
+        <div class="form-field full"><label>Otros tratamientos</label><input type="text" id="regOpTratamientosOtros"/></div>
+
+        <div class="form-section-title">Información extra</div>
+        <div class="form-field full"><label>¿Tiene otros trabajos no estéticos?</label>
+          <select id="regOpTrabajoNoEstetico" onchange="toggleRegistroTrabajoExtra()">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="form-field full" id="regOpTrabajoExtraWrap" style="display:none"><label>Detalle del otro trabajo</label>
+          <textarea id="regOpTrabajoExtra" placeholder="Contanos rubro, horarios o datos útiles para coordinar."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalRegistroOperadora')">Cancelar</button>
+      <button class="btn-add" id="regOpSubmitBtn" onclick="submitOperadoraRegistro()">Crear registro</button>
     </div>
   </div>
 </div>
