@@ -478,8 +478,9 @@ td .bold{color:var(--text);font-weight:500}
 
 /* USER PROFILE */
 .avatar-lg{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;
-  justify-content:center;font-size:28px;font-weight:700;color:#fff;
-  background:linear-gradient(135deg,var(--accent),var(--rose));flex-shrink:0}
+  justify-content:center;font-size:0;font-weight:700;color:transparent;
+  background-image:url(/logo.jpg?v=6);background-size:cover;background-position:center;flex-shrink:0;
+  box-shadow:0 8px 24px rgba(212,169,106,0.18)}
 
 /* LEADS / CRM */
 .lead-estado-nuevo{background:rgba(92,143,224,0.12);color:var(--blue)}
