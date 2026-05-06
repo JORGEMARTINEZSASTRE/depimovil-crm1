@@ -84,10 +84,12 @@ async function syncContratosLocales(contratosApi){
 }
 async function loadAllData(){
   try{
-    const[ops,maqs,reservas,pagos,leads,contratos]=await Promise.all([
+    const results=await Promise.allSettled([
       api('/api/operadoras'),api('/api/maquinas'),api('/api/reservas'),
       api('/api/pagos'),api('/api/leads'),api('/api/contratos')
     ]);
+    const val=function(i, fallback){return results[i].status==='fulfilled'?results[i].value:fallback};
+    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]);
     DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
       gabinete:o.gabinete||'',ciudad:o.ciudad,departamento:o.departamento||'',
       pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
