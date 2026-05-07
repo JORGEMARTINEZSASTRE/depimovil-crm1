@@ -53,7 +53,14 @@ app.use('/api/auth/login', loginLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '5mb' }));
-app.use('/uploads', express.static(require('path').join(__dirname, '../uploads')));
+
+// Archivos estáticos — frontend CRM (index.html, assets/, portal.html)
+const path = require('path');
+const ROOT = path.join(__dirname, '..');
+app.use(express.static(ROOT, {
+  index: false, // no servir index.html automáticamente para que /api/* funcione primero
+}));
+app.use('/uploads', express.static(path.join(ROOT, 'uploads')));
 
 // ══════════════════════════════════
 // RUTAS
@@ -85,6 +92,17 @@ app.get('/api/health', (req, res) => {
 // 404 para rutas API no encontradas
 app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'Endpoint no encontrado' });
+});
+
+// ── Frontend SPA ─────────────────────────────────────────────
+// Portal de operadoras
+app.get('/portal.html', (req, res) => {
+  res.sendFile(path.join(ROOT, 'portal.html'));
+});
+
+// CRM admin — cualquier ruta no-API devuelve index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(ROOT, 'index.html'));
 });
 
 // Error handler global
