@@ -19,6 +19,10 @@
 - Confirmación administrativa de movimientos pendientes.
 - Exportación CSV de Caja.
 - Auditoría de creación, edición y confirmación.
+- Conexión inicial con **Pagos y Señas**:
+  - Pago en estado `sena_abonada` crea ingreso confirmado de seña.
+  - Pago en estado `validado` crea ingresos confirmados de seña y/o saldo de reserva.
+  - No duplica movimientos para el mismo pago y categoría.
 
 ## Modelo local
 
@@ -43,6 +47,6 @@ Claves en cache local:
 - Crear tablas reales en PostgreSQL.
 - Crear endpoints API de Caja.
 - Sincronizar la pantalla con backend.
-- Conectar pagos/señas validados con ingresos automáticos de Caja.
+- Crear ajustes automáticos cuando un pago se rechaza o anula.
 - Agregar proveedores, compras y ventas de máquinas con adelantos.
 - Agregar cierres diarios/semanales/mensuales.

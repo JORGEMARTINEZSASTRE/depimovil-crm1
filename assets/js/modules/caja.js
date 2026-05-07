@@ -204,6 +204,68 @@ function confirmarCajaMovimiento(id){
   renderCaja();
 }
 
+function cajaCuentaPorPago(pago){
+  ensureCajaData();
+  const ref=String(pago.comprobante||pago.obs||'').toLowerCase();
+  const cuentas=DB.get('caja_cuentas')||[];
+  const match=cuentas.find(c=>{
+    const n=c.nombre.toLowerCase();
+    return ref.includes(n.toLowerCase())||(n==='brou'&&ref.includes('brou'))||(n==='itaú'&&ref.includes('itau'));
+  });
+  return match?.id||cuentas.find(c=>c.nombre==='Transferencia')?.id||1;
+}
+
+function upsertCajaIngresoPago(pago,categoria,monto,concepto){
+  if(!pago||!pago.id||monto<=0)return false;
+  ensureCajaData();
+  const movs=DB.get('caja_movimientos')||[];
+  const existente=movs.find(m=>m.origen==='pago'&&parseInt(m.pagoId)===parseInt(pago.id)&&m.categoria===categoria&&m.estado!=='anulado');
+  if(existente)return false;
+  const nextId=movs.reduce((m,x)=>Math.max(m,x.id||0),0)+1;
+  const data={
+    id:nextId,
+    codigo:`CJ-${String(nextId).padStart(5,'0')}`,
+    tipo:'ingreso',
+    estado:'confirmado',
+    fecha:pago.fechaPago||today(),
+    cuentaId:cajaCuentaPorPago(pago),
+    categoria,
+    moneda:pago.moneda||'UYU',
+    monto:parseFloat(monto)||0,
+    comprobante:pago.comprobante||'',
+    operadoraId:pago.operadoraId||null,
+    reservaId:pago.reservaId||null,
+    maquinaId:null,
+    relacionado:'',
+    concepto,
+    obs:`Ingreso automático desde pago ${pago.codigo||('#'+pago.id)}`,
+    origen:'pago',
+    pagoId:pago.id,
+    usuario:'sistema',
+    ts:new Date().toISOString(),
+    updatedAt:new Date().toISOString()
+  };
+  DB.set('caja_movimientos',[...movs,data]);
+  auditLog('CREATE','caja_movimientos',data.id,`${data.codigo} generado desde ${pago.codigo||'pago'}: ${data.monto} ${data.moneda}`);
+  return true;
+}
+
+function sincronizarCajaDesdePago(pago){
+  if(!pago||!['sena_abonada','validado'].includes(pago.estado))return 0;
+  const total=parseFloat(pago.montoTotal)||0;
+  const sena=parseFloat(pago.senaAbonada)||0;
+  let creados=0;
+  if(sena>0){
+    creados+=upsertCajaIngresoPago(pago,'sena',sena,`Seña ${pago.codigo||''}`)?1:0;
+  }
+  if(pago.estado==='validado'){
+    const saldo=sena>0?Math.max(0,total-sena):total;
+    creados+=upsertCajaIngresoPago(pago,'saldo_reserva',saldo,`Saldo reserva ${pago.codigo||''}`)?1:0;
+  }
+  if(creados)updateCajaBadge();
+  return creados;
+}
+
 function updateCajaBadge(){
   const count=(DB.get('caja_movimientos')||[]).filter(m=>m.estado==='pendiente').length;
   const badge=document.getElementById('navBadgeCaja');

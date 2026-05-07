@@ -302,13 +302,19 @@ async function savePago(){
     }
     // Recargar pagos desde API
     const allPagos = await api('/api/pagos');
-    DB.set('pagos', allPagos.map(p=>({id:p.id, codigo:p.codigo, reservaId:p.reserva_id,
+    const pagosMapeados = allPagos.map(p=>({id:p.id, codigo:p.codigo, reservaId:p.reserva_id,
       operadoraId:p.operadora_id, tipo:p.tipo, estado:p.estado,
       montoTotal:parseFloat(p.monto_total)||0, moneda:p.moneda||'UYU',
       senaRequerida:parseFloat(p.sena_requerida)||0, senaAbonada:parseFloat(p.sena_abonada)||0,
       saldoPendiente:parseFloat(p.saldo_pendiente)||0,
       fechaPago:p.fecha_pago, comprobante:p.comprobante||'', obs:p.obs||'',
-      creadaEn:p.created_at?.split('T')[0]||''})));
+      creadaEn:p.created_at?.split('T')[0]||''}));
+    DB.set('pagos', pagosMapeados);
+    const pagoCaja = pagosMapeados.find(p=>parseInt(p.id)===parseInt(saved.id||id));
+    if(typeof sincronizarCajaDesdePago==='function'){
+      const creados = sincronizarCajaDesdePago(pagoCaja);
+      if(creados) showToast(`✅ Caja actualizada: ${creados} ingreso${creados>1?'s':''}`);
+    }
   } catch(e) { showToast('❌ Error: '+e.message,'error'); return; }
   // Auto-encolar notificación WhatsApp
   const mapPagoPlantilla={validado:'pago_validado',sena_pendiente:'sena_pendiente'};
