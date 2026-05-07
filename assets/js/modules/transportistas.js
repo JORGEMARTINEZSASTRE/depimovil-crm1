@@ -158,8 +158,6 @@ function htmlFicha(t, envios, incs, pagos) {
       <div class="tarifa-grid">
         <div class="tarifa-item"><div class="t-lbl">Envío chica</div><div class="t-val">$${t.tarifa_envio_chica}</div></div>
         <div class="tarifa-item"><div class="t-lbl">Envío grande</div><div class="t-val">$${t.tarifa_envio_grande}</div></div>
-        <div class="tarifa-item"><div class="t-lbl">Limpieza chica</div><div class="t-val">$${t.tarifa_limpieza_chica}</div></div>
-        <div class="tarifa-item"><div class="t-lbl">Limpieza grande</div><div class="t-val">$${t.tarifa_limpieza_grande}</div></div>
       </div>
     </div>
 
@@ -525,14 +523,6 @@ function abrirFormTransportista(t) {
             <label class="field-label">Envío grande ($)</label>
             <input type="number" id="f-env-grande" value="${t?.tarifa_envio_grande||0}" min="0">
           </div>
-          <div>
-            <label class="field-label">Limpieza chica ($)</label>
-            <input type="number" id="f-limp-chica" value="${t?.tarifa_limpieza_chica||0}" min="0">
-          </div>
-          <div>
-            <label class="field-label">Limpieza grande ($)</label>
-            <input type="number" id="f-limp-grande" value="${t?.tarifa_limpieza_grande||0}" min="0">
-          </div>
         </div>
 
         <label class="dep-check" style="margin-top:12px">
@@ -568,8 +558,8 @@ async function guardarTransportista(e, id) {
     departamentos:          deps,
     tarifa_envio_chica:     parseFloat(document.getElementById('f-env-chica').value)||0,
     tarifa_envio_grande:    parseFloat(document.getElementById('f-env-grande').value)||0,
-    tarifa_limpieza_chica:  parseFloat(document.getElementById('f-limp-chica').value)||0,
-    tarifa_limpieza_grande: parseFloat(document.getElementById('f-limp-grande').value)||0,
+    tarifa_limpieza_chica:  0,
+    tarifa_limpieza_grande: 0,
     sin_rastreo_siempre:    document.getElementById('f-sin-rastreo').checked,
     notas:                  document.getElementById('f-notas').value.trim(),
   };
