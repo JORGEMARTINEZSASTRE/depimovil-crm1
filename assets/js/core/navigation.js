@@ -24,6 +24,13 @@ const viewTitles={'transportistas':'Transportistas',
   embudo:'Embudo Comercial',
   materiales:'Materiales de Formación',
 };
+const navGroupByView={
+  'revision-operadoras':'operaciones',documentos:'operaciones',calendario:'operaciones',materiales:'operaciones',
+  pagos:'finanzas',proveedores:'finanzas',compras:'finanzas','ventas-maquinas':'finanzas',contratos:'finanzas',
+  envios:'logistica',transportistas:'logistica',logistica:'logistica',
+  leads:'comercial',embudo:'comercial',
+  reportes:'sistema',auditoria:'sistema',configuracion:'sistema'
+};
 function navigate(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -31,6 +38,11 @@ function navigate(view){
   if(el)el.classList.add('active');
   const nav=document.querySelector('[data-view="'+view+'"]');
   if(nav)nav.classList.add('active');
+  const group=navGroupByView[view];
+  if(group){
+    const details=document.querySelector('[data-nav-group="'+group+'"]');
+    if(details)details.open=true;
+  }
   document.getElementById('pageTitle').textContent=viewTitles[view]||view;
   closeSidebar();
   if(view==='dashboard')renderDashboard();

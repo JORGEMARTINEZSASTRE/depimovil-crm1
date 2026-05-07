@@ -67,11 +67,12 @@ input,select,textarea{font-family:inherit}
   border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
 .logo-text h2{font-family:'Playfair Display',serif;font-size:14px;line-height:1.2;color:var(--text);}
 .logo-text p{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase}
-.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.sidebar-nav{flex:1;padding:14px 12px;overflow-y:auto}
 .nav-section{margin-bottom:8px}
 .nav-section-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;
   letter-spacing:1px;padding:6px 10px;margin-bottom:4px;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;
+.nav-primary{padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;
   color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;
   border:none;background:none;width:100%;text-align:left;}
 .nav-item:hover{background:var(--surface2);color:var(--text)}
@@ -79,6 +80,16 @@ input,select,textarea{font-family:inherit}
 .nav-item .icon{font-size:16px;width:20px;text-align:center}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;
   padding:2px 6px;border-radius:10px;min-width:18px;text-align:center;}
+.nav-group{border:1px solid transparent;border-radius:9px;margin-bottom:6px}
+.nav-group[open]{background:rgba(var(--accent-rgb),0.04);border-color:var(--border)}
+.nav-group summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;border-radius:8px;color:var(--text2);font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.7px;cursor:pointer}
+.nav-group summary::-webkit-details-marker{display:none}
+.nav-group summary:hover{background:var(--surface2);color:var(--text)}
+.nav-group .chev{font-size:13px;color:var(--text3);transition:transform .15s}
+.nav-group[open] .chev{transform:rotate(180deg)}
+.nav-group .nav-item{font-size:13px;padding:7px 10px 7px 14px;border-radius:7px}
 .sidebar-footer{padding:16px;border-top:1px solid var(--border);}
 .user-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
   background:var(--surface2);border:1px solid var(--border);}

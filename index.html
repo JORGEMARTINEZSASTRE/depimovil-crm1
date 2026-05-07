@@ -129,111 +129,51 @@
         </div>
       </div>
       <div class="sidebar-nav">
-        <div class="nav-section">
-          <div class="nav-section-label">Principal</div>
-          <button class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')">
-            <span class="icon">⊞</span> Dashboard
-          </button>
+        <div class="nav-section nav-primary">
+          <div class="nav-section-label">Accesos rápidos</div>
+          <button class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')"><span class="icon">⊞</span> Dashboard</button>
+          <button class="nav-item" data-view="reservas" onclick="navigate('reservas')"><span class="icon">📅</span> Reservas <span class="nav-badge" id="navBadgeReservas" style="display:none">0</span></button>
+          <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')"><span class="icon">👩‍💼</span> Operadoras</button>
+          <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')"><span class="icon">⚙️</span> Máquinas <span class="nav-badge" id="navBadgeMaq" style="display:none">0</span></button>
+          <button class="nav-item" data-view="caja" onclick="navigate('caja')"><span class="icon">💵</span> Caja <span class="nav-badge" id="navBadgeCaja" style="display:none">0</span></button>
+          <button class="nav-item" data-view="whatsapp" onclick="navigate('whatsapp')"><span class="icon">💬</span> WhatsApp <span class="nav-badge" id="navBadgeWA" style="display:none">0</span></button>
         </div>
-        <div class="nav-section">
-          <div class="nav-section-label">Operaciones</div>
-          <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')">
-            <span class="icon">👩‍💼</span> Operadoras
-          </button>
-          <button class="nav-item" data-view="revision-operadoras" onclick="navigate('revision-operadoras')">
-            <span class="icon">☑</span> Revisión
-            <span class="nav-badge" id="navBadgeRevisionOps" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="documentos" onclick="navigate('documentos')">
-            <span class="icon">🪪</span> Documentos
-            <span class="nav-badge" id="navBadgeDocumentos" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')">
-            <span class="icon">⚙️</span> Máquinas
-            <span class="nav-badge" id="navBadgeMaq" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="materiales" onclick="navigate('materiales')">
-            <span class="icon">📚</span> Materiales
-          </button>
-          <button class="nav-item" data-view="reservas" onclick="navigate('reservas')">
-            <span class="icon">📅</span> Reservas
-            <span class="nav-badge" id="navBadgeReservas" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="calendario" onclick="navigate('calendario')">
-            <span class="icon">🗓</span> Calendario
-          </button>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-label">CRM Comercial</div>
-          <button class="nav-item" data-view="leads" onclick="navigate('leads')">
-            <span class="icon">🎯</span> Leads
-            <span class="nav-badge" id="navBadgeLeads" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="embudo" onclick="navigate('embudo')">
-            <span class="icon">🏆</span> Embudo
-          </button>
-        </div>
-        <div class="nav-section" id="adminNav">
-          <div class="nav-section-label">Sistema</div>
-          <button class="nav-item" data-view="reportes" onclick="navigate('reportes')">
-            <span class="icon">📊</span> Reportes
-          </button>
-          <button class="nav-item" data-view="auditoria" onclick="navigate('auditoria')">
-            <span class="icon">🔍</span> Auditoría
-          </button>
-          <button class="nav-item" data-view="logistica" onclick="navigate('logistica')">
-            <span class="icon">🗺</span> Reglas Logísticas
-          </button>
-          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion')">
-            <span class="icon">🔧</span> Configuración
-          </button>
-          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion');setTimeout(()=>document.getElementById('crmColorsSection')?.scrollIntoView({behavior:'smooth',block:'start'}),80)">
-            <span class="icon">🎨</span> Colores
-          </button>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-label">Finanzas</div>
-          <button class="nav-item" data-view="pagos" onclick="navigate('pagos')">
-            <span class="icon">💳</span> Pagos y Señas
-            <span class="nav-badge" id="navBadgePagos" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="caja" onclick="navigate('caja')">
-            <span class="icon">💵</span> Caja
-            <span class="nav-badge" id="navBadgeCaja" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="proveedores" onclick="navigate('proveedores')">
-            <span class="icon">🏢</span> Proveedores
-          </button>
-          <button class="nav-item" data-view="compras" onclick="navigate('compras')">
-            <span class="icon">🧾</span> Compras
-            <span class="nav-badge" id="navBadgeCompras" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="ventas-maquinas" onclick="navigate('ventas-maquinas')">
-            <span class="icon">🏷</span> Ventas Máquinas
-            <span class="nav-badge" id="navBadgeVentasMaq" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="contratos" onclick="navigate('contratos')">
-            <span class="icon">📋</span> Contratos
-            <span class="nav-badge" id="navBadgeContratos" style="display:none">0</span>
-          </button>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-label">Logística</div>
-          <button class="nav-item" data-view="envios" onclick="navigate('envios')">
-            <span class="icon">🚚</span> Envíos
-            <span class="nav-badge" id="navBadgeEnvios" style="display:none">0</span>
-          </button>
-          <button class="nav-item" data-view="transportistas" onclick="navigate('transportistas')">
-            <span class="icon">🚛</span> Transportistas
-          </button>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-label">Comunicaciones</div>
-          <button class="nav-item" data-view="whatsapp" onclick="navigate('whatsapp')">
-            <span class="icon">💬</span> WhatsApp
-            <span class="nav-badge" id="navBadgeWA" style="display:none">0</span>
-          </button>
-        </div>
+
+        <div class="nav-section-label">Módulos</div>
+        <details class="nav-group" data-nav-group="operaciones">
+          <summary><span>Operaciones</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="revision-operadoras" onclick="navigate('revision-operadoras')"><span class="icon">☑</span> Revisión <span class="nav-badge" id="navBadgeRevisionOps" style="display:none">0</span></button>
+          <button class="nav-item" data-view="documentos" onclick="navigate('documentos')"><span class="icon">🪪</span> Documentos <span class="nav-badge" id="navBadgeDocumentos" style="display:none">0</span></button>
+          <button class="nav-item" data-view="calendario" onclick="navigate('calendario')"><span class="icon">🗓</span> Calendario</button>
+          <button class="nav-item" data-view="materiales" onclick="navigate('materiales')"><span class="icon">📚</span> Materiales</button>
+        </details>
+        <details class="nav-group" data-nav-group="finanzas">
+          <summary><span>Finanzas</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="pagos" onclick="navigate('pagos')"><span class="icon">💳</span> Pagos y Señas <span class="nav-badge" id="navBadgePagos" style="display:none">0</span></button>
+          <button class="nav-item" data-view="proveedores" onclick="navigate('proveedores')"><span class="icon">🏢</span> Proveedores</button>
+          <button class="nav-item" data-view="compras" onclick="navigate('compras')"><span class="icon">🧾</span> Compras <span class="nav-badge" id="navBadgeCompras" style="display:none">0</span></button>
+          <button class="nav-item" data-view="ventas-maquinas" onclick="navigate('ventas-maquinas')"><span class="icon">🏷</span> Ventas Máquinas <span class="nav-badge" id="navBadgeVentasMaq" style="display:none">0</span></button>
+          <button class="nav-item" data-view="contratos" onclick="navigate('contratos')"><span class="icon">📋</span> Contratos <span class="nav-badge" id="navBadgeContratos" style="display:none">0</span></button>
+        </details>
+        <details class="nav-group" data-nav-group="logistica">
+          <summary><span>Logística</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="envios" onclick="navigate('envios')"><span class="icon">🚚</span> Envíos <span class="nav-badge" id="navBadgeEnvios" style="display:none">0</span></button>
+          <button class="nav-item" data-view="transportistas" onclick="navigate('transportistas')"><span class="icon">🚛</span> Transportistas</button>
+          <button class="nav-item" data-view="logistica" onclick="navigate('logistica')"><span class="icon">🗺</span> Reglas Logísticas</button>
+        </details>
+        <details class="nav-group" data-nav-group="comercial">
+          <summary><span>Comercial</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="leads" onclick="navigate('leads')"><span class="icon">🎯</span> Leads <span class="nav-badge" id="navBadgeLeads" style="display:none">0</span></button>
+          <button class="nav-item" data-view="embudo" onclick="navigate('embudo')"><span class="icon">🏆</span> Embudo</button>
+        </details>
+        <details class="nav-group" id="adminNav" data-nav-group="sistema">
+          <summary><span>Sistema</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="reportes" onclick="navigate('reportes')"><span class="icon">📊</span> Reportes</button>
+          <button class="nav-item" data-view="auditoria" onclick="navigate('auditoria')"><span class="icon">🔍</span> Auditoría</button>
+          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion')"><span class="icon">🔧</span> Configuración</button>
+          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion');setTimeout(()=>document.getElementById('crmColorsSection')?.scrollIntoView({behavior:'smooth',block:'start'}),80)"><span class="icon">🎨</span> Colores</button>
+        </details>
+      </div>
       <div class="sidebar-footer">
         <div class="user-chip" style="cursor:pointer" onclick="openPerfilModal()" title="Ver perfil / cambiar contraseña">
           <div class="user-avatar" id="userAvatar">A</div>
