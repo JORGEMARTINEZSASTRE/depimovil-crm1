@@ -93,11 +93,12 @@ function getAlertas(){
 }
 
 /* Listado */
-let resFilter={search:'',estado:'',tipo:''};
+let resFilter={search:'',estado:'',tipo:'',control:''};
 
 function renderReservas(){
   const reservas=DB.get('reservas')||[]; const hoy=today();
   const alertas=getAlertas();
+  if(typeof renderReservasAutomationSummary==='function')renderReservasAutomationSummary();
   let alertsHTML='';
   if(alertas.urgentes.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🚨</span><div><strong>${alertas.urgentes.length} reserva${alertas.urgentes.length>1?'s':''} vencida${alertas.urgentes.length>1?'s':''}</strong> — Actualizá el estado.</div></div>`;
   if(alertas.sinAprobacion.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">📥</span><div><strong>${alertas.sinAprobacion.length} solicitud${alertas.sinAprobacion.length>1?'es':''} sin revisar</strong> — Requieren aprobación o rechazo.</div></div>`;
@@ -112,7 +113,8 @@ function renderReservas(){
     const q=resFilter.search.toLowerCase();
     const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId);
     const ms=!q||r.codigo.toLowerCase().includes(q)||(op&&(op.nombre+' '+op.apellido).toLowerCase().includes(q))||(maq&&maq.nombre.toLowerCase().includes(q));
-    return ms&&(!resFilter.estado||r.estado===resFilter.estado)&&(!resFilter.tipo||r.tipo===resFilter.tipo);
+    const control=typeof validarReservaAutomatica==='function'?validarReservaAutomatica(r).estado:'';
+    return ms&&(!resFilter.estado||r.estado===resFilter.estado)&&(!resFilter.tipo||r.tipo===resFilter.tipo)&&(!resFilter.control||control===resFilter.control);
   }).sort((a,b)=>{
     const fa=a.fechaJornada||a.fechaInicio||''; const fb=b.fechaJornada||b.fechaInicio||'';
     return fb.localeCompare(fa);
@@ -144,6 +146,7 @@ function renderReservas(){
 function filterReservas(v){resFilter.search=v;renderReservas();}
 function filterResEstado(v){resFilter.estado=v;renderReservas();}
 function filterResTipo(v){resFilter.tipo=v;renderReservas();}
+function filterResControl(v){resFilter.control=v;renderReservas();}
 
 /* Ficha */
 function showResFicha(id){

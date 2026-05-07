@@ -93,13 +93,77 @@ function renderReservaAutomatizacionPanel(r){
   const color=v.estado==='lista'?'green':(v.estado==='revisar'?'yellow':'red');
   const title=v.estado==='lista'?'Automatización lista':(v.estado==='revisar'?'Requiere revisión':'Reserva bloqueada');
   const items=[...v.bloqueos.map(x=>({tipo:'bloqueo',txt:x})),...v.avisos.map(x=>({tipo:'aviso',txt:x}))];
+  const acciones=renderReservaAccionesAutomaticas(r,v);
   return `<div class="alert-banner ${color==='red'?'danger':(color==='yellow'?'warn':'')}" style="${color==='green'?'background:rgba(82,196,138,0.08);border:1px solid rgba(82,196,138,0.2);color:var(--green)':''}">
     <span class="ab-icon">${color==='green'?'✅':(color==='yellow'?'⚠️':'⛔')}</span>
     <div>
       <strong>${title}</strong> — ${v.motivo}
       ${items.length?`<ul class="auto-check-list">${items.map(i=>`<li class="${i.tipo}">${i.txt}</li>`).join('')}</ul>`:''}
+      ${acciones}
     </div>
   </div>`;
+}
+
+function renderReservaAccionesAutomaticas(r,v){
+  const acciones=[];
+  if(v.estado==='lista'&&r.estado!=='confirmada'){
+    acciones.push(`<button class="action-btn" onclick="confirmarReservaAutomatica(${r.id})">Confirmar reserva</button>`);
+  }
+  if(v.bloqueos.some(x=>x.includes('cédula')||x.includes('DNI'))){
+    acciones.push(`<button class="action-btn" onclick="navigate('documentos')">Ver documentos</button>`);
+  }
+  if(v.bloqueos.some(x=>x.includes('contrato'))){
+    acciones.push(`<button class="action-btn" onclick="openContratoModal()">Crear contrato</button>`);
+  }
+  if(v.bloqueos.some(x=>x.includes('Seña'))||v.avisos.some(x=>x.includes('pago'))){
+    acciones.push(`<button class="action-btn" onclick="openPagoModal(${r.id})">Registrar pago</button>`);
+  }
+  if(v.avisos.some(x=>x.includes('bloqueo logístico'))){
+    acciones.push(`<button class="action-btn" onclick="openResModal(${r.id})">Activar logística</button>`);
+  }
+  if(!acciones.length)return '';
+  return `<div class="auto-actions">${acciones.join('')}</div>`;
+}
+
+function getReservasAutomationStats(){
+  const reservas=(DB.get('reservas')||[]).filter(r=>ESTADOS_ACTIVOS.includes(r.estado));
+  return reservas.reduce((acc,r)=>{
+    const st=validarReservaAutomatica(r).estado;
+    acc[st]=(acc[st]||0)+1;
+    acc.total+=1;
+    return acc;
+  },{total:0,lista:0,revisar:0,bloqueada:0});
+}
+
+function renderReservasAutomationSummary(){
+  const el=document.getElementById('reservasAutoResumen');
+  if(!el)return;
+  const s=getReservasAutomationStats();
+  el.innerHTML=`
+    <button class="fin-cell auto-filter-card" onclick="filterResControl('bloqueada');sv('filterResControl','bloqueada')"><div class="fc-label">Bloqueadas</div><div class="fc-value" style="color:var(--red)">${s.bloqueada}</div></button>
+    <button class="fin-cell auto-filter-card" onclick="filterResControl('revisar');sv('filterResControl','revisar')"><div class="fc-label">A revisar</div><div class="fc-value" style="color:var(--yellow)">${s.revisar}</div></button>
+    <button class="fin-cell auto-filter-card" onclick="filterResControl('lista');sv('filterResControl','lista')"><div class="fc-label">Listas</div><div class="fc-value" style="color:var(--green)">${s.lista}</div></button>
+    <button class="fin-cell auto-filter-card" onclick="filterResControl('');sv('filterResControl','')"><div class="fc-label">Reservas activas</div><div class="fc-value">${s.total}</div></button>`;
+}
+
+async function confirmarReservaAutomatica(id){
+  const reservas=DB.get('reservas')||[];
+  const idx=reservas.findIndex(r=>parseInt(r.id)===parseInt(id));
+  if(idx<0)return;
+  const v=validarReservaAutomatica(reservas[idx]);
+  if(!v.puede){showToast('⛔ No se puede confirmar: '+v.motivo,'warn');return;}
+  if(!confirm('¿Confirmar esta reserva automática como lista?'))return;
+  try{
+    await api(`/api/reservas/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado:'confirmada',motivo:'Confirmación automática: controles completos'})});
+    reservas[idx].estado='confirmada';
+    DB.set('reservas',reservas);
+    if(reservas[idx].bloqueLogistico&&typeof crearEnvioDesdeReserva==='function')crearEnvioDesdeReserva(reservas[idx]);
+    if(typeof encolarNotificacion==='function')encolarNotificacion('reserva_confirmada', reservas[idx].operadoraId, {reservaId:id, monto:reservas[idx].monto, moneda:reservas[idx].moneda});
+    showToast('✅ Reserva confirmada automáticamente');
+    updateReservasBadge();
+    if(document.getElementById('view-reserva-ficha')?.classList.contains('active'))showResFicha(id);
+    else renderReservas();
+  }catch(e){showToast('⛔ '+e.message,'warn');}
 }
 
 function renderReservaModalAutomatizacion(){

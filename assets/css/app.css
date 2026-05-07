@@ -109,6 +109,9 @@ input,select,textarea{font-family:inherit}
 .user-info span{font-size:11px;color:var(--text3)}
 .logout-btn{background:none;border:none;color:var(--text3);font-size:16px;padding:4px;transition:color .15s;}
 .logout-btn:hover{color:var(--red)}
+.auto-filter-card{border:none;text-align:left;cursor:pointer}
+.auto-filter-card:hover{border-color:rgba(var(--accent-rgb),0.28);transform:translateY(-1px)}
+.auto-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 
 /* MAIN */
 .main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column;}

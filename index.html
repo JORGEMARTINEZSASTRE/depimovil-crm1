@@ -328,6 +328,7 @@
         <!-- RESERVAS LIST -->
         <div class="view" id="view-reservas">
           <div id="resAlerts"></div>
+          <div id="reservasAutoResumen" class="fin-summary"></div>
           <div class="table-container">
             <div class="table-header">
               <h3>📅 Reservas</h3>
@@ -348,6 +349,12 @@
                   <option value="jornada">Por Jornada</option>
                   <option value="semanal">Semanal</option>
                   <option value="mensual">Mensual</option>
+                </select>
+                <select class="filter-select" onchange="filterResControl(this.value)" id="filterResControl">
+                  <option value="">Todo el control</option>
+                  <option value="bloqueada">Bloqueadas</option>
+                  <option value="revisar">A revisar</option>
+                  <option value="lista">Listas</option>
                 </select>
                 <button class="btn-add" onclick="openResModal()" id="btnAddRes">+ Nueva Reserva</button>
               </div>
