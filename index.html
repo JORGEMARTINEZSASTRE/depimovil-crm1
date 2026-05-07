@@ -130,13 +130,15 @@
       </div>
       <div class="sidebar-nav">
         <div class="nav-section nav-primary">
-          <div class="nav-section-label">Accesos rápidos</div>
-          <button class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')"><span class="icon">⊞</span> Dashboard</button>
-          <button class="nav-item" data-view="reservas" onclick="navigate('reservas')"><span class="icon">📅</span> Reservas <span class="nav-badge" id="navBadgeReservas" style="display:none">0</span></button>
-          <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')"><span class="icon">👩‍💼</span> Operadoras</button>
-          <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')"><span class="icon">⚙️</span> Máquinas <span class="nav-badge" id="navBadgeMaq" style="display:none">0</span></button>
-          <button class="nav-item" data-view="caja" onclick="navigate('caja')"><span class="icon">💵</span> Caja <span class="nav-badge" id="navBadgeCaja" style="display:none">0</span></button>
-          <button class="nav-item" data-view="whatsapp" onclick="navigate('whatsapp')"><span class="icon">💬</span> WhatsApp <span class="nav-badge" id="navBadgeWA" style="display:none">0</span></button>
+          <div class="nav-section-label">Favoritos</div>
+          <div class="nav-quick-grid">
+            <button class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')"><span class="icon">⊞</span><span>Inicio</span></button>
+            <button class="nav-item" data-view="reservas" onclick="navigate('reservas')"><span class="icon">📅</span><span>Reservas</span><span class="nav-badge" id="navBadgeReservas" style="display:none">0</span></button>
+            <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')"><span class="icon">👩‍💼</span><span>Operadoras</span></button>
+            <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')"><span class="icon">⚙️</span><span>Máquinas</span><span class="nav-badge" id="navBadgeMaq" style="display:none">0</span></button>
+            <button class="nav-item" data-view="caja" onclick="navigate('caja')"><span class="icon">💵</span><span>Caja</span><span class="nav-badge" id="navBadgeCaja" style="display:none">0</span></button>
+            <button class="nav-item" data-view="whatsapp" onclick="navigate('whatsapp')"><span class="icon">💬</span><span>WhatsApp</span><span class="nav-badge" id="navBadgeWA" style="display:none">0</span></button>
+          </div>
         </div>
 
         <div class="nav-section-label">Módulos</div>
