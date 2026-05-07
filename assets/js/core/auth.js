@@ -165,6 +165,7 @@ function startApp(){
   updateReservasBadge();
   updatePagosBadge();
   if(typeof updateCajaBadge==='function') updateCajaBadge();
+  if(typeof updateComprasBadge==='function') updateComprasBadge();
   updateWABadge();
   updateEnviosBadge();
   updateMaqBadge();

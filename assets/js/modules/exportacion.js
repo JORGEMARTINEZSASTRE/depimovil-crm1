@@ -27,6 +27,11 @@ function exportarCSV(tipo){
         res?res.codigo:'',maq?maq.nombre:'',m.relacionado||'',m.origen||'',m.usuario||''];
     });
     filename='caja_depimovil';
+  } else if(tipo==='compras'){
+    headers=['Fecha','Código','Proveedor','Categoría','Máquina','Total','Pagado','Saldo','Moneda','Estado','Comprobante','Concepto'];
+    rows=(DB.get('compras')||[]).map(c=>{const p=getProveedor(c.proveedorId);const m=getMaq(c.maquinaId);
+      return[c.fecha,c.codigo,p?p.nombre:'',c.categoria,m?m.nombre:'',c.total||0,c.pagado||0,c.saldo||0,c.moneda,c.estado,c.comprobante||'',c.concepto||''];});
+    filename='compras_depimovil';
   } else if(tipo==='envios'){
     headers=['Código','Operadora','Máquina','Reserva','Departamento','Dirección','Transportista',
              'Tracking','F.Envío Est.','F.Envío Real','F.Retiro Est.','F.Retiro Real','Estado'];
