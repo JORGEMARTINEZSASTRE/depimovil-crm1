@@ -7,6 +7,44 @@ const DB={
   del(k){localStorage.removeItem('dm_'+k)}
 };
 
+const CRM_THEMES={
+  depimovil:{nombre:'DepiMóvil clásico',bg:'#0f1117',surface:'#181c27',surface2:'#1e2335',border:'#262d42',accent:'#d4a96a',accent2:'#e8c48a',rose:'#c76b8a',text:'#e8ecf4',text2:'#8892aa',text3:'#555e75'},
+  esmeralda:{nombre:'Esmeralda profesional',bg:'#071512',surface:'#10201d',surface2:'#172b27',border:'#24433c',accent:'#42d19b',accent2:'#8be7c2',rose:'#df7197',text:'#edf7f3',text2:'#8aa69d',text3:'#557169'},
+  oceano:{nombre:'Océano limpio',bg:'#08131f',surface:'#101d2d',surface2:'#17283c',border:'#253b55',accent:'#55b7f7',accent2:'#9ed7ff',rose:'#d975a5',text:'#edf5ff',text2:'#91a5bb',text3:'#586b80'},
+  grafito:{nombre:'Grafito sobrio',bg:'#101113',surface:'#1a1c20',surface2:'#24272d',border:'#343842',accent:'#c7d0dc',accent2:'#f0f3f6',rose:'#d87989',text:'#f1f3f5',text2:'#9aa2ad',text3:'#626a75'},
+  vino:{nombre:'Vino elegante',bg:'#171014',surface:'#23171e',surface2:'#311f29',border:'#49303b',accent:'#f0b36c',accent2:'#ffd29b',rose:'#e06f92',text:'#fff2f5',text2:'#b99aa5',text3:'#765c66'}
+};
+
+function hexToRgbParts(hex){
+  const clean=String(hex||'').replace('#','').trim();
+  if(clean.length!==6)return '212,169,106';
+  const n=parseInt(clean,16);
+  return `${(n>>16)&255},${(n>>8)&255},${n&255}`;
+}
+
+function getTemaCRM(){
+  const saved=DB.get('crm_theme')||{};
+  const base=CRM_THEMES[saved.id]||CRM_THEMES.depimovil;
+  return {...base,...saved};
+}
+
+function aplicarTemaCRM(theme){
+  const t=theme||getTemaCRM();
+  const root=document.documentElement;
+  ['bg','surface','surface2','border','accent','accent2','rose','text','text2','text3'].forEach(k=>{
+    if(t[k])root.style.setProperty('--'+k,t[k]);
+  });
+  root.style.setProperty('--bg2',t.surface2||t.bg);
+  root.style.setProperty('--text-muted',t.text2||'#8892aa');
+  root.style.setProperty('--border-strong',t.border||'#3a4158');
+  root.style.setProperty('--accent-rgb',hexToRgbParts(t.accent));
+  root.style.setProperty('--accent2-rgb',hexToRgbParts(t.accent2));
+  root.style.setProperty('--rose-rgb',hexToRgbParts(t.rose));
+  root.style.setProperty('--accent-dim',`rgba(${hexToRgbParts(t.accent)},0.12)`);
+}
+
+aplicarTemaCRM();
+
 /* ══════════════════════════════════
    API (JWT + fetch helper)
 ══════════════════════════════════ */

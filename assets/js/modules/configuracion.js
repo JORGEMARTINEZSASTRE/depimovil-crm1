@@ -4,6 +4,17 @@
 function renderConfiguracion(){
   const cfg=DB.get('wa_config')||{};
   const isConnected=!!(cfg.wa_phone_id&&cfg.wa_token&&cfg.wa_modo==='produccion');
+  const tema=getTemaCRM();
+  const paletteCards=Object.entries(CRM_THEMES).map(([id,p])=>`
+    <button type="button" class="palette-card ${tema.id===id||(!tema.id&&id==='depimovil')?'active':''}" onclick="seleccionarPaletaCRM('${id}')">
+      <strong>${p.nombre}</strong>
+      <div class="palette-swatches">
+        <span class="palette-swatch" style="background:${p.bg}"></span>
+        <span class="palette-swatch" style="background:${p.surface}"></span>
+        <span class="palette-swatch" style="background:${p.accent}"></span>
+        <span class="palette-swatch" style="background:${p.rose}"></span>
+      </div>
+    </button>`).join('');
 
   document.getElementById('configContent').innerHTML=`
     <div class="config-section">
@@ -21,6 +32,49 @@ function renderConfiguracion(){
           <label>WhatsApp de la empresa</label>
           <input type="tel" id="cfgEmpresaWA" value="${cfg.empresa_whatsapp||''}" placeholder="+598 99 000 000"/>
         </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>🎨 Colores del CRM</h3>
+      <div class="palette-grid">${paletteCards}</div>
+      <div class="color-config-grid">
+        <div class="color-field">
+          <label>Fondo</label>
+          <input type="color" id="temaBg" value="${tema.bg}">
+        </div>
+        <div class="color-field">
+          <label>Paneles</label>
+          <input type="color" id="temaSurface" value="${tema.surface}">
+        </div>
+        <div class="color-field">
+          <label>Panel secundario</label>
+          <input type="color" id="temaSurface2" value="${tema.surface2}">
+        </div>
+        <div class="color-field">
+          <label>Bordes</label>
+          <input type="color" id="temaBorder" value="${tema.border}">
+        </div>
+        <div class="color-field">
+          <label>Acento</label>
+          <input type="color" id="temaAccent" value="${tema.accent}">
+        </div>
+        <div class="color-field">
+          <label>Acento claro</label>
+          <input type="color" id="temaAccent2" value="${tema.accent2}">
+        </div>
+        <div class="color-field">
+          <label>Secundario</label>
+          <input type="color" id="temaRose" value="${tema.rose}">
+        </div>
+        <div class="color-field">
+          <label>Texto</label>
+          <input type="color" id="temaText" value="${tema.text}">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+        <button class="btn-add" onclick="guardarTemaCRM()">Aplicar colores</button>
+        <button class="btn-secondary" onclick="resetTemaCRM()">Restaurar clásico</button>
       </div>
     </div>
 
@@ -69,6 +123,43 @@ function renderConfiguracion(){
       <button class="btn-add" onclick="saveConfiguracion()">💾 Guardar Configuración</button>
       <button class="btn-secondary" onclick="testWAConnection()">🔌 Probar conexión</button>
     </div>`;
+}
+
+function seleccionarPaletaCRM(id){
+  const p=CRM_THEMES[id]||CRM_THEMES.depimovil;
+  const tema={id,...p};
+  DB.set('crm_theme',tema);
+  aplicarTemaCRM(tema);
+  renderConfiguracion();
+  showToast('🎨 Paleta aplicada');
+}
+
+function guardarTemaCRM(){
+  const tema={
+    id:'personalizada',
+    nombre:'Personalizada',
+    bg:gv('temaBg'),
+    surface:gv('temaSurface'),
+    surface2:gv('temaSurface2'),
+    border:gv('temaBorder'),
+    accent:gv('temaAccent'),
+    accent2:gv('temaAccent2'),
+    rose:gv('temaRose'),
+    text:gv('temaText'),
+    text2:getTemaCRM().text2,
+    text3:getTemaCRM().text3
+  };
+  DB.set('crm_theme',tema);
+  aplicarTemaCRM(tema);
+  renderConfiguracion();
+  showToast('✅ Colores guardados');
+}
+
+function resetTemaCRM(){
+  DB.del('crm_theme');
+  aplicarTemaCRM(CRM_THEMES.depimovil);
+  renderConfiguracion();
+  showToast('↩️ Paleta clásica restaurada');
 }
 
 function saveConfiguracion(){
