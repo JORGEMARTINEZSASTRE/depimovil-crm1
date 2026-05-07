@@ -20,7 +20,7 @@
 const express = require('express');
 const pool = require('../utils/db');
 const { getSession, setSession, clearSession } = require('../utils/wa_sessions');
-const { enviarMensaje, enviarBotones, enviarLista } = require('../utils/wa_sender');
+const { enviarMensaje, enviarBotones, enviarLista, obtenerQR, crearInstancia } = require('../utils/wa_sender');
 const { auth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -56,48 +56,68 @@ router.post('/send', auth, requireRole('superadmin', 'operaciones', 'comercial')
   }
 });
 
-router.get('/status', auth, requireRole('superadmin', 'operaciones', 'comercial'), (req, res) => {
-  const modo = process.env.WA_MODO || 'simulacion';
-  const phoneId = process.env.WA_PHONE_ID;
-  const token = process.env.WA_TOKEN;
+router.get('/status', auth, requireRole('superadmin', 'operaciones', 'comercial'), async (req, res) => {
+  const modo        = process.env.WA_MODO || 'simulacion';
+  const evoUrl      = process.env.EVOLUTION_URL;
+  const evoKey      = process.env.EVOLUTION_KEY;
+  const evoInst     = process.env.EVOLUTION_INST || 'depimovil';
+  const configurado = !!(evoUrl && evoKey);
+
+  let conectado = false;
+  if (modo === 'produccion' && configurado) {
+    try {
+      const r = await fetch(`${evoUrl}/instance/connectionState/${evoInst}`, {
+        headers: { 'apikey': evoKey },
+      });
+      const d = await r.json().catch(() => ({}));
+      const state = d?.instance?.state || d?.state;
+      conectado = state === 'open';
+    } catch (_) {}
+  }
+
   res.json({
     modo,
-    phone_id_configurado: !!phoneId,
-    token_configurado: !!token,
-    verify_token_configurado: !!process.env.WA_VERIFY_TOKEN,
-    envio_real_activo: modo !== 'simulacion' && !!phoneId && !!token
+    evolution_url_configurado: !!evoUrl,
+    evolution_key_configurado: !!evoKey,
+    instancia: evoInst,
+    conectado,
+    envio_real_activo: modo === 'produccion' && configurado && conectado,
+    // compatibilidad con frontend anterior
+    phone_id_configurado: configurado,
+    token_configurado: configurado,
+    verify_token_configurado: true,
   });
 });
 
-router.get('/test', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
-  try {
-    const phoneId = process.env.WA_PHONE_ID;
-    const token = process.env.WA_TOKEN;
-    const modo = process.env.WA_MODO || 'simulacion';
-    if (!phoneId || !token) {
-      return res.status(400).json({ error: 'Falta configurar WA_PHONE_ID o WA_TOKEN en el servidor' });
-    }
-    if (modo === 'simulacion') {
-      return res.json({ ok: true, simulado: true, modo });
-    }
-    const graphRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}?fields=display_phone_number,verified_name,quality_rating`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await graphRes.json();
-    if (!graphRes.ok || data.error) {
-      return res.status(502).json({ error: data.error?.message || 'Meta no validó la conexión' });
-    }
-    res.json({
-      ok: true,
-      modo,
-      display_phone_number: data.display_phone_number || '',
-      verified_name: data.verified_name || '',
-      quality_rating: data.quality_rating || ''
-    });
-  } catch (err) {
-    console.error('WA test error:', err);
-    res.status(500).json({ error: 'Error probando WhatsApp' });
+// ─── QR — escanear para conectar WhatsApp ────────────────────────────────────
+router.get('/qr', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  const modo = process.env.WA_MODO || 'simulacion';
+  if (modo !== 'produccion') {
+    return res.json({ ok: true, simulado: true, status: 'simulacion', mensaje: 'El servidor está en modo simulación. Cambiá WA_MODO=produccion para conectar WhatsApp real.' });
   }
+  if (!process.env.EVOLUTION_URL || !process.env.EVOLUTION_KEY) {
+    return res.status(400).json({ error: 'Faltan EVOLUTION_URL o EVOLUTION_KEY en las variables de entorno del servidor' });
+  }
+  const resultado = await obtenerQR();
+  res.json(resultado);
+});
+
+// ─── Crear instancia Evolution (primera vez) ─────────────────────────────────
+router.post('/setup', auth, requireRole('superadmin'), async (req, res) => {
+  if (!process.env.EVOLUTION_URL || !process.env.EVOLUTION_KEY) {
+    return res.status(400).json({ error: 'Faltan EVOLUTION_URL o EVOLUTION_KEY' });
+  }
+  const resultado = await crearInstancia();
+  res.json(resultado);
+});
+
+router.get('/test', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  const modo = process.env.WA_MODO || 'simulacion';
+  if (modo !== 'produccion') {
+    return res.json({ ok: true, simulado: true, modo });
+  }
+  const resultado = await obtenerQR();
+  res.json({ ok: resultado.ok, modo, ...resultado });
 });
 
 // ═══════════════════════════════════
