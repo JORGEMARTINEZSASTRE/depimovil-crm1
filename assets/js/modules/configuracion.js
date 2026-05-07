@@ -3,7 +3,8 @@
 ══════════════════════════════════ */
 function renderConfiguracion(){
   const cfg=DB.get('wa_config')||{};
-  const isConnected=!!(cfg.wa_phone_id&&cfg.wa_token&&cfg.wa_modo==='produccion');
+  const waStatus=DB.get('wa_status')||{};
+  const isConnected=!!waStatus.envio_real_activo;
   const tema=getTemaCRM();
   const paletteCards=Object.entries(CRM_THEMES).map(([id,p])=>`
     <button type="button" class="palette-card ${tema.id===id||(!tema.id&&id==='depimovil')?'active':''}" onclick="seleccionarPaletaCRM('${id}')">
@@ -81,21 +82,14 @@ function renderConfiguracion(){
     <div class="config-section">
       <h3>💬 WhatsApp Business API
         <span class="api-status ${isConnected?'connected':'disconnected'}" style="margin-left:8px">
-          ${isConnected?'● Conectado':'○ Sin conectar'}
+          ${isConnected?'● Conectado':'○ Revisar'}
         </span>
       </h3>
-      ${isConnected?'':`<div class="alert-banner info" style="margin-bottom:16px">
-        <span class="ab-icon">ℹ️</span>
-        <div>Para conectar la API real, necesitás una cuenta de <strong>Meta Business</strong> con WhatsApp Business API habilitada. Ingresá tu Phone ID y Bearer Token de acceso.</div>
-      </div>`}
+      <div id="waServerStatus" class="alert-banner info" style="margin-bottom:16px">
+        <span class="ab-icon">🔌</span>
+        <div>Consultando estado real del servidor...</div>
+      </div>
       <div class="config-row">
-        <div class="form-field">
-          <label>Modo</label>
-          <select id="cfgWAModo">
-            <option value="simulacion" ${cfg.wa_modo==='simulacion'?'selected':''}>Simulación (sin envío real)</option>
-            <option value="produccion" ${cfg.wa_modo==='produccion'?'selected':''}>Producción (envío real)</option>
-          </select>
-        </div>
         <div class="form-field">
           <label>Auto-envío al encolar</label>
           <select id="cfgWAAutoEnvio">
@@ -104,18 +98,18 @@ function renderConfiguracion(){
           </select>
         </div>
         <div class="form-field">
-          <label>Phone ID <span style="color:var(--text3);font-weight:400">(Meta)</span></label>
-          <input type="text" id="cfgWAPhoneId" value="${cfg.wa_phone_id||''}" placeholder="1234567890"/>
+          <label>Modo del servidor</label>
+          <input type="text" id="cfgWAModoServidor" value="${waStatus.modo||'Consultando...'}" readonly/>
         </div>
         <div class="form-field">
-          <label>Bearer Token <span style="color:var(--text3);font-weight:400">(acceso)</span></label>
-          <input type="password" id="cfgWAToken" value="${cfg.wa_token||''}" placeholder="EAA…"/>
+          <label>Credenciales</label>
+          <input type="text" value="${waStatus.phone_id_configurado&&waStatus.token_configurado?'Configuradas en servidor':'Pendientes en servidor'}" readonly/>
         </div>
       </div>
       <div style="margin-top:16px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px">Endpoint de envío</div>
-        <code style="font-size:12px;color:var(--accent)">POST https://graph.facebook.com/v19.0/<span style="color:var(--text2)">{phone-id}</span>/messages</code>
-        <div style="font-size:11px;color:var(--text3);margin-top:6px">Authorization: Bearer <span style="color:var(--text2)">{token}</span></div>
+        <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px">Webhook Meta</div>
+        <code style="font-size:12px;color:var(--accent)">${window.location.origin}/api/webhook/whatsapp</code>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">El token de verificación y el Bearer Token quedan solo en el servidor.</div>
       </div>
     </div>
 
@@ -123,6 +117,7 @@ function renderConfiguracion(){
       <button class="btn-add" onclick="saveConfiguracion()">💾 Guardar Configuración</button>
       <button class="btn-secondary" onclick="testWAConnection()">🔌 Probar conexión</button>
     </div>`;
+  refreshWAStatus();
 }
 
 function seleccionarPaletaCRM(id){
@@ -167,9 +162,6 @@ function saveConfiguracion(){
     empresa_nombre:gv('cfgEmpresaNombre').trim(),
     empresa_email:gv('cfgEmpresaEmail').trim(),
     empresa_whatsapp:gv('cfgEmpresaWA').trim(),
-    wa_phone_id:gv('cfgWAPhoneId').trim(),
-    wa_token:gv('cfgWAToken').trim(),
-    wa_modo:gv('cfgWAModo'),
     wa_auto_envio:gv('cfgWAAutoEnvio')==='true',
   };
   DB.set('wa_config',cfg);
@@ -177,22 +169,33 @@ function saveConfiguracion(){
   renderConfiguracion();
 }
 
-function testWAConnection(){
-  const cfg=DB.get('wa_config')||{};
-  if(!cfg.wa_phone_id||!cfg.wa_token){
-    showToast('⚠️ Completá Phone ID y Token antes de probar','warn');
-    return;
+async function refreshWAStatus(){
+  const el=document.getElementById('waServerStatus');
+  try{
+    const st=await api('/api/webhook/whatsapp/status');
+    DB.set('wa_status',st);
+    if(document.getElementById('cfgWAModoServidor'))document.getElementById('cfgWAModoServidor').value=st.modo||'simulacion';
+    if(el){
+      const ok=st.envio_real_activo;
+      el.className='alert-banner '+(ok?'':'warn');
+      el.innerHTML=`<span class="ab-icon">${ok?'✅':'⚠️'}</span><div><strong>${ok?'WhatsApp real activo':'WhatsApp no está en modo real completo'}</strong> — Phone ID: ${st.phone_id_configurado?'configurado':'falta'} · Token: ${st.token_configurado?'configurado':'falta'} · Verify token: ${st.verify_token_configurado?'configurado':'falta'}.</div>`;
+    }
+  }catch(e){
+    if(el){
+      el.className='alert-banner warn';
+      el.innerHTML=`<span class="ab-icon">⚠️</span><div>No pude consultar el estado del servidor: ${e.message}</div>`;
+    }
   }
-  if(cfg.wa_modo==='simulacion'){
-    showToast('ℹ️ Modo simulación — sin envío real');
-    return;
-  }
+}
+
+async function testWAConnection(){
   showToast('🔌 Verificando conexión…');
-  // Real API check: GET /phone_number_id
-  fetch(`https://graph.facebook.com/v19.0/${cfg.wa_phone_id}`,{
-    headers:{Authorization:`Bearer ${cfg.wa_token}`}
-  }).then(r=>r.json()).then(d=>{
-    if(d.id) showToast('✅ Conexión exitosa: '+d.display_phone_number);
-    else showToast('❌ Error: '+(d.error?.message||'Respuesta inválida'));
-  }).catch(()=>showToast('❌ Error de red o token inválido'));
+  try{
+    const d=await api('/api/webhook/whatsapp/test');
+    if(d.simulado) showToast('ℹ️ Servidor en modo simulación');
+    else showToast('✅ Conexión WhatsApp OK: '+(d.display_phone_number||d.verified_name||'Meta validó la API'));
+    await refreshWAStatus();
+  }catch(e){
+    showToast('❌ '+e.message,'error');
+  }
 }

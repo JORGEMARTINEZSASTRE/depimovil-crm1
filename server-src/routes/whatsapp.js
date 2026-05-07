@@ -57,11 +57,47 @@ router.post('/send', auth, requireRole('superadmin', 'operaciones', 'comercial')
 });
 
 router.get('/status', auth, requireRole('superadmin', 'operaciones', 'comercial'), (req, res) => {
+  const modo = process.env.WA_MODO || 'simulacion';
+  const phoneId = process.env.WA_PHONE_ID;
+  const token = process.env.WA_TOKEN;
   res.json({
-    modo: process.env.WA_MODO || 'simulacion',
-    phone_id_configurado: !!process.env.WA_PHONE_ID,
-    token_configurado: !!process.env.WA_TOKEN
+    modo,
+    phone_id_configurado: !!phoneId,
+    token_configurado: !!token,
+    verify_token_configurado: !!process.env.WA_VERIFY_TOKEN,
+    envio_real_activo: modo !== 'simulacion' && !!phoneId && !!token
   });
+});
+
+router.get('/test', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  try {
+    const phoneId = process.env.WA_PHONE_ID;
+    const token = process.env.WA_TOKEN;
+    const modo = process.env.WA_MODO || 'simulacion';
+    if (!phoneId || !token) {
+      return res.status(400).json({ error: 'Falta configurar WA_PHONE_ID o WA_TOKEN en el servidor' });
+    }
+    if (modo === 'simulacion') {
+      return res.json({ ok: true, simulado: true, modo });
+    }
+    const graphRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}?fields=display_phone_number,verified_name,quality_rating`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await graphRes.json();
+    if (!graphRes.ok || data.error) {
+      return res.status(502).json({ error: data.error?.message || 'Meta no validó la conexión' });
+    }
+    res.json({
+      ok: true,
+      modo,
+      display_phone_number: data.display_phone_number || '',
+      verified_name: data.verified_name || '',
+      quality_rating: data.quality_rating || ''
+    });
+  } catch (err) {
+    console.error('WA test error:', err);
+    res.status(500).json({ error: 'Error probando WhatsApp' });
+  }
 });
 
 // ═══════════════════════════════════
