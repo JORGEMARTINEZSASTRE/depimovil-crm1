@@ -586,12 +586,24 @@
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
               <button class="btn-export" onclick="exportarCSV('caja')">⬇ Caja CSV</button>
+              <button class="btn-secondary" onclick="openCierreCajaModal()">Cierre</button>
               <button class="btn-add" onclick="openCajaModal()">+ Movimiento</button>
             </div>
           </div>
           <div id="cajaAlerts"></div>
           <div id="cajaResumen" class="fin-summary"></div>
           <div id="cajaCuentasGrid" class="caja-cuentas-grid"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Cierres de Caja</h3>
+              <div class="table-actions"><button class="action-btn" onclick="openCierreCajaModal()">Nuevo cierre</button></div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Fecha</th><th>Período</th><th>Cuenta</th><th>Moneda</th><th>Sistema</th><th>Contado</th><th>Diferencia</th><th>Mov.</th><th>Obs.</th>
+              </tr></thead><tbody id="cajaCierresTableBody"></tbody></table>
+            </div>
+          </div>
           <div class="table-container">
             <div class="table-header">
               <h3>Movimientos de Caja</h3>
@@ -1962,6 +1974,49 @@
     <div class="modal-foot">
       <button class="btn-secondary" onclick="closeModal('modalCaja')">Cancelar</button>
       <button class="btn-add" onclick="saveCajaMovimiento()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CIERRE CAJA -->
+<div class="modal-overlay" id="modalCierreCaja">
+  <div class="modal-box" style="max-width:720px">
+    <div class="modal-head">
+      <h3>Cierre de Caja</h3>
+      <button class="modal-close" onclick="closeModal('modalCierreCaja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Período</div>
+        <div class="form-field">
+          <label>Tipo de cierre</label>
+          <select id="cierreCajaPeriodo" onchange="onCierreCajaPeriodoChange()">
+            <option value="diario">Diario</option>
+            <option value="semanal">Semanal</option>
+            <option value="mensual">Mensual</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Desde</label><input type="date" id="cierreCajaDesde" onchange="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field"><label>Hasta</label><input type="date" id="cierreCajaHasta" onchange="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field">
+          <label>Cuenta</label>
+          <select id="cierreCajaCuenta" onchange="actualizarCierreCajaPreview()"></select>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="cierreCajaMoneda" onchange="actualizarCierreCajaPreview()">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Saldo contado</label><input type="number" id="cierreCajaContado" step="0.01" oninput="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field full"><div id="cierreCajaPreview" class="alert-banner info"></div></div>
+        <div class="form-field full"><label>Observación</label><textarea id="cierreCajaObs" placeholder="Diferencias, comprobantes pendientes o aclaraciones"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCierreCaja')">Cancelar</button>
+      <button class="btn-add" onclick="saveCierreCaja()">💾 Guardar cierre</button>
     </div>
   </div>
 </div>

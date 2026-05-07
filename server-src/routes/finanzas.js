@@ -129,6 +129,23 @@ async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS caja_cierres (
+      id SERIAL PRIMARY KEY,
+      codigo TEXT UNIQUE,
+      periodo TEXT NOT NULL DEFAULT 'diario',
+      fecha_desde DATE NOT NULL,
+      fecha_hasta DATE NOT NULL,
+      cuenta_id INTEGER REFERENCES caja_cuentas(id),
+      moneda TEXT NOT NULL DEFAULT 'UYU',
+      saldo_sistema NUMERIC(14,2) NOT NULL DEFAULT 0,
+      saldo_contado NUMERIC(14,2) NOT NULL DEFAULT 0,
+      diferencia NUMERIC(14,2) NOT NULL DEFAULT 0,
+      movimientos INTEGER NOT NULL DEFAULT 0,
+      obs TEXT DEFAULT '',
+      created_by INTEGER REFERENCES usuarios(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   const cuentas = ['Efectivo','Banco','Transferencia','MercadoPago','Prex','OCA Blue','BROU','Itaú'];
@@ -183,6 +200,11 @@ function mapMovimiento(r) {
     concepto:r.concepto||'', obs:r.obs||'', origen:r.origen||'manual', usuario:r.usuario||'', confirmadoEn:r.confirmado_en,
     ts:r.created_at, updatedAt:r.updated_at };
 }
+function mapCierre(r) {
+  return { id:r.id, codigo:r.codigo, periodo:r.periodo, fechaDesde:dateOnly(r.fecha_desde), fechaHasta:dateOnly(r.fecha_hasta),
+    cuentaId:r.cuenta_id, moneda:r.moneda, saldoSistema:toNumber(r.saldo_sistema), saldoContado:toNumber(r.saldo_contado),
+    diferencia:toNumber(r.diferencia), movimientos:parseInt(r.movimientos,10)||0, obs:r.obs||'', creadoEn:r.created_at };
+}
 
 router.use(auth);
 router.use(async (req, res, next) => {
@@ -192,10 +214,11 @@ router.use(async (req, res, next) => {
 
 router.get('/bootstrap', async (req, res) => {
   try {
-    const [cuentas,categorias,movs,proveedores,compras,ventas] = await Promise.all([
+    const [cuentas,categorias,movs,cierres,proveedores,compras,ventas] = await Promise.all([
       pool.query('SELECT * FROM caja_cuentas ORDER BY id'),
       pool.query('SELECT * FROM caja_categorias ORDER BY tipo,label'),
       pool.query('SELECT * FROM caja_movimientos ORDER BY fecha DESC, id DESC'),
+      pool.query('SELECT * FROM caja_cierres ORDER BY fecha_hasta DESC, id DESC'),
       pool.query('SELECT * FROM proveedores ORDER BY nombre'),
       pool.query('SELECT * FROM compras ORDER BY fecha DESC, id DESC'),
       pool.query('SELECT * FROM ventas_maquinas ORDER BY fecha DESC, id DESC')
@@ -204,6 +227,7 @@ router.get('/bootstrap', async (req, res) => {
       caja_cuentas: cuentas.rows.map(mapCuenta),
       caja_categorias: categorias.rows.map(mapCategoria),
       caja_movimientos: movs.rows.map(mapMovimiento),
+      caja_cierres: cierres.rows.map(mapCierre),
       proveedores: proveedores.rows.map(mapProveedor),
       compras: compras.rows.map(mapCompra),
       ventas_maquinas: ventas.rows.map(mapVenta)
@@ -255,6 +279,24 @@ router.patch('/caja/movimientos/:id/confirmar', adminOnly, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Movimiento no encontrado' });
     res.json(mapMovimiento(rows[0]));
   } catch (err) { console.error(err); res.status(500).json({ error: 'Error interno' }); }
+});
+
+router.post('/caja/cierres', adminOnly, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const codigo = b.codigo || await nextCode('CC', 'caja_cierres');
+    const saldoSistema = toNumber(b.saldoSistema);
+    const saldoContado = toNumber(b.saldoContado);
+    const diferencia = Math.round((saldoContado - saldoSistema) * 100) / 100;
+    const { rows } = await pool.query(
+      `INSERT INTO caja_cierres
+       (codigo,periodo,fecha_desde,fecha_hasta,cuenta_id,moneda,saldo_sistema,saldo_contado,diferencia,movimientos,obs,created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [codigo,b.periodo||'diario',b.fechaDesde||null,b.fechaHasta||null,toIntOrNull(b.cuentaId),b.moneda||'UYU',
+       saldoSistema,saldoContado,diferencia,parseInt(b.movimientos,10)||0,b.obs||'',req.user.id]
+    );
+    res.status(201).json(mapCierre(rows[0]));
+  } catch (err) { console.error('Create caja cierre error:', err); res.status(500).json({ error: 'Error interno' }); }
 });
 
 router.post('/proveedores', adminOnly, async (req, res) => {

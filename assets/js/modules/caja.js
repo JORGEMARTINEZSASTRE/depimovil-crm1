@@ -86,6 +86,7 @@ function renderCaja(){
   const pendientes=movs.filter(m=>m.estado==='pendiente').length;
   document.getElementById('cajaAlerts').innerHTML=pendientes?`<div class="alert-banner warn"><span class="ab-icon">⏳</span><div><strong>${pendientes} movimiento${pendientes>1?'s':''} pendiente${pendientes>1?'s':''}</strong> — Requieren confirmación administrativa.</div></div>`:'';
   renderCajaCuentas(confirmados);
+  renderCajaCierres();
   renderCajaTabla(movs);
   updateCajaBadge();
 }
@@ -139,6 +140,98 @@ function renderCajaTabla(movs){
 }
 
 function filterCaja(k,v){cajaFilter[k]=v;renderCaja();}
+
+function cierreCajaRango(periodo,base){
+  const d=new Date((base||today())+'T12:00:00');
+  let desde=new Date(d), hasta=new Date(d);
+  if(periodo==='semanal'){
+    const day=(d.getDay()+6)%7;
+    desde.setDate(d.getDate()-day);
+    hasta=new Date(desde);hasta.setDate(desde.getDate()+6);
+  }
+  if(periodo==='mensual'){
+    desde=new Date(d.getFullYear(),d.getMonth(),1);
+    hasta=new Date(d.getFullYear(),d.getMonth()+1,0);
+  }
+  const fmt=x=>x.toISOString().slice(0,10);
+  return {desde:fmt(desde),hasta:fmt(hasta)};
+}
+
+function calcularCierreCaja(){
+  ensureCajaData();
+  const desde=gv('cierreCajaDesde')||today();
+  const hasta=gv('cierreCajaHasta')||desde;
+  const cuentaId=parseInt(gv('cierreCajaCuenta'))||null;
+  const moneda=gv('cierreCajaMoneda')||'UYU';
+  const movs=(DB.get('caja_movimientos')||[]).filter(m=>
+    m.estado==='confirmado'&&m.moneda===moneda&&
+    (!cuentaId||parseInt(m.cuentaId)===cuentaId)&&
+    (m.fecha||'')>=desde&&(m.fecha||'')<=hasta
+  );
+  const saldo=movs.reduce((s,m)=>s+cajaMontoFirmado(m),0);
+  const contado=parseFloat(gv('cierreCajaContado'))||0;
+  return {desde,hasta,cuentaId,moneda,movs,saldo,contado,diferencia:Math.round((contado-saldo)*100)/100};
+}
+
+function renderCajaCierres(){
+  const tbody=document.getElementById('cajaCierresTableBody');
+  if(!tbody)return;
+  const rows=(DB.get('caja_cierres')||[]).slice().sort((a,b)=>(b.fechaHasta||'').localeCompare(a.fechaHasta||'')||b.id-a.id).slice(0,8);
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">✓</div><h3>Sin cierres</h3><p>Cuando cierres caja, quedará el respaldo diario, semanal o mensual.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=rows.map(c=>`<tr>
+    <td>${fmtDate(c.fechaHasta)}</td><td>${c.periodo}</td><td>${cajaCuentaNombre(c.cuentaId)}</td><td>${c.moneda}</td>
+    <td>${(c.saldoSistema||0).toLocaleString()}</td><td>${(c.saldoContado||0).toLocaleString()}</td>
+    <td style="color:${Math.abs(c.diferencia||0)<0.01?'var(--green)':(c.diferencia||0)>0?'var(--yellow)':'var(--red)'}">${(c.diferencia||0).toLocaleString()}</td>
+    <td>${c.movimientos||0}</td><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis">${c.obs||'—'}</td>
+  </tr>`).join('');
+}
+
+function actualizarCierreCajaPreview(){
+  const c=calcularCierreCaja();
+  const el=document.getElementById('cierreCajaPreview');
+  if(!el)return;
+  el.innerHTML=`<span class="ab-icon">✓</span><div><strong>Saldo sistema: ${c.saldo.toLocaleString()} ${c.moneda}</strong> · Movimientos: ${c.movs.length} · Diferencia: <strong style="color:${Math.abs(c.diferencia)<0.01?'var(--green)':c.diferencia>0?'var(--yellow)':'var(--red)'}">${c.diferencia.toLocaleString()} ${c.moneda}</strong></div>`;
+}
+
+function onCierreCajaPeriodoChange(){
+  const r=cierreCajaRango(gv('cierreCajaPeriodo'),gv('cierreCajaHasta')||today());
+  sv('cierreCajaDesde',r.desde);sv('cierreCajaHasta',r.hasta);
+  actualizarCierreCajaPreview();
+}
+
+function openCierreCajaModal(){
+  ensureCajaData();
+  document.getElementById('cierreCajaCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  sv('cierreCajaPeriodo','diario');
+  sv('cierreCajaDesde',today());sv('cierreCajaHasta',today());sv('cierreCajaMoneda','UYU');sv('cierreCajaContado','');sv('cierreCajaObs','');
+  actualizarCierreCajaPreview();
+  openModal('modalCierreCaja');
+}
+
+async function saveCierreCaja(){
+  const c=calcularCierreCaja();
+  const cierres=DB.get('caja_cierres')||[];
+  const data={
+    id:cierres.reduce((m,x)=>Math.max(m,x.id||0),0)+1,
+    codigo:`CC-${String(cierres.reduce((m,x)=>Math.max(m,x.id||0),0)+1).padStart(5,'0')}`,
+    periodo:gv('cierreCajaPeriodo')||'diario',fechaDesde:c.desde,fechaHasta:c.hasta,cuentaId:c.cuentaId,moneda:c.moneda,
+    saldoSistema:c.saldo,saldoContado:c.contado,diferencia:c.diferencia,movimientos:c.movs.length,obs:gv('cierreCajaObs').trim(),creadoEn:new Date().toISOString()
+  };
+  try{
+    const saved=await api('/api/finanzas/caja/cierres',{method:'POST',body:JSON.stringify(data)});
+    Object.assign(data,saved||{});
+    await recargarFinanzas();
+  }catch(e){
+    DB.set('caja_cierres',[...cierres,data]);
+  }
+  auditLog('CREATE','caja_cierres',data.id,`${data.codigo} ${data.periodo} ${data.moneda}`);
+  closeModal('modalCierreCaja');
+  showToast('✅ Cierre de caja guardado');
+  renderCaja();
+}
 
 function onCajaTipoChange(){
   const tipo=gv('cajaTipo');
