@@ -58,7 +58,7 @@ function calcVentaMaqSaldo(){
   const total=parseFloat(gv('ventaMaqTotal'))||0;const pago=parseFloat(gv('ventaMaqPago'))||0;const wrap=document.getElementById('ventaMaqSaldoWrap');
   if(total>0){wrap.style.display='flex';wrap.innerHTML=`Pago recibido ahora: <strong>${pago.toLocaleString()}</strong> · Saldo estimado: <strong>${Math.max(0,total-pago).toLocaleString()}</strong>`;}else wrap.style.display='none';
 }
-function saveVentaMaquina(){
+async function saveVentaMaquina(){
   ensureVentasMaquinasData();
   const ventas=DB.get('ventas_maquinas')||[];const id=gv('ventaMaqId');const total=parseFloat(gv('ventaMaqTotal'))||0;const pago=parseFloat(gv('ventaMaqPago'))||0;
   if(!gv('ventaMaqMaquina')){showToast('⚠️ Seleccioná máquina','warn');return;}
@@ -66,8 +66,15 @@ function saveVentaMaquina(){
   if(total<=0){showToast('⚠️ Ingresá precio total','warn');return;}
   const prev=id?ventas.find(v=>v.id===parseInt(id)):null;const pagadoPrev=prev?.pagado||0;const pagado=Math.min(total,pagadoPrev+pago);const saldo=Math.max(0,total-pagado);
   const data={id:prev?.id||ventas.reduce((m,v)=>Math.max(m,v.id||0),0)+1,codigo:prev?.codigo||`VM-${String(ventas.reduce((m,v)=>Math.max(m,v.id||0),0)+1).padStart(5,'0')}`,fecha:gv('ventaMaqFecha')||today(),maquinaId:parseInt(gv('ventaMaqMaquina')),comprador:gv('ventaMaqComprador').trim(),telefono:gv('ventaMaqTelefono').trim(),documento:gv('ventaMaqDocumento').trim(),total,moneda:gv('ventaMaqMoneda'),pagado,saldo,estado:saldo<=0?'pagada':pagado>0?'parcial':'pendiente',cuentaId:parseInt(gv('ventaMaqCuenta')),comprobante:gv('ventaMaqComprobante').trim(),obs:gv('ventaMaqObs').trim(),updatedAt:new Date().toISOString()};
-  DB.set('ventas_maquinas',prev?ventas.map(v=>v.id===prev.id?data:v):[...ventas,data]);
-  if(pago>0)crearIngresoCajaVentaMaquina(data,pago,saldo>0);
+  try{
+    const saved=await api(prev?`/api/finanzas/ventas-maquinas/${prev.id}`:'/api/finanzas/ventas-maquinas',{method:prev?'PUT':'POST',body:JSON.stringify(data)});
+    Object.assign(data,saved||{});
+    if(pago>0)crearIngresoCajaVentaMaquina(data,pago,saldo>0);
+    await recargarFinanzas();
+  }catch(e){
+    DB.set('ventas_maquinas',prev?ventas.map(v=>v.id===prev.id?data:v):[...ventas,data]);
+    if(pago>0)crearIngresoCajaVentaMaquina(data,pago,saldo>0);
+  }
   auditLog(prev?'UPDATE':'CREATE','ventas_maquinas',data.id,`${data.codigo} ${data.total} ${data.moneda}`);
   closeModal('modalVentaMaquina');showToast('✅ Venta guardada');renderVentasMaquinas();
 }
@@ -76,7 +83,11 @@ function crearIngresoCajaVentaMaquina(venta,monto,esAdelanto){
   const movs=DB.get('caja_movimientos')||[];const nextId=movs.reduce((m,x)=>Math.max(m,x.id||0),0)+1;const maq=getMaq(venta.maquinaId);
   const categoria=esAdelanto?'adelanto_venta':'venta_maquina';
   const mov={id:nextId,codigo:`CJ-${String(nextId).padStart(5,'0')}`,tipo:'ingreso',estado:'confirmado',fecha:venta.fecha,cuentaId:venta.cuentaId,categoria,moneda:venta.moneda,monto,comprobante:venta.comprobante||'',operadoraId:null,reservaId:null,maquinaId:venta.maquinaId,relacionado:venta.comprador,concepto:`${esAdelanto?'Adelanto':'Pago'} venta ${venta.codigo} · ${maq?maq.nombre:''}`,obs:`Ingreso automático desde venta ${venta.codigo}`,origen:'venta_maquina',ventaMaquinaId:venta.id,usuario:'sistema',ts:new Date().toISOString(),updatedAt:new Date().toISOString()};
-  DB.set('caja_movimientos',[...movs,mov]);auditLog('CREATE','caja_movimientos',mov.id,`${mov.codigo} ingreso venta ${venta.codigo}`);
+  DB.set('caja_movimientos',[...movs,mov]);
+  if(typeof api==='function'){
+    api('/api/finanzas/caja/movimientos',{method:'POST',body:JSON.stringify(mov)}).then(()=>typeof recargarFinanzas==='function'?recargarFinanzas():null).catch(()=>{});
+  }
+  auditLog('CREATE','caja_movimientos',mov.id,`${mov.codigo} ingreso venta ${venta.codigo}`);
 }
 function updateVentasMaquinasBadge(){
   const count=(DB.get('ventas_maquinas')||[]).filter(v=>['pendiente','parcial'].includes(v.estado)).length;const badge=document.getElementById('navBadgeVentasMaq');

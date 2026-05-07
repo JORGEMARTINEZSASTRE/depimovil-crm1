@@ -165,7 +165,14 @@ function openCajaModal(id){
   openModal('modalCaja');
 }
 
-function saveCajaMovimiento(){
+async function guardarCajaMovimientoApi(data, prev){
+  if(typeof api!=='function')return null;
+  const method=prev?'PUT':'POST';
+  const path=prev?`/api/finanzas/caja/movimientos/${prev.id}`:'/api/finanzas/caja/movimientos';
+  return api(path,{method,body:JSON.stringify(data)});
+}
+
+async function saveCajaMovimiento(){
   ensureCajaData();
   const movs=DB.get('caja_movimientos')||[];
   const id=gv('cajaId');
@@ -187,18 +194,29 @@ function saveCajaMovimiento(){
     obs,origen:prev?.origen||'manual',usuario:currentUser?.email||currentUser?.nombre||'sistema',
     ts:prev?.ts||new Date().toISOString(),updatedAt:new Date().toISOString()
   };
-  DB.set('caja_movimientos',prev?movs.map(m=>m.id===prev.id?data:m):[...movs,data]);
+  try{
+    const saved=await guardarCajaMovimientoApi(data,prev);
+    if(saved) data.id=saved.id;
+    await recargarFinanzas();
+  }catch(e){
+    DB.set('caja_movimientos',prev?movs.map(m=>m.id===prev.id?data:m):[...movs,data]);
+  }
   auditLog(prev?'UPDATE':'CREATE','caja_movimientos',data.id,`${data.codigo} ${data.tipo} ${data.monto} ${data.moneda}`);
   closeModal('modalCaja');
   showToast(prev?'✅ Movimiento actualizado':'✅ Movimiento registrado');
   renderCaja();
 }
 
-function confirmarCajaMovimiento(id){
+async function confirmarCajaMovimiento(id){
   const movs=DB.get('caja_movimientos')||[];
   const mov=movs.find(m=>m.id===id);if(!mov)return;
-  mov.estado='confirmado';mov.confirmadoPor=currentUser?.email||currentUser?.nombre||'admin';mov.confirmadoEn=new Date().toISOString();
-  DB.set('caja_movimientos',movs);
+  try{
+    await api('/api/finanzas/caja/movimientos/'+id+'/confirmar',{method:'PATCH'});
+    await recargarFinanzas();
+  }catch(e){
+    mov.estado='confirmado';mov.confirmadoPor=currentUser?.email||currentUser?.nombre||'admin';mov.confirmadoEn=new Date().toISOString();
+    DB.set('caja_movimientos',movs);
+  }
   auditLog('UPDATE','caja_movimientos',id,`Movimiento ${mov.codigo} confirmado`);
   showToast('✅ Movimiento confirmado');
   renderCaja();
@@ -255,6 +273,12 @@ function crearCajaMovimientoPago(pago,tipo,categoria,monto,concepto,opts={}){
     updatedAt:new Date().toISOString()
   };
   DB.set('caja_movimientos',[...movs,data]);
+  if(typeof api==='function'){
+    api('/api/finanzas/caja/movimientos',{method:'POST',body:JSON.stringify(data)}).then(saved=>{
+      if(saved&&typeof recargarFinanzas==='function')return recargarFinanzas();
+      return null;
+    }).catch(()=>{});
+  }
   auditLog('CREATE','caja_movimientos',data.id,`${data.codigo} generado desde ${pago.codigo||'pago'}: ${data.monto} ${data.moneda}`);
   return true;
 }

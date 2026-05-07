@@ -126,15 +126,26 @@ async function syncContratosLocales(contratosApi){
   }
   return subidos.length ? subidos : contratosApi;
 }
+function aplicarFinanzasCache(data){
+  if(!data)return;
+  ['caja_cuentas','caja_categorias','caja_movimientos','proveedores','compras','ventas_maquinas'].forEach(k=>{
+    if(Array.isArray(data[k])) DB.set(k,data[k]);
+  });
+}
+async function recargarFinanzas(){
+  const data=await api('/api/finanzas/bootstrap');
+  aplicarFinanzasCache(data);
+  return data;
+}
 async function loadAllData(){
   try{
     const results=await Promise.allSettled([
       api('/api/operadoras'),api('/api/maquinas'),api('/api/reservas'),
       api('/api/pagos'),api('/api/leads'),api('/api/contratos'),
-      api('/api/auth/operadoras/revision')
+      api('/api/auth/operadoras/revision'),api('/api/finanzas/bootstrap')
     ]);
     const val=function(i, fallback){return results[i].status==='fulfilled'?results[i].value:fallback};
-    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]);
+    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]), finanzas=val(7,null);
     DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
       gabinete:o.gabinete||'',ciudad:o.ciudad,departamento:o.departamento||'',
       pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
@@ -161,6 +172,7 @@ async function loadAllData(){
     const contratosFinales = await syncContratosLocales(contratos);
     DB.set('contratos',contratosFinales.map(mapContrato));
     DB.set('revision_operadoras',revisiones||[]);
+    aplicarFinanzasCache(finanzas);
     const docsResults=await Promise.allSettled((ops||[]).map(o=>api('/api/portal/docs/'+o.id)));
     const docs=[];
     docsResults.forEach(function(r){

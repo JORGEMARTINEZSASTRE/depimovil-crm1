@@ -39,13 +39,19 @@ function openProveedorModal(id){
   sv('proveedorTelefono',p?.telefono||'');sv('proveedorDireccion',p?.direccion||'');sv('proveedorObs',p?.obs||'');
   openModal('modalProveedor');
 }
-function saveProveedor(){
+async function saveProveedor(){
   ensureComprasData();
   const proveedores=DB.get('proveedores')||[];const id=gv('proveedorId');const nombre=gv('proveedorNombre').trim();
   if(!nombre){showToast('⚠️ Ingresá nombre del proveedor','warn');return;}
   const prev=id?proveedores.find(p=>p.id===parseInt(id)):null;
   const data={id:prev?.id||proveedores.reduce((m,p)=>Math.max(m,p.id||0),0)+1,nombre,documento:gv('proveedorDocumento').trim(),telefono:gv('proveedorTelefono').trim(),direccion:gv('proveedorDireccion').trim(),obs:gv('proveedorObs').trim(),updatedAt:new Date().toISOString()};
-  DB.set('proveedores',prev?proveedores.map(p=>p.id===prev.id?data:p):[...proveedores,data]);
+  try{
+    const saved=await api(prev?`/api/finanzas/proveedores/${prev.id}`:'/api/finanzas/proveedores',{method:prev?'PUT':'POST',body:JSON.stringify(data)});
+    if(saved) data.id=saved.id;
+    await recargarFinanzas();
+  }catch(e){
+    DB.set('proveedores',prev?proveedores.map(p=>p.id===prev.id?data:p):[...proveedores,data]);
+  }
   auditLog(prev?'UPDATE':'CREATE','proveedores',data.id,data.nombre);
   closeModal('modalProveedor');showToast('✅ Proveedor guardado');renderProveedores();
 }
@@ -96,7 +102,7 @@ function calcCompraSaldo(){
   const total=parseFloat(gv('compraTotal'))||0;const pago=parseFloat(gv('compraPagado'))||0;const wrap=document.getElementById('compraSaldoWrap');
   if(total>0){wrap.style.display='flex';wrap.innerHTML=`Pagado ahora: <strong>${pago.toLocaleString()}</strong> · Saldo estimado: <strong>${Math.max(0,total-pago).toLocaleString()}</strong>`;}else wrap.style.display='none';
 }
-function saveCompra(){
+async function saveCompra(){
   ensureComprasData();
   const compras=DB.get('compras')||[];const id=gv('compraId');const total=parseFloat(gv('compraTotal'))||0;const pago=parseFloat(gv('compraPagado'))||0;
   if(!gv('compraProveedor')){showToast('⚠️ Seleccioná proveedor','warn');return;}
@@ -104,8 +110,15 @@ function saveCompra(){
   if(gv('compraCategoria')==='otros'&&!gv('compraObs').trim()){showToast('⚠️ Otros requiere observación','warn');return;}
   const prev=id?compras.find(c=>c.id===parseInt(id)):null;const pagadoPrev=prev?.pagado||0;const pagado=Math.min(total,pagadoPrev+pago);const saldo=Math.max(0,total-pagado);
   const data={id:prev?.id||compras.reduce((m,c)=>Math.max(m,c.id||0),0)+1,codigo:prev?.codigo||`CP-${String(compras.reduce((m,c)=>Math.max(m,c.id||0),0)+1).padStart(5,'0')}`,fecha:gv('compraFecha')||today(),proveedorId:parseInt(gv('compraProveedor')),categoria:gv('compraCategoria'),maquinaId:parseInt(gv('compraMaquina'))||null,total,moneda:gv('compraMoneda'),pagado,saldo,estado:saldo<=0?'pagada':pagado>0?'parcial':'pendiente',cuentaId:parseInt(gv('compraCuenta')),comprobante:gv('compraComprobante').trim(),servicio:gv('compraServicio').trim(),concepto:gv('compraConcepto').trim()||compraCategoriaLabel(gv('compraCategoria')),obs:gv('compraObs').trim(),updatedAt:new Date().toISOString()};
-  DB.set('compras',prev?compras.map(c=>c.id===prev.id?data:c):[...compras,data]);
-  if(pago>0)crearEgresoCajaCompra(data,pago);
+  try{
+    const saved=await api(prev?`/api/finanzas/compras/${prev.id}`:'/api/finanzas/compras',{method:prev?'PUT':'POST',body:JSON.stringify(data)});
+    Object.assign(data,saved||{});
+    if(pago>0)crearEgresoCajaCompra(data,pago);
+    await recargarFinanzas();
+  }catch(e){
+    DB.set('compras',prev?compras.map(c=>c.id===prev.id?data:c):[...compras,data]);
+    if(pago>0)crearEgresoCajaCompra(data,pago);
+  }
   auditLog(prev?'UPDATE':'CREATE','compras',data.id,`${data.codigo} ${data.total} ${data.moneda}`);
   closeModal('modalCompra');showToast('✅ Compra guardada');renderCompras();
 }
@@ -113,7 +126,11 @@ function crearEgresoCajaCompra(compra,monto){
   ensureCajaData();
   const movs=DB.get('caja_movimientos')||[];const nextId=movs.reduce((m,x)=>Math.max(m,x.id||0),0)+1;const prov=getProveedor(compra.proveedorId);
   const mov={id:nextId,codigo:`CJ-${String(nextId).padStart(5,'0')}`,tipo:'egreso',estado:'confirmado',fecha:compra.fecha,cuentaId:compra.cuentaId,categoria:compra.categoria==='otros'?'otros_egreso':compra.categoria,moneda:compra.moneda,monto,comprobante:compra.comprobante||'',operadoraId:null,reservaId:null,maquinaId:compra.maquinaId||null,relacionado:prov?prov.nombre:'',concepto:`Pago compra ${compra.codigo} · ${compra.concepto}`,obs:`Egreso automático desde compra ${compra.codigo}`,origen:'compra',compraId:compra.id,usuario:'sistema',ts:new Date().toISOString(),updatedAt:new Date().toISOString()};
-  DB.set('caja_movimientos',[...movs,mov]);auditLog('CREATE','caja_movimientos',mov.id,`${mov.codigo} egreso compra ${compra.codigo}`);
+  DB.set('caja_movimientos',[...movs,mov]);
+  if(typeof api==='function'){
+    api('/api/finanzas/caja/movimientos',{method:'POST',body:JSON.stringify(mov)}).then(()=>typeof recargarFinanzas==='function'?recargarFinanzas():null).catch(()=>{});
+  }
+  auditLog('CREATE','caja_movimientos',mov.id,`${mov.codigo} egreso compra ${compra.codigo}`);
 }
 function updateComprasBadge(){
   const count=(DB.get('compras')||[]).filter(c=>['pendiente','parcial'].includes(c.estado)).length;const badge=document.getElementById('navBadgeCompras');
