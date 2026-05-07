@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Plataforma Operativa DepiMóvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="assets/css/app.css"/>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-mark">✦</div>
+      <h1>DepiMóvil</h1>
+      <p>Plataforma Operativa</p>
+    </div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="tabLoginAdmin" onclick="switchLoginMode('admin')">Admin</button>
+      <button class="login-tab" id="tabLoginWhatsapp" onclick="switchLoginMode('whatsapp')">WhatsApp</button>
+    </div>
+    <div id="loginAdminPanel">
+      <div class="field-group"><label>Email</label>
+        <input type="email" id="loginEmail" placeholder="usuario@depimovil.com" value="admin@depimovil.com"/></div>
+      <div class="field-group"><label>Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••" value="admin123"/></div>
+      <button class="btn-primary" onclick="doLogin()">Ingresar al Sistema</button>
+    </div>
+    <div id="loginWhatsappPanel" style="display:none">
+      <div class="field-group"><label>Rol</label>
+        <select id="waLoginRol">
+          <option value="operadora">Operadora</option>
+          <option value="transportista">Transportista</option>
+        </select>
+      </div>
+      <div class="field-group"><label>WhatsApp</label>
+        <input type="tel" id="waLoginPhone" placeholder="+59899921164"/></div>
+      <div id="waCodeGroup" class="field-group" style="display:none"><label>Código</label>
+        <input type="text" id="waLoginCode" placeholder="123456" maxlength="6" inputmode="numeric"/></div>
+      <button class="btn-primary" id="waRequestBtn" onclick="requestWhatsappCode()">Enviar código por WhatsApp</button>
+      <button class="btn-primary" id="waVerifyBtn" onclick="verifyWhatsappCode()" style="display:none;margin-top:10px">Ingresar con código</button>
+      <button class="btn-secondary full-width" onclick="openOperadoraRegistro()" style="margin-top:10px">Soy operadora nueva</button>
+    </div>
+    <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
+    <div class="login-demo" id="loginDemoBox">
+      <p>👤 Usuarios de prueba</p>
+      <div class="demo-row"><span>Super Admin</span><span>admin@depimovil.com / admin123</span></div>
+      <div class="demo-row"><span>Operaciones</span><span>ops@depimovil.com / ops123</span></div>
+      <div class="demo-row"><span>Operadora</span><span>operadora@depimovil.com / op123</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTRO NUEVA OPERADORA -->
+<div class="modal-overlay" id="modalRegistroOperadora">
+  <div class="modal-box registro-modal">
+    <div class="modal-head">
+      <h3>Registro de Operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalRegistroOperadora')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="registro-intro">Completá tus datos para quedar activa en DepiMóvil. El administrador revisa la ficha y puede pedir documentos después.</div>
+      <div class="form-grid">
+        <div class="form-section-title">Datos principales</div>
+        <div class="form-field"><label>Nombre</label><input type="text" id="regOpNombre" autocomplete="given-name"/></div>
+        <div class="form-field"><label>Apellido</label><input type="text" id="regOpApellido" autocomplete="family-name"/></div>
+        <div class="form-field"><label>WhatsApp</label><input type="tel" id="regOpWhatsapp" placeholder="099921164" inputmode="tel"/></div>
+        <div class="form-field"><label>Cédula / DNI</label><input type="text" id="regOpDocumento" placeholder="Solo número" inputmode="numeric"/></div>
+        <div class="form-field"><label>Ciudad</label><input type="text" id="regOpCiudad"/></div>
+        <div class="form-field"><label>Departamento</label><input type="text" id="regOpDepartamento"/></div>
+        <div class="form-field full"><label>Sucursales o lugares esporádicos donde trabaja</label>
+          <textarea id="regOpLugares" placeholder="Ej: Salto centro, consultorio propio, estética asociada..."></textarea></div>
+
+        <div class="form-section-title">Experiencia</div>
+        <div class="form-field full"><label>Experiencia en estética</label>
+          <select id="regOpExperiencia">
+            <option value="">Seleccionar</option>
+            <option>Estoy comenzando</option>
+            <option>Menos de 1 año</option>
+            <option>1 a 3 años</option>
+            <option>3 a 5 años</option>
+            <option>Más de 5 años</option>
+            <option>Soy profesional/formadora con experiencia avanzada</option>
+          </select>
+        </div>
+        <div class="form-field full"><label>Tratamientos que brinda</label>
+          <div class="check-grid">
+            <label><input type="checkbox" name="regTratamientos" value="Depilación láser"> Depilación láser</label>
+            <label><input type="checkbox" name="regTratamientos" value="HIFU"> HIFU</label>
+            <label><input type="checkbox" name="regTratamientos" value="Criolipólisis"> Criolipólisis</label>
+            <label><input type="checkbox" name="regTratamientos" value="Radiofrecuencia"> Radiofrecuencia</label>
+            <label><input type="checkbox" name="regTratamientos" value="Limpieza facial"> Limpieza facial</label>
+            <label><input type="checkbox" name="regTratamientos" value="Peluquería"> Peluquería</label>
+          </div>
+        </div>
+        <div class="form-field full"><label>Otros tratamientos</label><input type="text" id="regOpTratamientosOtros"/></div>
+
+        <div class="form-section-title">Información extra</div>
+        <div class="form-field full"><label>¿Tiene otros trabajos no estéticos?</label>
+          <select id="regOpTrabajoNoEstetico" onchange="toggleRegistroTrabajoExtra()">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="form-field full" id="regOpTrabajoExtraWrap" style="display:none"><label>Detalle del otro trabajo</label>
+          <textarea id="regOpTrabajoExtra" placeholder="Contanos rubro, horarios o datos útiles para coordinar."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalRegistroOperadora')">Cancelar</button>
+      <button class="btn-add" id="regOpSubmitBtn" onclick="submitOperadoraRegistro()">Crear registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-layout">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-inner">
+          <div class="logo-mark">✦</div>
+          <div class="logo-text"><h2>DepiMóvil</h2><p>Plataforma Operativa</p></div>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-section nav-primary">
+          <div class="nav-section-label">Favoritos</div>
+          <div class="nav-quick-grid">
+            <button class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')"><span class="icon">⊞</span><span>Inicio</span></button>
+            <button class="nav-item" data-view="reservas" onclick="navigate('reservas')"><span class="icon">📅</span><span>Reservas</span><span class="nav-badge" id="navBadgeReservas" style="display:none">0</span></button>
+            <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')"><span class="icon">👩‍💼</span><span>Operadoras</span></button>
+            <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')"><span class="icon">⚙️</span><span>Máquinas</span><span class="nav-badge" id="navBadgeMaq" style="display:none">0</span></button>
+            <button class="nav-item" data-view="caja" onclick="navigate('caja')"><span class="icon">💵</span><span>Caja</span><span class="nav-badge" id="navBadgeCaja" style="display:none">0</span></button>
+            <button class="nav-item" data-view="whatsapp" onclick="navigate('whatsapp')"><span class="icon">💬</span><span>WhatsApp</span><span class="nav-badge" id="navBadgeWA" style="display:none">0</span></button>
+          </div>
+        </div>
+
+        <div class="nav-section-label">Módulos</div>
+        <details class="nav-group" data-nav-group="operaciones">
+          <summary><span>Operaciones</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="revision-operadoras" onclick="navigate('revision-operadoras')"><span class="icon">☑</span> Revisión <span class="nav-badge" id="navBadgeRevisionOps" style="display:none">0</span></button>
+          <button class="nav-item" data-view="documentos" onclick="navigate('documentos')"><span class="icon">🪪</span> Documentos <span class="nav-badge" id="navBadgeDocumentos" style="display:none">0</span></button>
+          <button class="nav-item" data-view="calendario" onclick="navigate('calendario')"><span class="icon">🗓</span> Calendario</button>
+          <button class="nav-item" data-view="materiales" onclick="navigate('materiales')"><span class="icon">📚</span> Materiales</button>
+        </details>
+        <details class="nav-group" data-nav-group="finanzas">
+          <summary><span>Finanzas</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="pagos" onclick="navigate('pagos')"><span class="icon">💳</span> Pagos y Señas <span class="nav-badge" id="navBadgePagos" style="display:none">0</span></button>
+          <button class="nav-item" data-view="proveedores" onclick="navigate('proveedores')"><span class="icon">🏢</span> Proveedores</button>
+          <button class="nav-item" data-view="compras" onclick="navigate('compras')"><span class="icon">🧾</span> Compras <span class="nav-badge" id="navBadgeCompras" style="display:none">0</span></button>
+          <button class="nav-item" data-view="ventas-maquinas" onclick="navigate('ventas-maquinas')"><span class="icon">🏷</span> Ventas Máquinas <span class="nav-badge" id="navBadgeVentasMaq" style="display:none">0</span></button>
+          <button class="nav-item" data-view="contratos" onclick="navigate('contratos')"><span class="icon">📋</span> Contratos <span class="nav-badge" id="navBadgeContratos" style="display:none">0</span></button>
+        </details>
+        <details class="nav-group" data-nav-group="logistica">
+          <summary><span>Logística</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="envios" onclick="navigate('envios')"><span class="icon">🚚</span> Envíos <span class="nav-badge" id="navBadgeEnvios" style="display:none">0</span></button>
+          <button class="nav-item" data-view="transportistas" onclick="navigate('transportistas')"><span class="icon">🚛</span> Transportistas</button>
+          <button class="nav-item" data-view="logistica" onclick="navigate('logistica')"><span class="icon">🗺</span> Reglas Logísticas</button>
+        </details>
+        <details class="nav-group" data-nav-group="comercial">
+          <summary><span>Comercial</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="leads" onclick="navigate('leads')"><span class="icon">🎯</span> Leads <span class="nav-badge" id="navBadgeLeads" style="display:none">0</span></button>
+          <button class="nav-item" data-view="embudo" onclick="navigate('embudo')"><span class="icon">🏆</span> Embudo</button>
+        </details>
+        <details class="nav-group" id="adminNav" data-nav-group="sistema">
+          <summary><span>Sistema</span><span class="chev">⌄</span></summary>
+          <button class="nav-item" data-view="reportes" onclick="navigate('reportes')"><span class="icon">📊</span> Reportes</button>
+          <button class="nav-item" data-view="auditoria" onclick="navigate('auditoria')"><span class="icon">🔍</span> Auditoría</button>
+          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion')"><span class="icon">🔧</span> Configuración</button>
+          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion');setTimeout(()=>document.getElementById('crmColorsSection')?.scrollIntoView({behavior:'smooth',block:'start'}),80)"><span class="icon">🎨</span> Colores</button>
+        </details>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-chip" style="cursor:pointer" onclick="openPerfilModal()" title="Ver perfil / cambiar contraseña">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-info">
+            <strong id="userName">Admin</strong>
+            <span id="userRole">Super Admin</span>
+          </div>
+          <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="Cerrar sesión">⏏</button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+          <span class="page-title" id="pageTitle">Dashboard</span>
+        </div>
+        <div class="topbar-right">
+          <button class="btn-export" onclick="openSearch()" title="Búsqueda global (/)">
+            🔍 <span style="display:none" id="searchBtnLabel">Buscar</span>
+          </button>
+          <span class="topbar-badge" id="topbarRole">Super Admin</span>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="view active" id="view-dashboard">
+          <div id="dashAlerts"></div>
+          <div class="stats-grid" id="statsGrid"></div>
+          <div class="dashboard-grid" id="dashboardGrid"></div>
+        </div>
+
+        <!-- OPERADORAS LIST -->
+        <div class="view" id="view-operadoras">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>👩‍💼 Operadoras</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar…" oninput="filterOperadoras(this.value)"/>
+                <select class="filter-select" onchange="filterOpStatus(this.value)">
+                  <option value="">Todos los estados</option>
+                  <option value="activa">Activa</option>
+                  <option value="prospecto">Prospecto</option>
+                  <option value="inactiva">Inactiva</option>
+                  <option value="suspendida">Suspendida</option>
+                </select>
+                <button class="btn-add" onclick="openOpModal()" id="btnAddOp">+ Nueva</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Nombre</th><th>Gabinete / Actividad</th><th>Ciudad</th><th>Departamento</th>
+                <th>Estado</th><th>Nivel</th><th>Acciones</th>
+              </tr></thead><tbody id="opTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- REVISION OPERADORAS -->
+        <div class="view" id="view-revision-operadoras">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>☑ Operadoras pendientes de revisión</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, ciudad, WhatsApp…" oninput="filterRevisionOperadoras(this.value)"/>
+                <select class="filter-select" onchange="filterRevisionEstado(this.value)">
+                  <option value="">Todas</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="documentos_solicitados">Documentos solicitados</option>
+                  <option value="observada">Observadas</option>
+                  <option value="aprobada">Aprobadas</option>
+                  <option value="rechazada">Rechazadas</option>
+                </select>
+              </div>
+            </div>
+            <div id="revisionOpsResumen" class="docs-summary-grid"></div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Operadora</th><th>Registro</th><th>Experiencia</th><th>Estado revisión</th><th>Acciones</th>
+              </tr></thead><tbody id="revisionOpsTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- OPERADORA FICHA -->
+        <div class="view" id="view-operadora-ficha">
+          <button class="back-btn" onclick="navigate('operadoras')">← Volver a Operadoras</button>
+          <div id="fichaOpContent"></div>
+        </div>
+
+        <!-- DOCUMENTOS -->
+        <div class="view" id="view-documentos">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>🪪 Documentos de Operadoras</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, ciudad, documento…" oninput="filterDocumentos(this.value)"/>
+                <select class="filter-select" onchange="filterDocumentosEstado(this.value)">
+                  <option value="">Todos</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="completo">Completos</option>
+                  <option value="contrato_pendiente">Contrato pendiente</option>
+                </select>
+              </div>
+            </div>
+            <div id="documentosResumen" class="docs-summary-grid"></div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Operadora</th><th>Cédula</th><th>Contratos</th><th>Portal</th><th>Acciones</th>
+              </tr></thead><tbody id="documentosTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÁQUINAS LIST -->
+        <div class="view" id="view-maquinas">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>⚙️ Máquinas</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar…" oninput="filterMaquinas(this.value)"/>
+                <select class="filter-select" onchange="filterMaqStatus(this.value)">
+                  <option value="">Todos los estados</option>
+                  <option value="disponible">Disponible</option>
+                  <option value="reservada">Reservada</option>
+                  <option value="mantenimiento">En Mantenimiento</option>
+                  <option value="fuera_servicio">Fuera de Servicio</option>
+                  <option value="en_viaje">En Viaje de China</option>
+                </select>
+                <button class="btn-add" onclick="openMaqModal()" id="btnAddMaq">+ Nueva</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Código</th><th>Nombre</th><th>Categoría</th><th>Ubicación</th>
+                <th>Estado</th><th>Último Mant.</th><th>Acciones</th>
+              </tr></thead><tbody id="maqTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÁQUINA FICHA -->
+        <div class="view" id="view-maquina-ficha">
+          <button class="back-btn" onclick="navigate('maquinas')">← Volver a Máquinas</button>
+          <div id="fichaMaqContent"></div>
+        </div>
+
+        <!-- RESERVAS LIST -->
+        <div class="view" id="view-reservas">
+          <div id="resAlerts"></div>
+          <div id="reservasAutoResumen" class="fin-summary"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>📅 Reservas</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, máquina, código…" oninput="filterReservas(this.value)"/>
+                <select class="filter-select" onchange="filterResEstado(this.value)" id="filterResStatus">
+                  <option value="">Todos los estados</option>
+                  <option value="solicitud_recibida">Solicitud Recibida</option>
+                  <option value="pendiente_aprobacion">Pendiente Aprobación</option>
+                  <option value="aprobada">Aprobada</option>
+                  <option value="confirmada">Confirmada</option>
+                  <option value="rechazada">Rechazada</option>
+                  <option value="cancelada">Cancelada</option>
+                  <option value="reprogramada">Reprogramada</option>
+                </select>
+                <select class="filter-select" onchange="filterResTipo(this.value)" id="filterResTipo">
+                  <option value="">Todos los tipos</option>
+                  <option value="jornada">Por Jornada</option>
+                  <option value="semanal">Semanal</option>
+                  <option value="mensual">Mensual</option>
+                </select>
+                <select class="filter-select" onchange="filterResControl(this.value)" id="filterResControl">
+                  <option value="">Todo el control</option>
+                  <option value="bloqueada">Bloqueadas</option>
+                  <option value="revisar">A revisar</option>
+                  <option value="lista">Listas</option>
+                </select>
+                <button class="btn-add" onclick="openResModal()" id="btnAddRes">+ Nueva Reserva</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Código</th><th>Operadora</th><th>Máquina</th><th>Tipo</th>
+                <th>Fecha Jornada / Inicio</th><th>Fin</th><th>Depto.</th><th>Control</th><th>Estado</th><th>Acciones</th>
+              </tr></thead><tbody id="resTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESERVA FICHA -->
+        <div class="view" id="view-reserva-ficha">
+          <button class="back-btn" onclick="navigate('reservas')">← Volver a Reservas</button>
+          <div id="fichaResContent"></div>
+        </div>
+
+        <!-- CALENDARIO -->
+        <div class="view" id="view-calendario">
+          <div id="calWrap"></div>
+        </div>
+
+        <!-- LOGÍSTICA — PANEL DE REGLAS -->
+        <div class="view" id="view-logistica">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">🗺 Reglas Logísticas por Departamento</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Configurá los días de bloqueo antes y después de cada jornada por territorio.</p>
+            </div>
+            <button class="btn-add" onclick="resetReglasLogisticas()">↺ Restaurar por defecto</button>
+          </div>
+          <div class="alert-banner info" style="margin-bottom:20px">
+            <span class="ab-icon">ℹ️</span>
+            <div><strong>¿Cómo funciona?</strong> Cuando se crea una reserva, el sistema calcula automáticamente los días bloqueados antes y después de la jornada. Esos días impactan en la disponibilidad real de la máquina.</div>
+          </div>
+          <div class="regla-grid" id="reglaGrid"></div>
+        </div>
+
+        <!-- PAGOS — LISTADO -->
+        <div class="view" id="view-pagos">
+          <div id="pagosAlerts"></div>
+          <div class="fin-summary" id="finSummary"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>💳 Pagos y Señas</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, reserva…" oninput="filterPagos(this.value)"/>
+                <select class="filter-select" onchange="filterPagoEstado(this.value)" id="filterPagoStatus">
+                  <option value="">Todos los estados</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="sena_pendiente">Seña Pendiente</option>
+                  <option value="sena_abonada">Seña Abonada</option>
+                  <option value="validado">Validado</option>
+                  <option value="rechazado">Rechazado</option>
+                  <option value="deuda_vencida">Deuda Vencida</option>
+                </select>
+                <button class="btn-add" onclick="openPagoModal()" id="btnAddPago">+ Registrar Pago</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Código</th><th>Operadora</th><th>Reserva</th><th>Tipo</th>
+                <th>Total</th><th>Seña</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
+              </tr></thead><tbody id="pagosTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGO FICHA -->
+        <div class="view" id="view-pago-ficha">
+          <button class="back-btn" onclick="navigate('pagos')">← Volver a Pagos</button>
+          <div id="fichaPagoContent"></div>
+        </div>
+
+        <!-- CONTRATOS -->
+        <div class="view" id="view-contratos">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>📋 Contratos de Alquiler</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, máquina, CI…" oninput="filterContratos(this.value)"/>
+                <select class="filter-select" onchange="filterContratoEstado(this.value)" id="filterContratoStatus">
+                  <option value="">Todos los estados</option>
+                  <option value="activo">Activos</option>
+                  <option value="finalizado">Finalizados</option>
+                  <option value="anulado">Anulados</option>
+                </select>
+                <button class="btn-add" onclick="openContratoModal()">+ Nuevo Contrato</button>
+              </div>
+            </div>
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Operadora</th><th>Máquina</th><th>Vigencia</th><th>Monto</th><th>Garantía</th><th>Estado</th><th>Acciones</th>
+              </tr></thead><tbody id="contratosTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- WHATSAPP -->
+        <div class="view" id="view-whatsapp">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">💬 Centro de Notificaciones WhatsApp</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Gestioná mensajes automáticos a operadoras.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-secondary" onclick="limpiarEnviadas()">🗑 Limpiar enviadas</button>
+              <button class="btn-add" onclick="navigate('reservas')">+ Nueva Reserva</button>
+            </div>
+          </div>
+          <div class="alert-banner info" style="margin-bottom:20px">
+            <span class="ab-icon">🔌</span>
+            <div><strong>WhatsApp API conectada.</strong> Las notificaciones se generan en cola y se envían desde acá con confirmación del administrador.</div>
+          </div>
+          <div class="view-tabs" id="waTabs">
+            <button class="view-tab active" onclick="switchWaTab('pendientes',this)">⏳ Pendientes <span id="waPendCount" style="font-size:10px;opacity:.7"></span></button>
+            <button class="view-tab" onclick="switchWaTab('historial',this)">📋 Historial</button>
+            <button class="view-tab" onclick="switchWaTab('plantillas',this)">✏️ Plantillas</button>
+          </div>
+          <div id="waTabContent"></div>
+        </div>
+
+        <!-- ENVÍOS -->
+        <div class="view" id="view-transportistas"><div id="modulo-transportistas"></div></div>
+        <div class="view" id="view-envios">
+          <div id="enviosAlerts"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>🚚 Envíos de Máquinas</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar operadora, máquina, código…" oninput="filterEnvios(this.value)"/>
+                <select class="filter-select" onchange="filterEnvioEstado(this.value)" id="filterEnvioStatus">
+                  <option value="">Todos los estados</option>
+                  <option value="pendiente_envio">Pendiente Envío</option>
+                  <option value="preparando">Preparando</option>
+                  <option value="en_transito">En Tránsito</option>
+                  <option value="entregado">Entregado</option>
+                  <option value="retiro_pendiente">Retiro Pendiente</option>
+                  <option value="retirado">Retirado</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+                <button class="btn-add" onclick="openEnvioModal()" id="btnAddEnvio">+ Nuevo Envío</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Código</th><th>Operadora</th><th>Máquina</th><th>Reserva</th>
+                <th>Departamento</th><th>F. Envío Est.</th><th>F. Retiro Est.</th>
+                <th>Estado</th><th>Acciones</th>
+              </tr></thead><tbody id="enviosTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ENVÍO FICHA -->
+        <div class="view" id="view-envio-ficha">
+          <button class="back-btn" onclick="navigate('envios')">← Volver a Envíos</button>
+          <div id="fichaEnvioContent"></div>
+        </div>
+
+        <!-- CONFIGURACIÓN -->
+        <div class="view" id="view-configuracion">
+          <div style="margin-bottom:24px">
+            <h2 style="font-size:18px;font-weight:700;color:var(--text)">🔧 Configuración del Sistema</h2>
+            <p style="font-size:13px;color:var(--text2);margin-top:4px">Datos de la empresa e integración WhatsApp Business API.</p>
+          </div>
+          <div id="configContent"></div>
+        </div>
+
+        <!-- CAJA -->
+        <div class="view" id="view-caja">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">💵 Caja</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Ingresos, egresos, ajustes y saldos por cuenta y moneda.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-export" onclick="exportarCSV('caja')">⬇ Caja CSV</button>
+              <button class="btn-secondary" onclick="openCierreCajaModal()">Cierre</button>
+              <button class="btn-add" onclick="openCajaModal()">+ Movimiento</button>
+            </div>
+          </div>
+          <div id="cajaAlerts"></div>
+          <div id="cajaResumen" class="fin-summary"></div>
+          <div id="cajaCuentasGrid" class="caja-cuentas-grid"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Cierres de Caja</h3>
+              <div class="table-actions"><button class="action-btn" onclick="openCierreCajaModal()">Nuevo cierre</button></div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Fecha</th><th>Período</th><th>Cuenta</th><th>Moneda</th><th>Sistema</th><th>Contado</th><th>Diferencia</th><th>Mov.</th><th>Obs.</th>
+              </tr></thead><tbody id="cajaCierresTableBody"></tbody></table>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Movimientos de Caja</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar concepto, comprobante, persona…" oninput="filterCaja('search',this.value)"/>
+                <select class="filter-select" onchange="filterCaja('tipo',this.value)">
+                  <option value="">Tipo</option>
+                  <option value="ingreso">Ingresos</option>
+                  <option value="egreso">Egresos</option>
+                  <option value="ajuste">Ajustes</option>
+                </select>
+                <select class="filter-select" onchange="filterCaja('estado',this.value)">
+                  <option value="">Estado</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="confirmado">Confirmado</option>
+                  <option value="anulado">Anulado</option>
+                </select>
+                <select class="filter-select" onchange="filterCaja('moneda',this.value)">
+                  <option value="">Moneda</option>
+                  <option value="UYU">UYU</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Fecha</th><th>Código</th><th>Tipo</th><th>Categoría</th><th>Cuenta</th>
+                <th>Monto</th><th>Estado</th><th>Vínculo</th><th>Origen</th><th>Acciones</th>
+              </tr></thead><tbody id="cajaTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROVEEDORES -->
+        <div class="view" id="view-proveedores">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div><h2 style="font-size:18px;font-weight:700;color:var(--text)">🏢 Proveedores</h2><p style="font-size:13px;color:var(--text2);margin-top:4px">Proveedores de repuestos, insumos y servicios.</p></div>
+            <button class="btn-add" onclick="openProveedorModal()">+ Proveedor</button>
+          </div>
+          <div class="table-container">
+            <div class="table-header"><h3>Listado de Proveedores</h3><div class="table-actions"><input class="search-input" placeholder="🔍 Buscar proveedor…" oninput="filterProveedores(this.value)"/></div></div>
+            <div style="overflow-x:auto"><table><thead><tr><th>Nombre</th><th>Documento/RUT</th><th>Teléfono</th><th>Dirección</th><th>Compras</th><th>Acciones</th></tr></thead><tbody id="proveedoresTableBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- COMPRAS -->
+        <div class="view" id="view-compras">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div><h2 style="font-size:18px;font-weight:700;color:var(--text)">🧾 Compras</h2><p style="font-size:13px;color:var(--text2);margin-top:4px">Repuestos, insumos, servicio técnico y gastos vinculados a máquinas.</p></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn-export" onclick="exportarCSV('compras')">⬇ Compras CSV</button><button class="btn-add" onclick="openCompraModal()">+ Compra</button></div>
+          </div>
+          <div id="comprasAlerts"></div>
+          <div id="comprasResumen" class="fin-summary"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Compras y pagos</h3>
+              <div class="table-actions">
+                <input class="search-input" placeholder="🔍 Buscar compra, proveedor, comprobante…" oninput="filterCompras('search',this.value)"/>
+                <select class="filter-select" onchange="filterCompras('estado',this.value)"><option value="">Estado</option><option value="pendiente">Pendiente</option><option value="parcial">Parcial</option><option value="pagada">Pagada</option><option value="anulada">Anulada</option></select>
+                <select class="filter-select" onchange="filterCompras('categoria',this.value)"><option value="">Categoría</option><option value="repuestos">Repuestos</option><option value="insumos">Insumos</option><option value="servicio_tecnico">Servicio técnico</option><option value="limpieza">Limpieza</option><option value="transporte">Transporte</option><option value="otros">Otros</option></select>
+              </div>
+            </div>
+            <div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Código</th><th>Proveedor</th><th>Categoría</th><th>Máquina</th><th>Total</th><th>Pagado</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="comprasTableBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- VENTAS DE MÁQUINAS -->
+        <div class="view" id="view-ventas-maquinas">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div><h2 style="font-size:18px;font-weight:700;color:var(--text)">🏷 Ventas de Máquinas</h2><p style="font-size:13px;color:var(--text2);margin-top:4px">Ventas con adelantos parciales, saldo pendiente e ingresos en Caja.</p></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn-export" onclick="exportarCSV('ventas_maquinas')">⬇ Ventas CSV</button><button class="btn-add" onclick="openVentaMaquinaModal()">+ Venta</button></div>
+          </div>
+          <div id="ventasMaqAlerts"></div>
+          <div id="ventasMaqResumen" class="fin-summary"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Ventas y adelantos</h3>
+              <div class="table-actions">
+                <input class="search-input" placeholder="🔍 Buscar máquina, comprador, comprobante…" oninput="filterVentasMaq('search',this.value)"/>
+                <select class="filter-select" onchange="filterVentasMaq('estado',this.value)"><option value="">Estado</option><option value="pendiente">Pendiente</option><option value="parcial">Parcial</option><option value="pagada">Pagada</option><option value="anulada">Anulada</option></select>
+              </div>
+            </div>
+            <div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Código</th><th>Máquina</th><th>Comprador</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="ventasMaqTableBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- REPORTES -->
+        <div class="view" id="view-reportes">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">📊 Reportes Operativos</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Métricas generales del sistema.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap" id="reporteExportBtns">
+              <button class="btn-export" onclick="exportarCSV('reservas')">⬇ Reservas CSV</button>
+              <button class="btn-export" onclick="exportarCSV('operadoras')">⬇ Operadoras CSV</button>
+              <button class="btn-export" onclick="exportarCSV('pagos')">⬇ Pagos CSV</button>
+              <button class="btn-export" onclick="exportarCSV('envios')">⬇ Envíos CSV</button>
+              <button class="btn-export" onclick="exportarCSV('leads')">⬇ Leads CSV</button>
+            </div>
+          </div>
+          <div id="reportesContent"></div>
+        </div>
+
+        <!-- AUDITORÍA -->
+        <div class="view" id="view-auditoria">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">🔍 Log de Auditoría</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Registro de todas las acciones del sistema.</p>
+            </div>
+            <button class="btn-export" onclick="exportarCSV('audit')">⬇ Exportar CSV</button>
+          </div>
+          <div class="table-container">
+            <div class="table-header" style="padding:12px 16px">
+              <div class="table-actions" style="width:100%">
+                <input class="search-input" type="text" placeholder="🔍 Filtrar por usuario, entidad, acción…" oninput="filterAudit(this.value)" style="flex:1"/>
+                <select class="filter-select" onchange="filterAuditAccion(this.value)">
+                  <option value="">Todas las acciones</option>
+                  <option value="CREATE">CREATE</option>
+                  <option value="UPDATE">UPDATE</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="LOGIN">LOGIN</option>
+                  <option value="ESTADO">ESTADO</option>
+                </select>
+              </div>
+            </div>
+            <div id="auditBody"></div>
+          </div>
+        </div>
+
+        <!-- MATERIALES / FORMACIÓN -->
+        <div class="view" id="view-materiales">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">📚 Materiales de Formación</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Recursos de capacitación por equipo y categoría.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <select class="filter-select" onchange="filterMateriales(this.value)" id="filterMatCat">
+                <option value="">Todas las categorías</option>
+                <option value="Láser Depilación">⚡ Láser Depilación</option>
+                <option value="Radiofrecuencia / HIFU">💜 Radiofrecuencia / HIFU</option>
+                <option value="Pressoterapia">🌊 Pressoterapia</option>
+                <option value="Electroestimulación">⚡ Electroestimulación</option>
+                <option value="General">📋 General</option>
+              </select>
+              <button class="btn-add" onclick="openMaterialModal()" id="btnAddMaterial">+ Material</button>
+            </div>
+          </div>
+          <div id="materialesContent"></div>
+        </div>
+
+        <!-- LEADS -->
+        <div class="view" id="view-leads">
+          <div id="leadsAlerts"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>🎯 Leads / Prospectos</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar nombre, negocio, ciudad…" oninput="filterLeads(this.value)"/>
+                <select class="filter-select" onchange="filterLeadEstado(this.value)" id="filterLeadStatus">
+                  <option value="">Todos los estados</option>
+                  <option value="nuevo">Nuevo</option>
+                  <option value="contactado">Contactado</option>
+                  <option value="interesado">Interesado</option>
+                  <option value="presupuesto_enviado">Presupuesto Enviado</option>
+                  <option value="seguimiento">Seguimiento</option>
+                  <option value="ganado">Ganado</option>
+                  <option value="perdido">Perdido</option>
+                  <option value="reactivar_luego">Reactivar Luego</option>
+                </select>
+                <select class="filter-select" onchange="filterLeadFuente(this.value)" id="filterLeadFuente">
+                  <option value="">Todas las fuentes</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="referido">Referido</option>
+                  <option value="web">Web / Google</option>
+                  <option value="feria">Feria / Evento</option>
+                  <option value="llamada">Llamada entrante</option>
+                  <option value="otro">Otro</option>
+                </select>
+                <button class="btn-add" onclick="openLeadModal()" id="btnAddLead">+ Nuevo Lead</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Nombre</th><th>Negocio</th><th>Ciudad</th><th>WhatsApp</th>
+                <th>Fuente</th><th>Estado</th><th>Próxima Acción</th><th>Alta</th><th>Acciones</th>
+              </tr></thead><tbody id="leadsTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEAD FICHA -->
+        <div class="view" id="view-lead-ficha">
+          <button class="back-btn" onclick="navigate('leads')">← Volver a Leads</button>
+          <div id="fichaLeadContent"></div>
+        </div>
+
+        <!-- EMBUDO COMERCIAL -->
+        <div class="view" id="view-embudo">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">🏆 Embudo Comercial</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:3px">Visión del pipeline por estado.</p>
+            </div>
+            <button class="btn-add" onclick="openLeadModal()">+ Nuevo Lead</button>
+          </div>
+          <div class="embudo-stats" id="embudoStats"></div>
+          <div class="kanban-board" id="kanbanBoard"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL OPERADORA -->
+<div class="modal-overlay" id="modalOp">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalOpTitle">Nueva Operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalOp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="opId"/>
+      <div class="form-grid">
+        <div class="form-field"><label>Nombre</label><input type="text" id="opNombre"/></div>
+        <div class="form-field"><label>Apellido</label><input type="text" id="opApellido"/></div>
+        <div class="form-field full"><label>Nombre del Gabinete / Negocio</label><input type="text" id="opGabinete"/></div>
+        <div class="form-field"><label>Ciudad</label><input type="text" id="opCiudad"/></div>
+        <div class="form-field"><label>Departamento</label><input type="text" id="opDepartamento"/></div>
+        <div class="form-field"><label>País</label><input type="text" id="opPais" value="Uruguay"/></div>
+        <div class="form-field"><label>WhatsApp</label><input type="tel" id="opWhatsapp"/></div>
+        <div class="form-field"><label>Teléfono</label><input type="tel" id="opTelefono"/></div>
+        <div class="form-field full"><label>Email</label><input type="email" id="opEmail"/></div>
+        <div class="form-field"><label>Fecha de Alta</label><input type="date" id="opFechaAlta"/></div>
+        <div class="form-field"><label>Estado</label>
+          <select id="opEstado"><option value="prospecto">Prospecto</option><option value="activa">Activa</option>
+            <option value="inactiva">Inactiva</option><option value="suspendida">Suspendida</option></select></div>
+        <div class="form-field full"><label>Nivel de Experiencia</label>
+          <select id="opNivel"><option value="Inicial">Inicial</option><option value="Intermedio">Intermedio</option>
+            <option value="Avanzado">Avanzado</option><option value="Experta">Experta</option></select></div>
+        <div class="form-field full"><label>Dirección de Entrega</label>
+          <input type="text" id="opDireccionEntrega" placeholder="Ej: Av. Italia 1234, Apto 2"/></div>
+        <div class="form-field"><label>Tipo de Dirección</label>
+          <select id="opTipoDireccion">
+            <option value="trabajo">🏢 Lugar de trabajo</option>
+            <option value="domicilio">🏠 Domicilio particular</option>
+          </select></div>
+        <div class="form-field"><label>&nbsp;</label>
+          <div style="font-size:11px;color:var(--text3);padding-top:8px">📍 Dirección donde se entrega la máquina</div></div>
+        <div class="form-field full"><label>Observaciones Internas</label>
+          <textarea id="opObs" placeholder="Notas internas…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalOp')">Cancelar</button>
+      <button class="btn-add" onclick="saveOperadora()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MÁQUINA -->
+<div class="modal-overlay" id="modalMaq">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalMaqTitle">Nueva Máquina</h3>
+      <button class="modal-close" onclick="closeModal('modalMaq')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="maqId"/>
+      <div class="form-grid">
+        <div class="form-field"><label>Código Interno</label><input type="text" id="maqCodigo"/></div>
+        <div class="form-field"><label>Nombre Comercial</label><input type="text" id="maqNombre"/></div>
+        <div class="form-field"><label>Categoría</label>
+          <select id="maqCategoria">
+            <option>Láser Depilación</option><option>Radiofrecuencia / HIFU</option>
+            <option>IPL</option><option>Pressoterapia</option><option>Hidrofacial</option>
+            <option>Electroestimulación</option><option>Ultrasonido</option><option>Cavitación</option><option>Otro</option>
+          </select></div>
+        <div class="form-field"><label>Marca</label><input type="text" id="maqMarca"/></div>
+        <div class="form-field"><label>Modelo / Tipo</label><input type="text" id="maqModelo"/></div>
+        <div class="form-field"><label>Número de Serie</label><input type="text" id="maqSerie"/></div>
+        <div class="form-field"><label>País Base</label><input type="text" id="maqDeptBase" value="Uruguay"/></div>
+        <div class="form-field"><label>Ubicación Actual</label><input type="text" id="maqUbicacion"/></div>
+        <div class="form-field"><label>Estado</label>
+          <select id="maqEstado"><option value="disponible">Disponible</option>
+            <option value="reservada">Reservada</option><option value="mantenimiento">En Mantenimiento</option>
+            <option value="fuera_servicio">Fuera de Servicio</option>
+                  <option value="en_viaje">En Viaje de China</option></select></div>
+        <div class="form-field"><label>Último Mantenimiento</label><input type="date" id="maqUltMant"/></div>
+        <div class="form-field"><label>Próximo Mantenimiento</label><input type="date" id="maqProxMant"/></div>
+        <div class="form-field full"><label>Observaciones Técnicas</label>
+          <textarea id="maqObs"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalMaq')">Cancelar</button>
+      <button class="btn-add" onclick="saveMaquina()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESERVA -->
+<div class="modal-overlay" id="modalRes">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalResTitle">Nueva Reserva</h3>
+      <button class="modal-close" onclick="closeModal('modalRes')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="resId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Asignación</div>
+        <div class="form-field full">
+          <label>Filtrar por Departamento</label>
+          <select id="resDeptoFilter" onchange="filterOperadorasByDepto()" style="margin-bottom:8px;"><option value="">— Todos los departamentos —</option></select>
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="resOperadoraId" onchange="onResSelectionChange();setTimeout(filterMaquinasByOperadora,100)">
+            <option value="">— Seleccionar operadora activa —</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Máquina <span style="color:var(--red)">*</span></label>
+          <select id="resMaquinaId" onchange="onResSelectionChange()">
+            <option value="">— Seleccionar máquina disponible —</option>
+          </select>
+        </div>
+        <div class="form-section-title">Fechas</div>
+        <div class="form-field">
+          <label>Tipo de Reserva</label>
+          <select id="resTipo" onchange="onResTipoChange()">
+            <option value="jornada">Por Jornada</option>
+            <option value="semanal">Semanal</option>
+            <option value="mensual">Mensual</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Estado Inicial</label>
+          <select id="resEstado">
+            <option value="solicitud_recibida">Solicitud Recibida</option>
+            <option value="pendiente_aprobacion">Pendiente Aprobación</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="cancelada">Cancelada</option>
+            <option value="reprogramada">Reprogramada</option>
+          </select>
+        </div>
+        <div class="form-field" id="campoJornada">
+          <label>Fecha de Jornada <span style="color:var(--red)">*</span></label>
+          <input type="date" id="resFechaJornada" oninput="onResSelectionChange()"/>
+        </div>
+        <div class="form-field" id="campoInicio" style="display:none">
+          <label>Fecha Inicio <span style="color:var(--red)">*</span></label>
+          <input type="date" id="resFechaInicio" oninput="autoCalcFechaFin(); onResSelectionChange()"/>
+        </div>
+        <div class="form-field" id="campoFin" style="display:none">
+          <label>Fecha Fin</label>
+          <input type="date" id="resFechaFin"/>
+        </div>
+        <!-- Disponibilidad -->
+        <div class="form-field full" id="resDisponibilidad" style="display:none">
+          <div id="resDisponibilidadMsg"></div>
+        </div>
+        <div class="form-field full" id="resAutomatizacion" style="display:none"></div>
+        <div class="form-section-title">Logística (para bloqueo por departamento)</div>
+        <div class="form-field">
+          <label>Departamento Logístico</label>
+          <select id="resDeptLogistica" onchange="onResSelectionChange()">
+            <option value="">— Sin asignar —</option>
+            <option>Montevideo</option><option>Canelones</option><option>Maldonado</option>
+            <option>Salto</option><option>Paysandú</option><option>Rivera</option>
+            <option>Artigas</option><option>Colonia</option><option>Soriano</option>
+            <option>Río Negro</option><option>Tacuarembó</option><option>Treinta y Tres</option>
+            <option>Cerro Largo</option><option>San José</option><option>Flores</option>
+            <option>Florida</option><option>Lavalleja</option><option>Rocha</option>
+            <option>Durazno</option><option>Argentina</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Bloqueo Logístico</label>
+          <select id="resBloqueLogistico" onchange="onResSelectionChange()">
+            <option value="false">No bloqueado</option>
+            <option value="true">Bloqueado (preparar envío)</option>
+          </select>
+        </div>
+        <div class="form-section-title">Tarifa</div>
+        <div class="form-field">
+          <label>Monto</label>
+          <input type="number" id="resMonto" placeholder="0" oninput="onResSelectionChange()"/>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="resMoneda">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+            <option value="ARS">ARS</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones Internas</label>
+          <textarea id="resNotas" placeholder="Condiciones, acuerdos, detalles logísticos…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalRes')">Cancelar</button>
+      <button class="btn-add" onclick="saveReserva()">💾 Guardar Reserva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAMBIO ESTADO RESERVA -->
+<div class="modal-overlay" id="modalResEstado">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-head">
+      <h3>Cambiar Estado de Reserva</h3>
+      <button class="modal-close" onclick="closeModal('modalResEstado')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="resEstadoId"/>
+      <div id="resEstadoActualWrap" style="margin-bottom:16px;font-size:13px;color:var(--text2)">
+        Estado actual: <span id="resEstadoActualBadge"></span>
+      </div>
+      <div class="form-grid">
+        <div class="form-field full"><label>Nuevo Estado</label>
+          <select id="resEstadoNuevo">
+            <option value="solicitud_recibida">Solicitud Recibida</option>
+            <option value="pendiente_aprobacion">Pendiente de Aprobación</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="cancelada">Cancelada</option>
+            <option value="reprogramada">Reprogramada</option>
+          </select>
+        </div>
+        <div class="form-field full"><label>Motivo / Nota del cambio</label>
+          <textarea id="resEstadoMotivo" placeholder="Razón del cambio de estado…" style="min-height:70px"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalResEstado')">Cancelar</button>
+      <button class="btn-add" onclick="confirmarCambioEstadoRes()">✔ Confirmar cambio</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGO -->
+<div class="modal-overlay" id="modalPago">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalPagoTitle">Registrar Pago</h3>
+      <button class="modal-close" onclick="closeModal('modalPago')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pagoId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Vinculación</div>
+        <div class="form-field full">
+          <label>Reserva asociada <span style="color:var(--red)">*</span></label>
+          <select id="pagoReservaId" onchange="onPagoReservaChange()">
+            <option value="">— Seleccionar reserva —</option>
+          </select>
+        </div>
+        <div class="form-field full" id="pagoOpInfo" style="display:none">
+          <div style="padding:10px 14px;background:var(--surface2);border-radius:9px;border:1px solid var(--border);font-size:13px;color:var(--text2)" id="pagoOpInfoText"></div>
+        </div>
+        <div class="form-section-title">Cobro</div>
+        <div class="form-field">
+          <label>Tipo de Cobro</label>
+          <select id="pagoTipo">
+            <option value="mensualidad">Mensualidad</option>
+            <option value="jornada">Jornada</option>
+            <option value="sena">Seña</option>
+            <option value="saldo">Saldo pendiente</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="pagoEstado">
+            <option value="pendiente">Pendiente</option>
+            <option value="sena_pendiente">Seña Pendiente</option>
+            <option value="sena_abonada">Seña Abonada</option>
+            <option value="validado">Validado</option>
+            <option value="rechazado">Rechazado</option>
+            <option value="deuda_vencida">Deuda Vencida</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Monto Total</label>
+          <input type="number" id="pagoMontoTotal" placeholder="0" oninput="calcSaldoPago()"/>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="pagoMoneda">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+            <option value="ARS">ARS</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Seña Requerida</label>
+          <input type="number" id="pagoSenaRequerida" placeholder="0" oninput="calcSaldoPago()"/>
+        </div>
+        <div class="form-field">
+          <label>Seña Abonada</label>
+          <input type="number" id="pagoSenaAbonada" placeholder="0" oninput="calcSaldoPago()"/>
+        </div>
+        <div class="form-field full" id="pagoSaldoWrap" style="display:none">
+          <div style="padding:10px 14px;background:var(--surface2);border-radius:9px;border:1px solid var(--border);font-size:13px" id="pagoSaldoText"></div>
+        </div>
+        <div class="form-field">
+          <label>Fecha de Pago</label>
+          <input type="date" id="pagoFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Comprobante (referencia/link)</label>
+          <input type="text" id="pagoComprobante" placeholder="N° transferencia, link, etc."/>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="pagoObs" placeholder="Notas sobre el pago…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalPago')">Cancelar</button>
+      <button class="btn-add" onclick="savePago()">💾 Guardar Pago</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGLA LOGÍSTICA -->
+<div class="modal-overlay" id="modalRegla">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <h3 id="modalReglaTitle">Editar Regla Logística</h3>
+      <button class="modal-close" onclick="closeModal('modalRegla')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="reglaDept"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Departamento</label>
+          <input type="text" id="reglaDeptLabel" readonly style="opacity:.6"/>
+        </div>
+        <div class="form-field full">
+          <label>Modalidad de bloqueo</label>
+          <select id="reglaMismoDia" onchange="onReglaMismoDiaChange()">
+            <option value="false">Bloqueo extendido (días antes + jornada + días después)</option>
+            <option value="true">Mismo día / Ágil (solo fecha de jornada)</option>
+          </select>
+        </div>
+        <div id="reglaExtendidoFields">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Días de bloqueo ANTES</label>
+              <input type="number" id="reglaDiasAntes" min="0" max="7" value="2"/>
+            </div>
+            <div class="form-field">
+              <label>Días de bloqueo DESPUÉS</label>
+              <input type="number" id="reglaDiasDespues" min="0" max="7" value="2"/>
+            </div>
+          </div>
+        </div>
+        <div class="form-field full">
+          <label>Activa</label>
+          <select id="reglaActiva">
+            <option value="true">Sí — aplica esta regla</option>
+            <option value="false">No — usa regla por defecto</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalRegla')">Cancelar</button>
+      <button class="btn-add" onclick="saveReglaLogistica()">💾 Guardar Regla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENVÍO -->
+<div class="modal-overlay" id="modalEnvio">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalEnvioTitle">Nuevo Envío</h3>
+      <button class="modal-close" onclick="closeModal('modalEnvio')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="envioId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Vinculación</div>
+        <div class="form-field full">
+          <label>Reserva <span style="color:var(--red)">*</span></label>
+          <select id="envioReservaId" onchange="onEnvioReservaChange()">
+            <option value="">— Seleccionar reserva —</option>
+          </select>
+        </div>
+        <div class="form-field full" id="envioInfoWrap" style="display:none">
+          <div style="padding:10px 14px;background:var(--surface2);border-radius:9px;border:1px solid var(--border);font-size:13px;color:var(--text2)" id="envioInfoText"></div>
+        </div>
+        <div class="form-section-title">Fechas</div>
+        <div class="form-field">
+          <label>Fecha Envío Estimada</label>
+          <input type="date" id="envioFechaEnvioEst"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha Envío Real</label>
+          <input type="date" id="envioFechaEnvioReal"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha Retiro Estimada</label>
+          <input type="date" id="envioFechaRetiroEst"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha Retiro Real</label>
+          <input type="date" id="envioFechaRetiroReal"/>
+        </div>
+        <div class="form-section-title">Logística</div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="envioEstado">
+            <option value="pendiente_envio">Pendiente Envío</option>
+            <option value="preparando">Preparando</option>
+            <option value="en_transito">En Tránsito</option>
+            <option value="entregado">Entregado</option>
+            <option value="retiro_pendiente">Retiro Pendiente</option>
+            <option value="retirado">Retirado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Transportista</label>
+          <input type="text" id="envioTransportista" placeholder="Nombre o empresa"/>
+        </div>
+        <div class="form-field full">
+          <label>N° de Seguimiento / Referencia</label>
+          <input type="text" id="envioTracking" placeholder="Ej: TRK-20260318-001"/>
+        </div>
+        <div class="form-field full">
+          <label>Dirección de Entrega</label>
+          <input type="text" id="envioDireccion" placeholder="Calle, ciudad, departamento"/>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="envioObs" placeholder="Instrucciones especiales, contacto en destino…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalEnvio')">Cancelar</button>
+      <button class="btn-add" onclick="saveEnvio()">💾 Guardar Envío</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PLANTILLA WHATSAPP -->
+<div class="modal-overlay" id="modalPlantilla">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head">
+      <h3 id="modalPlantillaTitle">Editar Plantilla</h3>
+      <button class="modal-close" onclick="closeModal('modalPlantilla')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="plantillaId"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Evento</label>
+          <input type="text" id="plantillaEvento" readonly style="opacity:.6"/>
+        </div>
+        <div class="form-field full">
+          <label>Activa</label>
+          <select id="plantillaActiva">
+            <option value="true">Sí — enviar automáticamente</option>
+            <option value="false">No — desactivada</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Mensaje</label>
+          <textarea id="plantillaMensaje" style="min-height:140px;font-family:monospace;font-size:13px"></textarea>
+        </div>
+        <div class="form-field full">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">Variables disponibles:</div>
+          <div>
+            <span class="var-chip">{{nombre}}</span>
+            <span class="var-chip">{{apellido}}</span>
+            <span class="var-chip">{{reserva}}</span>
+            <span class="var-chip">{{maquina}}</span>
+            <span class="var-chip">{{fecha}}</span>
+            <span class="var-chip">{{monto}}</span>
+            <span class="var-chip">{{estado}}</span>
+            <span class="var-chip">{{departamento}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalPlantilla')">Cancelar</button>
+      <button class="btn-add" onclick="savePlantilla()">💾 Guardar Plantilla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LEAD -->
+<div class="modal-overlay" id="modalLead">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalLeadTitle">Nuevo Lead</h3>
+      <button class="modal-close" onclick="closeModal('modalLead')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="leadId"/>
+      <div id="leadDuplicateWarn" style="display:none" class="alert-banner warn" style="margin-bottom:12px">
+        <span class="ab-icon">⚠️</span><div id="leadDuplicateMsg"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-section-title">Datos de Contacto</div>
+        <div class="form-field"><label>Nombre <span style="color:var(--red)">*</span></label>
+          <input type="text" id="leadNombre" placeholder="Ej: María"/></div>
+        <div class="form-field"><label>Apellido <span style="color:var(--red)">*</span></label>
+          <input type="text" id="leadApellido" placeholder="Ej: González"/></div>
+        <div class="form-field full"><label>Nombre del Gabinete / Negocio</label>
+          <input type="text" id="leadGabinete" placeholder="Ej: Beauty Studio MG"/></div>
+        <div class="form-field"><label>Ciudad</label>
+          <input type="text" id="leadCiudad" placeholder="Ej: Salto"/></div>
+        <div class="form-field"><label>Departamento</label>
+          <input type="text" id="leadDepartamento" placeholder="Ej: Salto"/></div>
+        <div class="form-field"><label>País</label>
+          <input type="text" id="leadPais" value="Uruguay"/></div>
+        <div class="form-field"><label>WhatsApp</label>
+          <input type="tel" id="leadWhatsapp" placeholder="+598 99 000 000"
+            oninput="checkDuplicadoLead()"/></div>
+        <div class="form-field"><label>Teléfono</label>
+          <input type="tel" id="leadTelefono" placeholder="+598 2 000 0000"/></div>
+        <div class="form-field full"><label>Email</label>
+          <input type="email" id="leadEmail" placeholder="lead@mail.com"
+            oninput="checkDuplicadoLead()"/></div>
+        <div class="form-section-title">Información Comercial</div>
+        <div class="form-field"><label>Fuente del Lead</label>
+          <select id="leadFuente">
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="whatsapp">WhatsApp directo</option>
+            <option value="referido">Referido</option>
+            <option value="web">Web / Google</option>
+            <option value="feria">Feria / Evento</option>
+            <option value="llamada">Llamada entrante</option>
+            <option value="otro">Otro</option>
+          </select></div>
+        <div class="form-field"><label>Estado Comercial</label>
+          <select id="leadEstado">
+            <option value="nuevo">Nuevo</option>
+            <option value="contactado">Contactado</option>
+            <option value="interesado">Interesado</option>
+            <option value="presupuesto_enviado">Presupuesto Enviado</option>
+            <option value="seguimiento">Seguimiento</option>
+            <option value="ganado">Ganado</option>
+            <option value="perdido">Perdido</option>
+            <option value="reactivar_luego">Reactivar Luego</option>
+          </select></div>
+        <div class="form-field full"><label>Interés Principal</label>
+          <input type="text" id="leadInteres" placeholder="Ej: Alquilar láser depilación para su gabinete"/></div>
+        <div class="form-field full"><label>Tecnología Consultada</label>
+          <input type="text" id="leadTecnologia" placeholder="Ej: Soprano Ice, HIFU 12D, Pressoterapia…"/></div>
+        <div class="form-field full"><label>Observaciones Comerciales</label>
+          <textarea id="leadObs" placeholder="Notas sobre la conversación, interés, objeciones…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalLead')">Cancelar</button>
+      <button class="btn-add" onclick="saveLead()">💾 Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERFIL -->
+<div class="modal-overlay" id="modalPerfil">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-head">
+      <h3>👤 Mi Perfil</h3>
+      <button class="modal-close" onclick="closeModal('modalPerfil')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;
+        padding:16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+        <div class="avatar-lg" id="perfilAvatar">A</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)" id="perfilNombreDisplay">—</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px" id="perfilEmailDisplay">—</div>
+          <div style="margin-top:6px" id="perfilRolDisplay"></div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-section-title" style="margin-top:0">Editar Datos</div>
+        <div class="form-field full">
+          <label>Nombre completo</label>
+          <input type="text" id="perfilNombre" placeholder="Tu nombre"/>
+        </div>
+        <div class="form-field full">
+          <label>Email</label>
+          <input type="email" id="perfilEmail" readonly style="opacity:.6"/>
+        </div>
+        <div class="form-section-title">Cambiar Contraseña</div>
+        <div class="form-field full">
+          <label>Contraseña actual</label>
+          <input type="password" id="perfilPassActual" placeholder="••••••••"/>
+        </div>
+        <div class="form-field">
+          <label>Nueva contraseña</label>
+          <input type="password" id="perfilPassNueva" placeholder="••••••••"/>
+        </div>
+        <div class="form-field">
+          <label>Confirmar nueva</label>
+          <input type="password" id="perfilPassConfirm" placeholder="••••••••"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalPerfil')">Cancelar</button>
+      <button class="btn-add" onclick="savePerfil()">💾 Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- GLOBAL SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay" onclick="closeSearchIfBg(event)">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <span style="font-size:18px">🔍</span>
+      <input type="text" id="globalSearchInput" placeholder="Buscar operadora, máquina, reserva, pago…"
+             oninput="runGlobalSearch(this.value)" onkeydown="onSearchKey(event)" autocomplete="off"/>
+      <button onclick="closeSearch()" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px">✕</button>
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="search-hint">Escribí para buscar en toda la plataforma · Presioná <kbd style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:10px">ESC</kbd> para cerrar</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOTA DE SEGUIMIENTO -->
+<div class="modal-overlay" id="modalNota">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head">
+      <h3>📝 Registrar Seguimiento Comercial</h3>
+      <button class="modal-close" onclick="closeModal('modalNota')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="notaLeadId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Contacto realizado</div>
+        <div class="form-field">
+          <label>Tipo de gestión</label>
+          <select id="notaTipo">
+            <option value="llamada">📞 Llamada</option>
+            <option value="whatsapp">💬 WhatsApp</option>
+            <option value="email">✉️ Email</option>
+            <option value="reunion">🤝 Reunión</option>
+            <option value="presupuesto">📄 Envío de Presupuesto</option>
+            <option value="seguimiento">🔄 Seguimiento comercial</option>
+            <option value="recontacto">⏰ Recontacto futuro</option>
+            <option value="otro">📌 Otro</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha del contacto</label>
+          <input type="date" id="notaFecha"/>
+        </div>
+        <div class="form-field full">
+          <label>Nota / Resumen <span style="color:var(--red)">*</span></label>
+          <textarea id="notaTexto" placeholder="¿Qué se habló? ¿Qué se acordó? ¿Cuál fue el resultado?" style="min-height:80px"></textarea>
+        </div>
+        <div class="form-field full">
+          <label>Resultado del contacto</label>
+          <input type="text" id="notaResultado" placeholder="Ej: Interesada, pide reunión / No respondió / Envié cotización"/>
+        </div>
+        <div class="form-section-title">Próxima acción</div>
+        <div class="form-field full">
+          <label>Próxima acción comercial</label>
+          <input type="text" id="notaProxAccion" placeholder="Ej: Llamar para confirmar reunión / Enviar propuesta formal / Recontactar en 2 semanas"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha de próxima acción</label>
+          <input type="date" id="notaProxFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Cambiar estado del lead (opcional)</label>
+          <select id="notaEstadoNuevo">
+            <option value="">— Sin cambio de estado —</option>
+            <option value="nuevo">🆕 Nuevo</option>
+            <option value="contactado">📞 Contactado</option>
+            <option value="interesado">👀 Interesado</option>
+            <option value="presupuesto_enviado">📄 Presupuesto Enviado</option>
+            <option value="seguimiento">🔄 Seguimiento</option>
+            <option value="ganado">🏆 Ganado</option>
+            <option value="perdido">❌ Perdido</option>
+            <option value="reactivar_luego">⏰ Reactivar Luego</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalNota')">Cancelar</button>
+      <button class="btn-add" onclick="saveNotaLead()">💾 Guardar Seguimiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MATERIAL -->
+<div class="modal-overlay" id="modalMaterial">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head">
+      <h3 id="modalMaterialTitle">Nuevo Material</h3>
+      <button class="modal-close" onclick="closeModal('modalMaterial')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="materialId"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Título <span style="color:var(--red)">*</span></label>
+          <input type="text" id="materialTitulo" placeholder="Ej: Manual de operación Soprano Ice"/>
+        </div>
+        <div class="form-field">
+          <label>Tipo</label>
+          <select id="materialTipo">
+            <option value="manual">📖 Manual</option>
+            <option value="video">🎬 Video</option>
+            <option value="guia">📋 Guía rápida</option>
+            <option value="protocolo">⚕️ Protocolo</option>
+            <option value="presentacion">📊 Presentación</option>
+            <option value="otro">📌 Otro</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Categoría / Equipo</label>
+          <select id="materialCategoria">
+            <option value="General">📋 General</option>
+            <option value="Láser Depilación">⚡ Láser Depilación</option>
+            <option value="Radiofrecuencia / HIFU">💜 Radiofrecuencia / HIFU</option>
+            <option value="Pressoterapia">🌊 Pressoterapia</option>
+            <option value="Electroestimulación">⚡ Electroestimulación</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Descripción breve</label>
+          <input type="text" id="materialDesc" placeholder="Ej: Guía completa de parámetros y protocolos de seguridad"/>
+        </div>
+        <div class="form-field full">
+          <label>Enlace / URL</label>
+          <input type="url" id="materialUrl" placeholder="https://drive.google.com/…"/>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="materialEstado">
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Obligatoriedad</label>
+          <select id="materialObligatorio">
+            <option value="obligatorio">⚠️ Obligatorio</option>
+            <option value="opcional">Opcional</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalMaterial')">Cancelar</button>
+      <button class="btn-add" onclick="saveMaterial()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAPACITACIÓN -->
+<div class="modal-overlay" id="modalCapacitacion">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-head">
+      <h3>📋 Registrar Capacitación</h3>
+      <button class="modal-close" onclick="closeModal('modalCapacitacion')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="capId"/>
+      <input type="hidden" id="capOperadoraId"/>
+      <div class="form-grid">
+        <div class="form-field full" id="capOpWrap">
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="capOpSelector"></select>
+        </div>
+        <div class="form-field">
+          <label>Categoría capacitada</label>
+          <select id="capCategoria">
+            <option value="General">📋 General / Inducción</option>
+            <option value="Láser Depilación">⚡ Láser Depilación</option>
+            <option value="Radiofrecuencia / HIFU">💜 Radiofrecuencia / HIFU</option>
+            <option value="Pressoterapia">🌊 Pressoterapia</option>
+            <option value="Electroestimulación">⚡ Electroestimulación</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha</label>
+          <input type="date" id="capFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Resultado</label>
+          <select id="capResultado">
+            <option value="aprobada">✅ Aprobada</option>
+            <option value="pendiente">⏳ Pendiente evaluación</option>
+            <option value="no_aprobada">❌ No aprobada</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Modalidad</label>
+          <select id="capModalidad">
+            <option value="presencial">Presencial</option>
+            <option value="virtual">Virtual / Online</option>
+            <option value="material">Autogestionada (material)</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="capObs" placeholder="Notas sobre la capacitación, áreas de mejora, etc."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCapacitacion')">Cancelar</button>
+      <button class="btn-add" onclick="saveCapacitacion()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HABILITACIÓN -->
+<div class="modal-overlay" id="modalHabilitacion">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <h3>✅ Otorgar Habilitación Técnica</h3>
+      <button class="modal-close" onclick="closeModal('modalHabilitacion')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="habId"/>
+      <input type="hidden" id="habOperadoraId"/>
+      <div class="form-grid">
+        <div class="form-field full" id="habOpWrap">
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="habOpSelector"></select>
+        </div>
+        <div class="form-field full">
+          <label>Categoría habilitada <span style="color:var(--red)">*</span></label>
+          <select id="habCategoria">
+            <option value="Láser Depilación">⚡ Láser Depilación</option>
+            <option value="Radiofrecuencia / HIFU">💜 Radiofrecuencia / HIFU</option>
+            <option value="Pressoterapia">🌊 Pressoterapia</option>
+            <option value="Electroestimulación">⚡ Electroestimulación</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha de otorgamiento</label>
+          <input type="date" id="habFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="habEstado">
+            <option value="activa">✅ Activa</option>
+            <option value="suspendida">⏸ Suspendida</option>
+            <option value="vencida">⛔ Vencida</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="habObs" placeholder="Condiciones, restricciones, notas del responsable…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalHabilitacion')">Cancelar</button>
+      <button class="btn-add" onclick="saveHabilitacion()">✅ Otorgar Habilitación</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL CONTRATO DE ALQUILER -->
+<div id="modalContrato" class="modal-overlay">
+  <div class="modal-box" style="max-width:900px">
+    <div class="modal-head">
+      <h3>📋 Contrato de Alquiler</h3>
+      <button class="modal-close" onclick="closeModal('modalContrato')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="contrato-tabs">
+        <div class="contrato-tab active" onclick="switchContratoTab('form')">✏️ Editar</div>
+        <div class="contrato-tab" onclick="switchContratoTab('preview')">👁️ Vista Previa</div>
+      </div>
+
+      <!-- TAB FORMULARIO -->
+      <div id="contratoTabForm" class="contrato-form">
+        <div class="form-section-title">Datos del Arrendatario</div>
+        <div class="form-row">
+          <div><label>Operadora</label><select id="ctrOperadora" onchange="onCtrOperadoraChange()"><option value="">— Seleccionar —</option></select></div>
+        </div>
+        <div class="form-row">
+          <div><label>Nombre Completo</label><input id="ctrNombre" placeholder="Nombre y Apellido"></div>
+          <div><label>CI / RUT</label><input id="ctrCI" placeholder="Documento"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Domicilio</label><input id="ctrDomicilio" placeholder="Dirección completa"></div>
+          <div><label>Ciudad</label><input id="ctrCiudad" placeholder="Ciudad"></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Equipo en Alquiler</div>
+        <div class="form-row">
+          <div><label>Máquina</label><select id="ctrMaquina"><option value="">— Seleccionar —</option></select></div>
+          <div><label>N° Serie</label><input id="ctrSerial" placeholder="Serial del equipo" readonly></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Condiciones del Alquiler</div>
+        <div class="form-row">
+          <div><label>Fecha Inicio</label><input type="date" id="ctrFechaInicio"></div>
+          <div><label>Fecha Fin</label><input type="date" id="ctrFechaFin"></div>
+          <div><label>Duración</label><input id="ctrDuracion" placeholder="ej: 3 meses" readonly></div>
+        </div>
+        <div class="form-row">
+          <div><label>Monto Mensual</label><input type="number" id="ctrMonto" placeholder="0"></div>
+          <div><label>Moneda</label><select id="ctrMoneda"><option>UYU</option><option>USD</option></select></div>
+          <div><label>Forma de Pago</label><input id="ctrFormaPago" value="Transferencia bancaria"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Seña / Garantía</label><input type="number" id="ctrGarantia" placeholder="0"></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Documentación de Identidad</div>
+        <div class="form-row">
+          <div>
+            <label>Cédula frente</label>
+            <input type="file" id="ctrCedulaFrente" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="setContratoDocumento('frente', this.files[0])">
+            <div id="ctrCedulaFrenteInfo" class="file-hint">Sin archivo cargado</div>
+          </div>
+          <div>
+            <label>Cédula dorso</label>
+            <input type="file" id="ctrCedulaDorso" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="setContratoDocumento('dorso', this.files[0])">
+            <div id="ctrCedulaDorsoInfo" class="file-hint">Sin archivo cargado</div>
+          </div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Firma del Contrato</div>
+        <div class="form-row">
+          <div>
+            <label>Estado de firma</label>
+            <select id="ctrFirmado">
+              <option value="pendiente">Pendiente de firma</option>
+              <option value="firmado">Firmado por operadora</option>
+            </select>
+          </div>
+          <div><label>Fecha de firma</label><input type="date" id="ctrFechaFirma"></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Términos Adicionales</div>
+        <div class="form-row">
+          <div><label>Observaciones / Cláusulas especiales</label><textarea id="ctrObs" placeholder="Condiciones adicionales del contrato..."></textarea></div>
+        </div>
+      </div>
+
+      <!-- TAB PREVIEW -->
+      <div id="contratoTabPreview" style="display:none">
+        <div id="contratoPreviewPrint" class="contrato-preview"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalContrato')">Cancelar</button>
+      <button class="btn-secondary" onclick="printContrato()">🖨️ Imprimir / PDF</button>
+      <button class="btn-add" onclick="saveContrato()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOCUMENTOS OPERADORA -->
+<div class="modal-overlay" id="modalDocumentos">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head">
+      <h3>🪪 Documentos de Operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalDocumentos')">✕</button>
+    </div>
+    <div class="modal-body" id="modalDocumentosBody"></div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalDocumentos')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REVISION OPERADORA -->
+<div class="modal-overlay" id="modalRevisionOperadora">
+  <div class="modal-box" style="max-width:820px">
+    <div class="modal-head">
+      <h3 id="modalRevisionTitle">Revisión de operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalRevisionOperadora')">✕</button>
+    </div>
+    <div class="modal-body" id="modalRevisionBody"></div>
+    <div class="modal-foot revision-actions">
+      <button class="btn-secondary" onclick="closeModal('modalRevisionOperadora')">Cerrar</button>
+      <button class="btn-secondary" onclick="guardarRevisionOperadora('pedir_documentos')">Pedir documentos</button>
+      <button class="btn-secondary" onclick="guardarRevisionOperadora('observar')">Observar</button>
+      <button class="btn-danger" onclick="guardarRevisionOperadora('rechazar')">Rechazar</button>
+      <button class="btn-add" onclick="guardarRevisionOperadora('aprobar')">Aprobar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span class="toast-icon" id="toastIcon">✓</span><span id="toastMsg"></span></div>
+
+<!-- MODAL PROVEEDOR -->
+<div class="modal-overlay" id="modalProveedor">
+  <div class="modal-box" style="max-width:620px">
+    <div class="modal-head"><h3 id="modalProveedorTitle">Nuevo Proveedor</h3><button class="modal-close" onclick="closeModal('modalProveedor')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="proveedorId"/>
+      <div class="form-grid">
+        <div class="form-field full"><label>Nombre</label><input id="proveedorNombre" placeholder="Nombre del proveedor"/></div>
+        <div class="form-field"><label>Documento/RUT</label><input id="proveedorDocumento"/></div>
+        <div class="form-field"><label>Teléfono</label><input id="proveedorTelefono"/></div>
+        <div class="form-field full"><label>Dirección</label><input id="proveedorDireccion"/></div>
+        <div class="form-field full"><label>Observaciones</label><textarea id="proveedorObs"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modalProveedor')">Cancelar</button><button class="btn-add" onclick="saveProveedor()">💾 Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL COMPRA -->
+<div class="modal-overlay" id="modalCompra">
+  <div class="modal-box" style="max-width:780px">
+    <div class="modal-head"><h3 id="modalCompraTitle">Nueva Compra</h3><button class="modal-close" onclick="closeModal('modalCompra')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="compraId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Compra</div>
+        <div class="form-field"><label>Fecha</label><input type="date" id="compraFecha"/></div>
+        <div class="form-field"><label>Proveedor</label><select id="compraProveedor"></select></div>
+        <div class="form-field"><label>Categoría</label><select id="compraCategoria"><option value="repuestos">Repuestos</option><option value="insumos">Insumos</option><option value="servicio_tecnico">Servicio técnico</option><option value="limpieza">Limpieza</option><option value="transporte">Transporte</option><option value="otros">Otros</option></select></div>
+        <div class="form-field"><label>Máquina</label><select id="compraMaquina"></select></div>
+        <div class="form-field"><label>Total</label><input type="number" id="compraTotal" min="0" step="0.01" oninput="calcCompraSaldo()"/></div>
+        <div class="form-field"><label>Moneda</label><select id="compraMoneda"><option value="UYU">UYU</option><option value="USD">USD</option></select></div>
+        <div class="form-field"><label>Pagado ahora</label><input type="number" id="compraPagado" min="0" step="0.01" oninput="calcCompraSaldo()"/></div>
+        <div class="form-field"><label>Cuenta de Caja</label><select id="compraCuenta"></select></div>
+        <div class="form-field"><label>Comprobante/Factura</label><input id="compraComprobante" placeholder="Nro, link o referencia"/></div>
+        <div class="form-field"><label>Servicio técnico / mant.</label><input id="compraServicio" placeholder="Referencia si aplica"/></div>
+        <div class="form-field full"><label>Concepto</label><input id="compraConcepto" placeholder="Ej: Cabezal, gel, reparación, traslado"/></div>
+        <div class="form-field full"><label>Observaciones</label><textarea id="compraObs"></textarea></div>
+        <div class="form-field full"><div id="compraSaldoWrap" class="alert-banner info" style="display:none;margin:0"></div></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modalCompra')">Cancelar</button><button class="btn-add" onclick="saveCompra()">💾 Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL VENTA MÁQUINA -->
+<div class="modal-overlay" id="modalVentaMaquina">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head"><h3 id="modalVentaMaquinaTitle">Nueva Venta de Máquina</h3><button class="modal-close" onclick="closeModal('modalVentaMaquina')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="ventaMaqId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Venta</div>
+        <div class="form-field"><label>Fecha</label><input type="date" id="ventaMaqFecha"/></div>
+        <div class="form-field"><label>Máquina</label><select id="ventaMaqMaquina"></select></div>
+        <div class="form-field full"><label>Comprador</label><input id="ventaMaqComprador" placeholder="Nombre de la persona/empresa compradora"/></div>
+        <div class="form-field"><label>Teléfono</label><input id="ventaMaqTelefono"/></div>
+        <div class="form-field"><label>Documento/RUT</label><input id="ventaMaqDocumento"/></div>
+        <div class="form-field"><label>Precio total</label><input type="number" id="ventaMaqTotal" min="0" step="0.01" oninput="calcVentaMaqSaldo()"/></div>
+        <div class="form-field"><label>Moneda</label><select id="ventaMaqMoneda"><option value="UYU">UYU</option><option value="USD">USD</option></select></div>
+        <div class="form-field"><label>Pago recibido ahora</label><input type="number" id="ventaMaqPago" min="0" step="0.01" oninput="calcVentaMaqSaldo()"/></div>
+        <div class="form-field"><label>Cuenta de Caja</label><select id="ventaMaqCuenta"></select></div>
+        <div class="form-field"><label>Comprobante</label><input id="ventaMaqComprobante" placeholder="Nro, link o referencia"/></div>
+        <div class="form-field full"><label>Observaciones</label><textarea id="ventaMaqObs"></textarea></div>
+        <div class="form-field full"><div id="ventaMaqSaldoWrap" class="alert-banner info" style="display:none;margin:0"></div></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modalVentaMaquina')">Cancelar</button><button class="btn-add" onclick="saveVentaMaquina()">💾 Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL CAJA -->
+<div class="modal-overlay" id="modalCaja">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head">
+      <h3 id="modalCajaTitle">Nuevo Movimiento de Caja</h3>
+      <button class="modal-close" onclick="closeModal('modalCaja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cajaId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Movimiento</div>
+        <div class="form-field">
+          <label>Tipo</label>
+          <select id="cajaTipo" onchange="onCajaTipoChange()">
+            <option value="ingreso">Ingreso</option>
+            <option value="egreso">Egreso</option>
+            <option value="ajuste">Ajuste</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="cajaEstado">
+            <option value="pendiente">Pendiente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="anulado">Anulado</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha</label>
+          <input type="date" id="cajaFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Cuenta / Medio</label>
+          <select id="cajaCuenta"></select>
+        </div>
+        <div class="form-field">
+          <label>Categoría</label>
+          <select id="cajaCategoria"></select>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="cajaMoneda">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Monto</label>
+          <input type="number" id="cajaMonto" min="0" step="0.01"/>
+        </div>
+        <div class="form-field">
+          <label>Comprobante</label>
+          <input type="text" id="cajaComprobante" placeholder="Nro, link o referencia"/>
+        </div>
+        <div class="form-section-title">Vínculos opcionales</div>
+        <div class="form-field">
+          <label>Operadora</label>
+          <select id="cajaOperadora"></select>
+        </div>
+        <div class="form-field">
+          <label>Reserva</label>
+          <select id="cajaReserva"></select>
+        </div>
+        <div class="form-field">
+          <label>Máquina</label>
+          <select id="cajaMaquina"></select>
+        </div>
+        <div class="form-field">
+          <label>Transportista / Proveedor</label>
+          <input type="text" id="cajaRelacionado" placeholder="Nombre si aplica"/>
+        </div>
+        <div class="form-field full">
+          <label>Concepto</label>
+          <input type="text" id="cajaConcepto" placeholder="Ej: Seña reserva, repuesto, transporte, adelanto venta"/>
+        </div>
+        <div class="form-field full">
+          <label>Observación</label>
+          <textarea id="cajaObs" placeholder="Detalle, motivo de ajuste o anulación"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCaja')">Cancelar</button>
+      <button class="btn-add" onclick="saveCajaMovimiento()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CIERRE CAJA -->
+<div class="modal-overlay" id="modalCierreCaja">
+  <div class="modal-box" style="max-width:720px">
+    <div class="modal-head">
+      <h3>Cierre de Caja</h3>
+      <button class="modal-close" onclick="closeModal('modalCierreCaja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Período</div>
+        <div class="form-field">
+          <label>Tipo de cierre</label>
+          <select id="cierreCajaPeriodo" onchange="onCierreCajaPeriodoChange()">
+            <option value="diario">Diario</option>
+            <option value="semanal">Semanal</option>
+            <option value="mensual">Mensual</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Desde</label><input type="date" id="cierreCajaDesde" onchange="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field"><label>Hasta</label><input type="date" id="cierreCajaHasta" onchange="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field">
+          <label>Cuenta</label>
+          <select id="cierreCajaCuenta" onchange="actualizarCierreCajaPreview()"></select>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="cierreCajaMoneda" onchange="actualizarCierreCajaPreview()">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Saldo contado</label><input type="number" id="cierreCajaContado" step="0.01" oninput="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field full"><div id="cierreCajaPreview" class="alert-banner info"></div></div>
+        <div class="form-field full"><label>Observación</label><textarea id="cierreCajaObs" placeholder="Diferencias, comprobantes pendientes o aclaraciones"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCierreCaja')">Cancelar</button>
+      <button class="btn-add" onclick="saveCierreCaja()">💾 Guardar cierre</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="assets/js/core/storage-api.js"></script>
+<script data-cfasync="false" src="assets/js/core/seed-data.js"></script>
+<script data-cfasync="false" src="assets/js/core/auth.js"></script>
+<script data-cfasync="false" src="assets/js/core/navigation.js"></script>
+<script data-cfasync="false" src="assets/js/modules/dashboard.js"></script>
+<script data-cfasync="false" src="assets/js/modules/operadoras.js"></script>
+<script data-cfasync="false" src="assets/js/modules/revision-operadoras.js"></script>
+<script data-cfasync="false" src="assets/js/modules/documentos.js"></script>
+<script data-cfasync="false" src="assets/js/modules/maquinas.js"></script>
+<script data-cfasync="false" src="assets/js/modules/reservas.js"></script>
+<script data-cfasync="false" src="assets/js/modules/logistica.js"></script>
+<script data-cfasync="false" src="assets/js/modules/pagos.js"></script>
+<script data-cfasync="false" src="assets/js/modules/caja.js"></script>
+<script data-cfasync="false" src="assets/js/modules/compras-proveedores.js"></script>
+<script data-cfasync="false" src="assets/js/modules/ventas-maquinas.js"></script>
+<script data-cfasync="false" src="assets/js/modules/reserva-automatizacion.js"></script>
+<script data-cfasync="false" src="assets/js/modules/whatsapp.js"></script>
+<script data-cfasync="false" src="assets/js/modules/envios.js"></script>
+<script data-cfasync="false" src="assets/js/modules/configuracion.js"></script>
+<script data-cfasync="false" src="assets/js/modules/reportes.js"></script>
+<script data-cfasync="false" src="assets/js/modules/auditoria.js"></script>
+<script data-cfasync="false" src="assets/js/modules/busqueda.js"></script>
+<script data-cfasync="false" src="assets/js/modules/exportacion.js"></script>
+<script data-cfasync="false" src="assets/js/modules/leads.js"></script>
+<script data-cfasync="false" src="assets/js/modules/perfil.js"></script>
+<script data-cfasync="false" src="assets/js/modules/embudo.js"></script>
+<script data-cfasync="false" src="assets/js/modules/notas-leads.js"></script>
+<script data-cfasync="false" src="assets/js/modules/formacion.js"></script>
+<script data-cfasync="false" src="assets/js/core/helpers.js"></script>
+<script data-cfasync="false" src="assets/js/core/boot.js"></script>
+<script data-cfasync="false" src="assets/js/modules/transportistas.js"></script>
+<script data-cfasync="false" src="assets/js/modules/contratos-y-filtros.js"></script>
+<script data-cfasync="false" src="assets/js/modules/contratos.js"></script>
+</body>
+</html>
