@@ -9,6 +9,12 @@ const DB={
 
 const CRM_THEMES={
   depimovil:{nombre:'DepiMóvil clásico',bg:'#0f1117',surface:'#181c27',surface2:'#1e2335',border:'#262d42',accent:'#d4a96a',accent2:'#e8c48a',rose:'#c76b8a',text:'#e8ecf4',text2:'#8892aa',text3:'#555e75'},
+  blanco_rosa:{nombre:'Blanco rosa estética',bg:'#f7f8fb',surface:'#ffffff',surface2:'#fff1f6',border:'#ecd7e1',accent:'#d85c8a',accent2:'#f7a8c6',rose:'#9b6fd3',text:'#2c2530',text2:'#756877',text3:'#9f8f9e'},
+  lavanda:{nombre:'Lavanda profesional',bg:'#f7f5ff',surface:'#ffffff',surface2:'#f0ecff',border:'#ddd5f7',accent:'#7c5fd6',accent2:'#b9a7ff',rose:'#e0719b',text:'#29243a',text2:'#6d6580',text3:'#9a90ad'},
+  perla_menta:{nombre:'Perla menta spa',bg:'#f5fbf9',surface:'#ffffff',surface2:'#eaf7f2',border:'#d5ebe3',accent:'#25a982',accent2:'#83d8bd',rose:'#e06f92',text:'#1f302c',text2:'#607a72',text3:'#90a8a0'},
+  coral_claro:{nombre:'Coral luminoso',bg:'#fff8f7',surface:'#ffffff',surface2:'#fff0ed',border:'#f0d4cf',accent:'#e7685d',accent2:'#ffaaa0',rose:'#c45f9d',text:'#352423',text2:'#806967',text3:'#aa918e'},
+  lila_blanco:{nombre:'Lila blanco boutique',bg:'#fbfaff',surface:'#ffffff',surface2:'#f4efff',border:'#e3d9f6',accent:'#a25ad6',accent2:'#d6a8ff',rose:'#ef7aa4',text:'#2f2638',text2:'#74697f',text3:'#a79aad'},
+  rosa_grafito:{nombre:'Rosa grafito moderno',bg:'#111216',surface:'#1b1c22',surface2:'#262730',border:'#3b3d48',accent:'#f184ad',accent2:'#ffc1d5',rose:'#b88cff',text:'#f8edf2',text2:'#b4a7af',text3:'#756b74'},
   esmeralda:{nombre:'Esmeralda profesional',bg:'#071512',surface:'#10201d',surface2:'#172b27',border:'#24433c',accent:'#42d19b',accent2:'#8be7c2',rose:'#df7197',text:'#edf7f3',text2:'#8aa69d',text3:'#557169'},
   oceano:{nombre:'Océano limpio',bg:'#08131f',surface:'#101d2d',surface2:'#17283c',border:'#253b55',accent:'#55b7f7',accent2:'#9ed7ff',rose:'#d975a5',text:'#edf5ff',text2:'#91a5bb',text3:'#586b80'},
   grafito:{nombre:'Grafito sobrio',bg:'#101113',surface:'#1a1c20',surface2:'#24272d',border:'#343842',accent:'#c7d0dc',accent2:'#f0f3f6',rose:'#d87989',text:'#f1f3f5',text2:'#9aa2ad',text3:'#626a75'},
