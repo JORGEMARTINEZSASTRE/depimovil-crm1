@@ -17,25 +17,7 @@ function renderConfiguracion(){
     </button>`).join('');
 
   document.getElementById('configContent').innerHTML=`
-    <div class="config-section">
-      <h3>🏢 Datos de la Empresa</h3>
-      <div class="config-row">
-        <div class="form-field">
-          <label>Nombre de la empresa</label>
-          <input type="text" id="cfgEmpresaNombre" value="${cfg.empresa_nombre||''}" placeholder="DepiMóvil"/>
-        </div>
-        <div class="form-field">
-          <label>Email de contacto</label>
-          <input type="email" id="cfgEmpresaEmail" value="${cfg.empresa_email||''}" placeholder="admin\x40depimovil.com"/>
-        </div>
-        <div class="form-field">
-          <label>WhatsApp de la empresa</label>
-          <input type="tel" id="cfgEmpresaWA" value="${cfg.empresa_whatsapp||''}" placeholder="+598 99 000 000"/>
-        </div>
-      </div>
-    </div>
-
-    <div class="config-section">
+    <div class="config-section" id="crmColorsSection">
       <h3>🎨 Colores del CRM</h3>
       <div class="palette-grid">${paletteCards}</div>
       <div class="color-config-grid">
@@ -75,6 +57,24 @@ function renderConfiguracion(){
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
         <button class="btn-add" onclick="guardarTemaCRM()">Aplicar colores</button>
         <button class="btn-secondary" onclick="resetTemaCRM()">Restaurar clásico</button>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>🏢 Datos de la Empresa</h3>
+      <div class="config-row">
+        <div class="form-field">
+          <label>Nombre de la empresa</label>
+          <input type="text" id="cfgEmpresaNombre" value="${cfg.empresa_nombre||''}" placeholder="DepiMóvil"/>
+        </div>
+        <div class="form-field">
+          <label>Email de contacto</label>
+          <input type="email" id="cfgEmpresaEmail" value="${cfg.empresa_email||''}" placeholder="admin\x40depimovil.com"/>
+        </div>
+        <div class="form-field">
+          <label>WhatsApp de la empresa</label>
+          <input type="tel" id="cfgEmpresaWA" value="${cfg.empresa_whatsapp||''}" placeholder="+598 99 000 000"/>
+        </div>
       </div>
     </div>
 

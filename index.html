@@ -187,6 +187,9 @@
           <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion')">
             <span class="icon">🔧</span> Configuración
           </button>
+          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion');setTimeout(()=>document.getElementById('crmColorsSection')?.scrollIntoView({behavior:'smooth',block:'start'}),80)">
+            <span class="icon">🎨</span> Colores
+          </button>
         </div>
         <div class="nav-section">
           <div class="nav-section-label">Finanzas</div>
