@@ -197,6 +197,10 @@
             <span class="icon">💳</span> Pagos y Señas
             <span class="nav-badge" id="navBadgePagos" style="display:none">0</span>
           </button>
+          <button class="nav-item" data-view="caja" onclick="navigate('caja')">
+            <span class="icon">💵</span> Caja
+            <span class="nav-badge" id="navBadgeCaja" style="display:none">0</span>
+          </button>
           <button class="nav-item" data-view="contratos" onclick="navigate('contratos')">
             <span class="icon">📋</span> Contratos
             <span class="nav-badge" id="navBadgeContratos" style="display:none">0</span>
@@ -560,6 +564,54 @@
             <p style="font-size:13px;color:var(--text2);margin-top:4px">Datos de la empresa e integración WhatsApp Business API.</p>
           </div>
           <div id="configContent"></div>
+        </div>
+
+        <!-- CAJA -->
+        <div class="view" id="view-caja">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">💵 Caja</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Ingresos, egresos, ajustes y saldos por cuenta y moneda.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-export" onclick="exportarCSV('caja')">⬇ Caja CSV</button>
+              <button class="btn-add" onclick="openCajaModal()">+ Movimiento</button>
+            </div>
+          </div>
+          <div id="cajaAlerts"></div>
+          <div id="cajaResumen" class="fin-summary"></div>
+          <div id="cajaCuentasGrid" class="caja-cuentas-grid"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Movimientos de Caja</h3>
+              <div class="table-actions">
+                <input class="search-input" type="text" placeholder="🔍 Buscar concepto, comprobante, persona…" oninput="filterCaja('search',this.value)"/>
+                <select class="filter-select" onchange="filterCaja('tipo',this.value)">
+                  <option value="">Tipo</option>
+                  <option value="ingreso">Ingresos</option>
+                  <option value="egreso">Egresos</option>
+                  <option value="ajuste">Ajustes</option>
+                </select>
+                <select class="filter-select" onchange="filterCaja('estado',this.value)">
+                  <option value="">Estado</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="confirmado">Confirmado</option>
+                  <option value="anulado">Anulado</option>
+                </select>
+                <select class="filter-select" onchange="filterCaja('moneda',this.value)">
+                  <option value="">Moneda</option>
+                  <option value="UYU">UYU</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Fecha</th><th>Código</th><th>Tipo</th><th>Categoría</th><th>Cuenta</th>
+                <th>Monto</th><th>Estado</th><th>Vínculo</th><th>Origen</th><th>Acciones</th>
+              </tr></thead><tbody id="cajaTableBody"></tbody></table>
+            </div>
+          </div>
         </div>
 
         <!-- REPORTES -->
@@ -1691,6 +1743,94 @@
 
 <div id="toast"><span class="toast-icon" id="toastIcon">✓</span><span id="toastMsg"></span></div>
 
+<!-- MODAL CAJA -->
+<div class="modal-overlay" id="modalCaja">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head">
+      <h3 id="modalCajaTitle">Nuevo Movimiento de Caja</h3>
+      <button class="modal-close" onclick="closeModal('modalCaja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cajaId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Movimiento</div>
+        <div class="form-field">
+          <label>Tipo</label>
+          <select id="cajaTipo" onchange="onCajaTipoChange()">
+            <option value="ingreso">Ingreso</option>
+            <option value="egreso">Egreso</option>
+            <option value="ajuste">Ajuste</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="cajaEstado">
+            <option value="pendiente">Pendiente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="anulado">Anulado</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha</label>
+          <input type="date" id="cajaFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Cuenta / Medio</label>
+          <select id="cajaCuenta"></select>
+        </div>
+        <div class="form-field">
+          <label>Categoría</label>
+          <select id="cajaCategoria"></select>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="cajaMoneda">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Monto</label>
+          <input type="number" id="cajaMonto" min="0" step="0.01"/>
+        </div>
+        <div class="form-field">
+          <label>Comprobante</label>
+          <input type="text" id="cajaComprobante" placeholder="Nro, link o referencia"/>
+        </div>
+        <div class="form-section-title">Vínculos opcionales</div>
+        <div class="form-field">
+          <label>Operadora</label>
+          <select id="cajaOperadora"></select>
+        </div>
+        <div class="form-field">
+          <label>Reserva</label>
+          <select id="cajaReserva"></select>
+        </div>
+        <div class="form-field">
+          <label>Máquina</label>
+          <select id="cajaMaquina"></select>
+        </div>
+        <div class="form-field">
+          <label>Transportista / Proveedor</label>
+          <input type="text" id="cajaRelacionado" placeholder="Nombre si aplica"/>
+        </div>
+        <div class="form-field full">
+          <label>Concepto</label>
+          <input type="text" id="cajaConcepto" placeholder="Ej: Seña reserva, repuesto, transporte, adelanto venta"/>
+        </div>
+        <div class="form-field full">
+          <label>Observación</label>
+          <textarea id="cajaObs" placeholder="Detalle, motivo de ajuste o anulación"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCaja')">Cancelar</button>
+      <button class="btn-add" onclick="saveCajaMovimiento()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="assets/js/core/storage-api.js"></script>
 <script data-cfasync="false" src="assets/js/core/seed-data.js"></script>
 <script data-cfasync="false" src="assets/js/core/auth.js"></script>
@@ -1703,6 +1843,7 @@
 <script data-cfasync="false" src="assets/js/modules/reservas.js"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js"></script>
 <script data-cfasync="false" src="assets/js/modules/pagos.js"></script>
+<script data-cfasync="false" src="assets/js/modules/caja.js"></script>
 <script data-cfasync="false" src="assets/js/modules/reserva-automatizacion.js"></script>
 <script data-cfasync="false" src="assets/js/modules/whatsapp.js"></script>
 <script data-cfasync="false" src="assets/js/modules/envios.js"></script>

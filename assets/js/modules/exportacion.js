@@ -18,6 +18,15 @@ function exportarCSV(tipo){
     rows=(DB.get('pagos')||[]).map(p=>{const op=getOp(p.operadoraId);
       return[p.codigo,op?`${op.nombre} ${op.apellido}`:'',p.reservaId,p.tipo,p.montoTotal||0,p.moneda||'UYU',p.senaRequerida||0,p.senaAbonada||0,p.saldoPendiente||0,p.estado,p.fechaPago||''];});
     filename='pagos_depimovil';
+  } else if(tipo==='caja'){
+    headers=['Fecha','Código','Tipo','Categoría','Cuenta','Monto','Moneda','Estado','Concepto','Comprobante','Operadora','Reserva','Máquina','Relacionado','Origen','Usuario'];
+    rows=(DB.get('caja_movimientos')||[]).map(m=>{
+      const op=getOp(m.operadoraId);const res=(DB.get('reservas')||[]).find(r=>r.id===m.reservaId);const maq=getMaq(m.maquinaId);
+      return[m.fecha,m.codigo,m.tipo,typeof cajaCategoriaLabel==='function'?cajaCategoriaLabel(m.categoria):m.categoria,typeof cajaCuentaNombre==='function'?cajaCuentaNombre(m.cuentaId):m.cuentaId,
+        m.monto||0,m.moneda||'UYU',m.estado,m.concepto||'',m.comprobante||'',op?`${op.nombre} ${op.apellido}`:'',
+        res?res.codigo:'',maq?maq.nombre:'',m.relacionado||'',m.origen||'',m.usuario||''];
+    });
+    filename='caja_depimovil';
   } else if(tipo==='envios'){
     headers=['Código','Operadora','Máquina','Reserva','Departamento','Dirección','Transportista',
              'Tracking','F.Envío Est.','F.Envío Real','F.Retiro Est.','F.Retiro Real','Estado'];

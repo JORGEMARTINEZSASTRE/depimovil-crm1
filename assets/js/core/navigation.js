@@ -10,6 +10,7 @@ const viewTitles={'transportistas':'Transportistas',
   calendario:'Calendario de Reservas',
   logistica:'Reglas Logísticas',
   pagos:'Pagos y Señas','pago-ficha':'Detalle de Pago',
+  caja:'Caja',
   contratos:'Contratos de Alquiler',
   whatsapp:'Centro de Notificaciones WhatsApp',
   envios:'Envíos de Máquinas','envio-ficha':'Ficha de Envío',
@@ -38,6 +39,7 @@ function navigate(view){
   if(view==='calendario')renderCalendario();
   if(view==='logistica')renderLogistica();
   if(view==='pagos')renderPagos();
+  if(view==='caja')renderCaja();
   if(view==='contratos')renderContratos();
   if(view==='transportistas')initTransportistas();
   if(view==='whatsapp'){renderWA('pendientes');updateWABadge();}

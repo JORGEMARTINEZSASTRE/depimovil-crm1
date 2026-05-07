@@ -313,6 +313,14 @@ td .bold{color:var(--text);font-weight:500}
 .fin-cell .fc-label{font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
 .fin-cell .fc-value{font-size:20px;font-weight:700}
 @media(max-width:600px){.fin-summary{grid-template-columns:1fr 1fr}}
+.caja-cuentas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px}
+.caja-cuenta-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.caja-cuenta-card h4{font-size:13px;color:var(--text);margin-bottom:8px}
+.caja-saldo-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(38,45,66,.45);font-size:12px;color:var(--text2)}
+.caja-saldo-row strong{color:var(--text)}
+.caja-monto-ingreso{color:var(--green);font-weight:700}
+.caja-monto-egreso{color:var(--red);font-weight:700}
+.caja-monto-ajuste{color:var(--yellow);font-weight:700}
 
 /* VIEW TABS */
 .view-tabs{display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:10px;width:fit-content;margin-bottom:20px;}
