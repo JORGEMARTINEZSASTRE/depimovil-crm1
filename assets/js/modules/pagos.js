@@ -313,7 +313,7 @@ async function savePago(){
     const pagoCaja = pagosMapeados.find(p=>parseInt(p.id)===parseInt(saved.id||id));
     if(typeof sincronizarCajaDesdePago==='function'){
       const creados = sincronizarCajaDesdePago(pagoCaja);
-      if(creados) showToast(`✅ Caja actualizada: ${creados} ingreso${creados>1?'s':''}`);
+      if(creados) showToast(`✅ Caja actualizada: ${creados} movimiento${creados>1?'s':''}`);
     }
   } catch(e) { showToast('❌ Error: '+e.message,'error'); return; }
   // Auto-encolar notificación WhatsApp
@@ -328,8 +328,12 @@ async function savePago(){
 
 async function deletePago(id){
   if(!confirm('¿Eliminar este pago?'))return;
+  const pagoPrevio=(DB.get('pagos')||[]).find(p=>parseInt(p.id)===parseInt(id));
   try{
     await api('/api/pagos/'+id,{method:'DELETE'});
+    if(typeof sincronizarCajaDesdePago==='function'&&pagoPrevio){
+      sincronizarCajaDesdePago({...pagoPrevio,estado:'anulado'});
+    }
     const allPagos = await api('/api/pagos');
     DB.set('pagos', allPagos.map(p=>({id:p.id, codigo:p.codigo, reservaId:p.reserva_id,
       operadoraId:p.operadora_id, tipo:p.tipo, estado:p.estado,

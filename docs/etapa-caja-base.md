@@ -22,7 +22,9 @@
 - Conexión inicial con **Pagos y Señas**:
   - Pago en estado `sena_abonada` crea ingreso confirmado de seña.
   - Pago en estado `validado` crea ingresos confirmados de seña y/o saldo de reserva.
-  - No duplica movimientos para el mismo pago y categoría.
+  - Si el pago se corrige por mayor monto, crea ingreso adicional por la diferencia.
+  - Si el pago se corrige por menor monto, se rechaza o se anula, crea ajuste negativo.
+  - No duplica movimientos: compara lo esperado contra lo ya registrado y agrega solo diferencias.
 
 ## Modelo local
 
@@ -47,6 +49,5 @@ Claves en cache local:
 - Crear tablas reales en PostgreSQL.
 - Crear endpoints API de Caja.
 - Sincronizar la pantalla con backend.
-- Crear ajustes automáticos cuando un pago se rechaza o anula.
 - Agregar proveedores, compras y ventas de máquinas con adelantos.
 - Agregar cierres diarios/semanales/mensuales.

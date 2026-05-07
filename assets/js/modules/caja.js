@@ -62,7 +62,7 @@ function cajaMontoClass(tipo){
 function cajaMontoFirmado(m){
   const monto=parseFloat(m.monto)||0;
   if(m.tipo==='egreso')return -monto;
-  if(m.tipo==='ajuste'&&m.categoria==='ajuste_negativo')return -monto;
+  if(m.tipo==='ajuste'&&['ajuste_negativo','anulacion'].includes(m.categoria))return -monto;
   return monto;
 }
 
@@ -215,17 +215,25 @@ function cajaCuentaPorPago(pago){
   return match?.id||cuentas.find(c=>c.nombre==='Transferencia')?.id||1;
 }
 
-function upsertCajaIngresoPago(pago,categoria,monto,concepto){
+function cajaBasePagoMovimiento(m){
+  return m.categoriaBase||(['sena','saldo_reserva'].includes(m.categoria)?m.categoria:null);
+}
+
+function totalCajaPagoPorBase(pagoId,base){
+  return (DB.get('caja_movimientos')||[])
+    .filter(m=>m.origen==='pago'&&parseInt(m.pagoId)===parseInt(pagoId)&&m.estado!=='anulado'&&cajaBasePagoMovimiento(m)===base)
+    .reduce((s,m)=>s+cajaMontoFirmado(m),0);
+}
+
+function crearCajaMovimientoPago(pago,tipo,categoria,monto,concepto,opts={}){
   if(!pago||!pago.id||monto<=0)return false;
   ensureCajaData();
   const movs=DB.get('caja_movimientos')||[];
-  const existente=movs.find(m=>m.origen==='pago'&&parseInt(m.pagoId)===parseInt(pago.id)&&m.categoria===categoria&&m.estado!=='anulado');
-  if(existente)return false;
   const nextId=movs.reduce((m,x)=>Math.max(m,x.id||0),0)+1;
   const data={
     id:nextId,
     codigo:`CJ-${String(nextId).padStart(5,'0')}`,
-    tipo:'ingreso',
+    tipo,
     estado:'confirmado',
     fecha:pago.fechaPago||today(),
     cuentaId:cajaCuentaPorPago(pago),
@@ -238,9 +246,10 @@ function upsertCajaIngresoPago(pago,categoria,monto,concepto){
     maquinaId:null,
     relacionado:'',
     concepto,
-    obs:`Ingreso automático desde pago ${pago.codigo||('#'+pago.id)}`,
+    obs:opts.obs||`Movimiento automático desde pago ${pago.codigo||('#'+pago.id)}`,
     origen:'pago',
     pagoId:pago.id,
+    categoriaBase:opts.categoriaBase||categoria,
     usuario:'sistema',
     ts:new Date().toISOString(),
     updatedAt:new Date().toISOString()
@@ -251,17 +260,34 @@ function upsertCajaIngresoPago(pago,categoria,monto,concepto){
 }
 
 function sincronizarCajaDesdePago(pago){
-  if(!pago||!['sena_abonada','validado'].includes(pago.estado))return 0;
+  if(!pago||!pago.id)return 0;
   const total=parseFloat(pago.montoTotal)||0;
   const sena=parseFloat(pago.senaAbonada)||0;
-  let creados=0;
-  if(sena>0){
-    creados+=upsertCajaIngresoPago(pago,'sena',sena,`Seña ${pago.codigo||''}`)?1:0;
+  const esperado={sena:0,saldo_reserva:0};
+  if(pago.estado==='sena_abonada'){
+    esperado.sena=sena;
   }
   if(pago.estado==='validado'){
-    const saldo=sena>0?Math.max(0,total-sena):total;
-    creados+=upsertCajaIngresoPago(pago,'saldo_reserva',saldo,`Saldo reserva ${pago.codigo||''}`)?1:0;
+    esperado.sena=sena;
+    esperado.saldo_reserva=sena>0?Math.max(0,total-sena):total;
   }
+  let creados=0;
+  Object.entries(esperado).forEach(([base,montoEsperado])=>{
+    const actual=totalCajaPagoPorBase(pago.id,base);
+    const delta=Math.round((montoEsperado-actual)*100)/100;
+    if(Math.abs(delta)<0.01)return;
+    if(delta>0){
+      creados+=crearCajaMovimientoPago(pago,'ingreso',base,delta,`${cajaCategoriaLabel(base)} ${pago.codigo||''}`,{
+        categoriaBase:base,
+        obs:`Ingreso automático por diferencia de pago ${pago.codigo||('#'+pago.id)}`
+      })?1:0;
+    }else{
+      creados+=crearCajaMovimientoPago(pago,'ajuste','ajuste_negativo',Math.abs(delta),`Ajuste ${cajaCategoriaLabel(base)} ${pago.codigo||''}`,{
+        categoriaBase:base,
+        obs:`Ajuste automático por corrección/anulación de pago ${pago.codigo||('#'+pago.id)}`
+      })?1:0;
+    }
+  });
   if(creados)updateCajaBadge();
   return creados;
 }
