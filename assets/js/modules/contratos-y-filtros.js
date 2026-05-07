@@ -99,7 +99,7 @@ function onCtrOperadoraChange() {
   if (op) {
     document.getElementById('ctrNombre').value = (op.nombre || '') + ' ' + (op.apellido || '');
     document.getElementById('ctrCiudad').value = op.ciudad || '';
-    document.getElementById('ctrDomicilio').value = op.direccion_entrega || '';
+    document.getElementById('ctrDomicilio').value = op.direccionEntrega || op.direccion_entrega || '';
   }
 }
 
@@ -142,12 +142,22 @@ function switchContratoTab(tab) {
 }
 
 function renderContratoPreview() {
+  function esc(v){return String(v||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   var nombre = document.getElementById('ctrNombre').value || '________________';
   var ci = document.getElementById('ctrCI').value || '________________';
   var domicilio = document.getElementById('ctrDomicilio').value || '________________';
   var ciudad = document.getElementById('ctrCiudad').value || '________________';
+  var opId = parseInt(document.getElementById('ctrOperadora').value) || null;
+  var op = opId ? (DB.get('operadoras')||[]).find(function(o){return o.id===opId}) : null;
+  var telefono = (op && (op.whatsapp || op.telefono)) || '________________';
+  var correo = (op && op.email) || '________________';
   var maqSel = document.getElementById('ctrMaquina');
   var maqText = maqSel.selectedIndex > 0 ? maqSel.options[maqSel.selectedIndex].text : '________________';
+  var maqId = parseInt(maqSel.value) || null;
+  var maq = maqId ? (DB.get('maquinas')||[]).find(function(m){return m.id===maqId}) : null;
+  var equipo = maq ? (maq.nombre || maqText) : maqText;
+  var referencia = maq ? [maq.codigo, maq.categoria].filter(Boolean).join(' / ') : '________________';
+  var nombreFantasia = maq ? (maq.nombre || '________________') : '________________';
   var serial = document.getElementById('ctrSerial').value || 'S/N';
   var fechaInicio = document.getElementById('ctrFechaInicio').value || '____/____/____';
   var fechaFin = document.getElementById('ctrFechaFin').value || '____/____/____';
@@ -161,54 +171,70 @@ function renderContratoPreview() {
   
   // Format dates
   function fmtD(d) { if (!d) return d; var p = d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+  var montoTotal = formatMonto(monto, moneda);
+  var sena = parseFloat(garantia) > 0 ? formatMonto(garantia, moneda) : '____________________';
+  var saldo = parseFloat(monto||0) && parseFloat(garantia||0) ? formatMonto(Math.max(0, parseFloat(monto)-parseFloat(garantia)), moneda) : '____________________';
   
-  var h = '<h1>CONTRATO DE ALQUILER DE EQUIPAMIENTO</h1>';
-  h += '<h2>DepiM\u00f3vil \u2014 Alquiler de Equipos de Est\u00e9tica</h2>';
-  h += '<div class="clausula"><div class="clausula-title">PRIMERA: PARTES</div>';
-  h += 'Entre <strong>DepiM\u00f3vil</strong>, en adelante "EL ARRENDADOR", con domicilio en la ciudad de Salto, Rep\u00fablica Oriental del Uruguay; ';
-  h += 'y <strong>'+nombre+'</strong>, CI/RUT: <strong>'+ci+'</strong>, con domicilio en <strong>'+domicilio+', '+ciudad+'</strong>, en adelante "EL ARRENDATARIO", se celebra el presente contrato de alquiler.</div>';
+  var h = '<div class="contrato-header-mini">DEPIM\u00d3VIL<br><span>SOLUCIONES PARA PROFESIONALES DE EST\u00c9TICA</span></div>';
+  h += '<h1>CONTRATO DE ALQUILER DE EQUIPO EST\u00c9TICO</h1>';
+  h += '<h2>Modelo institucional listo para completar</h2>';
+  h += '<div class="clausula">En la ciudad de <strong>'+esc(ciudad)+'</strong>, a los ____ d\u00edas del mes de ____________________ de 20____, comparecen por una parte <strong>DEPIM\u00d3VIL</strong>, representada por Jorge Martinez y Julieta Perelstein, en adelante <strong>LA ARRENDADORA</strong>, y por otra parte <strong>'+esc(nombre)+'</strong>, C.I./RUT <strong>'+esc(ci)+'</strong>, con domicilio en <strong>'+esc(domicilio)+'</strong>, ciudad <strong>'+esc(ciudad)+'</strong>, tel\u00e9fono <strong>'+esc(telefono)+'</strong>, correo <strong>'+esc(correo)+'</strong>, en adelante <strong>LA ARRENDATARIA</strong>, quienes acuerdan lo siguiente:</div>';
   
-  h += '<div class="clausula"><div class="clausula-title">SEGUNDA: OBJETO</div>';
-  h += 'El ARRENDADOR entrega en alquiler al ARRENDATARIO el siguiente equipamiento: <strong>'+maqText+'</strong>, N\u00b0 de Serie: <strong>'+serial+'</strong>.</div>';
+  h += '<div class="clausula"><div class="clausula-title">PRIMERA. OBJETO.</div>';
+  h += 'LA ARRENDADORA da en alquiler a LA ARRENDATARIA el equipo: <strong>'+esc(equipo)+'</strong>, modelo/referencia <strong>'+esc(referencia)+'</strong>, N.\u00ba de serie <strong>'+esc(serial)+'</strong>, nombre fantas\u00eda <strong>'+esc(nombreFantasia)+'</strong>, con los accesorios que se detallan en el anexo de entrega. El equipo se destina exclusivamente a uso profesional est\u00e9tico.</div>';
   
-  h += '<div class="clausula"><div class="clausula-title">TERCERA: PLAZO</div>';
-  h += 'El presente contrato tendr\u00e1 vigencia desde el <strong>'+fmtD(fechaInicio)+'</strong> hasta el <strong>'+fmtD(fechaFin)+'</strong>.</div>';
+  h += '<div class="clausula"><div class="clausula-title">SEGUNDA. PLAZO.</div>';
+  h += 'El alquiler regir\u00e1 desde el <strong>'+fmtD(fechaInicio)+'</strong> hasta el <strong>'+fmtD(fechaFin)+'</strong>. Toda pr\u00f3rroga deber\u00e1 acordarse expresamente entre las partes.</div>';
   
-  h += '<div class="clausula"><div class="clausula-title">CUARTA: PRECIO</div>';
-  h += 'El ARRENDATARIO abonar\u00e1 la suma de <strong>$'+formatMonto(monto)+' '+moneda+'</strong> mensuales, pagaderos mediante <strong>'+formaPago+'</strong>.</div>';
+  h += '<div class="clausula"><div class="clausula-title">TERCERA. PRECIO Y PAGO.</div>';
+  h += 'El precio total del alquiler se fija en <strong>'+montoTotal+'</strong>. Forma de pago: <strong>'+esc(formaPago)+'</strong>. Se\u00f1a/anticipo <strong>'+sena+'</strong>, saldo <strong>'+saldo+'</strong>. La se\u00f1a confirma la reserva del equipo y de la fecha pactada.</div>';
   
-  if (parseInt(garantia) > 0) {
-    h += '<div class="clausula"><div class="clausula-title">QUINTA: GARANT\u00cdA</div>';
-    h += 'El ARRENDATARIO entrega en concepto de garant\u00eda/se\u00f1a la suma de <strong>$'+formatMonto(garantia)+' '+moneda+'</strong>, reembolsable al finalizar el contrato y devoluci\u00f3n del equipo en buen estado.</div>';
-  }
+  h += '<div class="clausula"><div class="clausula-title">QUINTA. ENTREGA Y DEVOLUCI\u00d3N.</div>';
+  h += 'El equipo ser\u00e1 entregado el <strong>'+fmtD(fechaInicio)+'</strong> y devuelto el <strong>'+fmtD(fechaFin)+'</strong>. LA ARRENDATARIA declara recibirlo en correcto estado de funcionamiento, limpio, completo y apto para su uso, oblig\u00e1ndose a devolverlo en iguales condiciones, salvo desgaste normal por uso adecuado.</div>';
   
-  h += '<div class="clausula"><div class="clausula-title">'+(parseInt(garantia)>0?'SEXTA':'QUINTA')+': OBLIGACIONES DEL ARRENDATARIO</div>';
-  h += 'a) Utilizar el equipo exclusivamente para los fines previstos.<br>';
-  h += 'b) Mantener el equipo en buen estado de conservaci\u00f3n.<br>';
-  h += 'c) No ceder ni subarrendar el equipo a terceros.<br>';
-  h += 'd) Comunicar inmediatamente cualquier desperfecto.<br>';
-  h += 'e) Devolver el equipo en las condiciones recibidas al t\u00e9rmino del contrato.</div>';
+  h += '<div class="clausula"><div class="clausula-title">SEXTA. USO Y RESPONSABILIDAD.</div>';
+  h += 'LA ARRENDATARIA se obliga a utilizar el equipo de forma correcta, profesional y responsable; no cederlo, prestarlo ni subalquilarlo a terceros; conservarlo en buen estado y operarlo bajo su exclusiva responsabilidad profesional y comercial frente a sus clientas/pacientes.</div>';
   
-  h += '<div class="clausula"><div class="clausula-title">'+(parseInt(garantia)>0?'S\u00c9PTIMA':'SEXTA')+': OBLIGACIONES DEL ARRENDADOR</div>';
-  h += 'a) Entregar el equipo en perfecto estado de funcionamiento.<br>';
-  h += 'b) Brindar capacitaci\u00f3n t\u00e9cnica para el uso del equipo.<br>';
-  h += 'c) Proveer soporte t\u00e9cnico remoto durante la vigencia del contrato.<br>';
-  h += 'd) Realizar mantenimiento preventivo seg\u00fan cronograma acordado.</div>';
+  h += '<div class="clausula"><div class="clausula-title">S\u00c9PTIMA. FALLAS Y SERVICIO T\u00c9CNICO.</div>';
+  h += 'Ante cualquier falla o inconveniente t\u00e9cnico, LA ARRENDATARIA deber\u00e1 comunicarlo de inmediato a LA ARRENDADORA. Queda prohibido abrir, reparar o intervenir el equipo por s\u00ed o por terceros no autorizados. Si el da\u00f1o derivara de golpes, humedad, conexi\u00f3n el\u00e9ctrica inadecuada, mal uso o negligencia, el costo de reparaci\u00f3n o reposici\u00f3n ser\u00e1 de cargo exclusivo de LA ARRENDATARIA.</div>';
+  
+  h += '<div class="clausula"><div class="clausula-title">OCTAVA. TRASLADO Y LOG\u00cdSTICA.</div>';
+  h += 'La entrega y devoluci\u00f3n se realizar\u00e1 seg\u00fan lo acordado por las partes. Los costos de env\u00edo, retiro, agencia o traslado ser\u00e1n a cargo de DEPIMOVIL.</div>';
+  
+  h += '<div class="clausula"><div class="clausula-title">NOVENA. DA\u00d1OS, P\u00c9RDIDA O FALTANTES.</div>';
+  h += 'LA ARRENDATARIA responder\u00e1 por cualquier rotura, p\u00e9rdida, hurto, extrav\u00edo o faltante del equipo y/o sus accesorios mientras permanezcan bajo su tenencia. En caso de da\u00f1o total o p\u00e9rdida, deber\u00e1 abonar el valor de reposici\u00f3n vigente al momento del hecho.</div>';
+  
+  h += '<div class="clausula"><div class="clausula-title">D\u00c9CIMA. RESCISI\u00d3N Y MORA.</div>';
+  h += 'LA ARRENDADORA podr\u00e1 rescindir el presente contrato y exigir la devoluci\u00f3n inmediata del equipo en caso de falta de pago, uso indebido, cesi\u00f3n a terceros o incumplimiento de cualquiera de las obligaciones asumidas. La mora se producir\u00e1 autom\u00e1ticamente por el solo vencimiento de los plazos pactados, sin necesidad de intimaci\u00f3n previa.</div>';
+  
+  h += '<div class="clausula"><div class="clausula-title">D\u00c9CIMA PRIMERA. DOMICILIO Y JURISDICCI\u00d3N.</div>';
+  h += 'Las partes constituyen como domicilios especiales los denunciados en este contrato y acuerdan someter cualquier diferencia a la jurisdicci\u00f3n de los tribunales competentes de la Rep\u00fablica Oriental del Uruguay.</div>';
   
   if (obs) {
-    h += '<div class="clausula"><div class="clausula-title">CL\u00c1USULAS ADICIONALES</div>'+obs.replace(/\n/g,'<br>')+'</div>';
+    h += '<div class="clausula"><div class="clausula-title">OBSERVACIONES</div>'+esc(obs).replace(/\n/g,'<br>')+'</div>';
   }
   
-  h += '<div class="clausula">Ambas partes firman de conformidad en la ciudad de '+ciudad+', a los ______ d\u00edas del mes de ______________ de 20____.</div>';
+  h += '<div class="clausula">En prueba de conformidad, se firman dos ejemplares del mismo tenor.</div>';
   if (firmado) {
     h += '<div class="clausula"><div class="clausula-title">CONSTANCIA DE FIRMA</div>';
     h += 'Contrato marcado como firmado por la operadora'+(fechaFirma ? ' el <strong>'+fmtD(fechaFirma)+'</strong>' : '')+'.</div>';
   }
   
-  h += '<div class="firmas">';
-  h += '<div class="firma-box"><div class="firma-line">EL ARRENDADOR<br>DepiM\u00f3vil</div></div>';
-  h += '<div class="firma-box"><div class="firma-line">EL ARRENDATARIO<br>'+nombre+'</div></div>';
+  h += '<div class="firmas firmas-tabla">';
+  h += '<div class="firma-box"><strong>LA ARRENDADORA</strong><div class="firma-line">Firma y aclaraci\u00f3n</div></div>';
+  h += '<div class="firma-box"><strong>LA ARRENDATARIA</strong><div class="firma-line">Firma y aclaraci\u00f3n<br>C.I./RUT: '+esc(ci)+'</div></div>';
   h += '</div>';
+  
+  h += '<h2 class="anexo-title">ANEXO DE ENTREGA</h2>';
+  h += '<div class="clausula anexo-line"><strong>Equipo:</strong> '+esc(equipo)+'</div>';
+  h += '<div class="clausula anexo-line"><strong>Accesorios entregados:</strong> ____________________________________________</div>';
+  h += '<div class="clausula anexo-line"><strong>Estado general al momento de la entrega:</strong> ____________________________________________</div>';
+  h += '<div class="clausula anexo-line"><strong>Observaciones:</strong> ____________________________________________</div>';
+  h += '<div class="firmas">';
+  h += '<div class="firma-box"><div class="firma-line">Firma ARRENDADORA<br>JORGE MARTINEZ</div></div>';
+  h += '<div class="firma-box"><div class="firma-line">Firma ARRENDATARIA<br>'+esc(nombre)+'</div></div>';
+  h += '</div>';
+  h += '<div class="contrato-footer-mini">DepiM\u00f3vil Uruguay | Contrato base de alquiler de equipo est\u00e9tico</div>';
   
   document.getElementById('contratoPreviewPrint').innerHTML = h;
 }
