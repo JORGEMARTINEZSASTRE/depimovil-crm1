@@ -208,6 +208,10 @@
             <span class="icon">🧾</span> Compras
             <span class="nav-badge" id="navBadgeCompras" style="display:none">0</span>
           </button>
+          <button class="nav-item" data-view="ventas-maquinas" onclick="navigate('ventas-maquinas')">
+            <span class="icon">🏷</span> Ventas Máquinas
+            <span class="nav-badge" id="navBadgeVentasMaq" style="display:none">0</span>
+          </button>
           <button class="nav-item" data-view="contratos" onclick="navigate('contratos')">
             <span class="icon">📋</span> Contratos
             <span class="nav-badge" id="navBadgeContratos" style="display:none">0</span>
@@ -651,6 +655,26 @@
               </div>
             </div>
             <div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Código</th><th>Proveedor</th><th>Categoría</th><th>Máquina</th><th>Total</th><th>Pagado</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="comprasTableBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- VENTAS DE MÁQUINAS -->
+        <div class="view" id="view-ventas-maquinas">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div><h2 style="font-size:18px;font-weight:700;color:var(--text)">🏷 Ventas de Máquinas</h2><p style="font-size:13px;color:var(--text2);margin-top:4px">Ventas con adelantos parciales, saldo pendiente e ingresos en Caja.</p></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn-export" onclick="exportarCSV('ventas_maquinas')">⬇ Ventas CSV</button><button class="btn-add" onclick="openVentaMaquinaModal()">+ Venta</button></div>
+          </div>
+          <div id="ventasMaqAlerts"></div>
+          <div id="ventasMaqResumen" class="fin-summary"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Ventas y adelantos</h3>
+              <div class="table-actions">
+                <input class="search-input" placeholder="🔍 Buscar máquina, comprador, comprobante…" oninput="filterVentasMaq('search',this.value)"/>
+                <select class="filter-select" onchange="filterVentasMaq('estado',this.value)"><option value="">Estado</option><option value="pendiente">Pendiente</option><option value="parcial">Parcial</option><option value="pagada">Pagada</option><option value="anulada">Anulada</option></select>
+              </div>
+            </div>
+            <div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Código</th><th>Máquina</th><th>Comprador</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="ventasMaqTableBody"></tbody></table></div>
           </div>
         </div>
 
@@ -1828,6 +1852,32 @@
   </div>
 </div>
 
+<!-- MODAL VENTA MÁQUINA -->
+<div class="modal-overlay" id="modalVentaMaquina">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head"><h3 id="modalVentaMaquinaTitle">Nueva Venta de Máquina</h3><button class="modal-close" onclick="closeModal('modalVentaMaquina')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="ventaMaqId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Venta</div>
+        <div class="form-field"><label>Fecha</label><input type="date" id="ventaMaqFecha"/></div>
+        <div class="form-field"><label>Máquina</label><select id="ventaMaqMaquina"></select></div>
+        <div class="form-field full"><label>Comprador</label><input id="ventaMaqComprador" placeholder="Nombre de la persona/empresa compradora"/></div>
+        <div class="form-field"><label>Teléfono</label><input id="ventaMaqTelefono"/></div>
+        <div class="form-field"><label>Documento/RUT</label><input id="ventaMaqDocumento"/></div>
+        <div class="form-field"><label>Precio total</label><input type="number" id="ventaMaqTotal" min="0" step="0.01" oninput="calcVentaMaqSaldo()"/></div>
+        <div class="form-field"><label>Moneda</label><select id="ventaMaqMoneda"><option value="UYU">UYU</option><option value="USD">USD</option></select></div>
+        <div class="form-field"><label>Pago recibido ahora</label><input type="number" id="ventaMaqPago" min="0" step="0.01" oninput="calcVentaMaqSaldo()"/></div>
+        <div class="form-field"><label>Cuenta de Caja</label><select id="ventaMaqCuenta"></select></div>
+        <div class="form-field"><label>Comprobante</label><input id="ventaMaqComprobante" placeholder="Nro, link o referencia"/></div>
+        <div class="form-field full"><label>Observaciones</label><textarea id="ventaMaqObs"></textarea></div>
+        <div class="form-field full"><div id="ventaMaqSaldoWrap" class="alert-banner info" style="display:none;margin:0"></div></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modalVentaMaquina')">Cancelar</button><button class="btn-add" onclick="saveVentaMaquina()">💾 Guardar</button></div>
+  </div>
+</div>
+
 <!-- MODAL CAJA -->
 <div class="modal-overlay" id="modalCaja">
   <div class="modal-box" style="max-width:760px">
@@ -1930,6 +1980,7 @@
 <script data-cfasync="false" src="assets/js/modules/pagos.js"></script>
 <script data-cfasync="false" src="assets/js/modules/caja.js"></script>
 <script data-cfasync="false" src="assets/js/modules/compras-proveedores.js"></script>
+<script data-cfasync="false" src="assets/js/modules/ventas-maquinas.js"></script>
 <script data-cfasync="false" src="assets/js/modules/reserva-automatizacion.js"></script>
 <script data-cfasync="false" src="assets/js/modules/whatsapp.js"></script>
 <script data-cfasync="false" src="assets/js/modules/envios.js"></script>

@@ -32,6 +32,11 @@ function exportarCSV(tipo){
     rows=(DB.get('compras')||[]).map(c=>{const p=getProveedor(c.proveedorId);const m=getMaq(c.maquinaId);
       return[c.fecha,c.codigo,p?p.nombre:'',c.categoria,m?m.nombre:'',c.total||0,c.pagado||0,c.saldo||0,c.moneda,c.estado,c.comprobante||'',c.concepto||''];});
     filename='compras_depimovil';
+  } else if(tipo==='ventas_maquinas'){
+    headers=['Fecha','Código','Máquina','Comprador','Teléfono','Documento','Total','Pagado','Saldo','Moneda','Estado','Comprobante'];
+    rows=(DB.get('ventas_maquinas')||[]).map(v=>{const m=getMaq(v.maquinaId);
+      return[v.fecha,v.codigo,m?m.nombre:'',v.comprador||'',v.telefono||'',v.documento||'',v.total||0,v.pagado||0,v.saldo||0,v.moneda,v.estado,v.comprobante||''];});
+    filename='ventas_maquinas_depimovil';
   } else if(tipo==='envios'){
     headers=['Código','Operadora','Máquina','Reserva','Departamento','Dirección','Transportista',
              'Tracking','F.Envío Est.','F.Envío Real','F.Retiro Est.','F.Retiro Real','Estado'];

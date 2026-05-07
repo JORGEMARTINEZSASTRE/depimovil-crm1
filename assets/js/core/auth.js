@@ -166,6 +166,7 @@ function startApp(){
   updatePagosBadge();
   if(typeof updateCajaBadge==='function') updateCajaBadge();
   if(typeof updateComprasBadge==='function') updateComprasBadge();
+  if(typeof updateVentasMaquinasBadge==='function') updateVentasMaquinasBadge();
   updateWABadge();
   updateEnviosBadge();
   updateMaqBadge();

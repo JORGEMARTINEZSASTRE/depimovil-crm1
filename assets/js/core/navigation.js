@@ -13,6 +13,7 @@ const viewTitles={'transportistas':'Transportistas',
   caja:'Caja',
   proveedores:'Proveedores',
   compras:'Compras',
+  'ventas-maquinas':'Ventas de Máquinas',
   contratos:'Contratos de Alquiler',
   whatsapp:'Centro de Notificaciones WhatsApp',
   envios:'Envíos de Máquinas','envio-ficha':'Ficha de Envío',
@@ -44,6 +45,7 @@ function navigate(view){
   if(view==='caja')renderCaja();
   if(view==='proveedores')renderProveedores();
   if(view==='compras')renderCompras();
+  if(view==='ventas-maquinas')renderVentasMaquinas();
   if(view==='contratos')renderContratos();
   if(view==='transportistas')initTransportistas();
   if(view==='whatsapp'){renderWA('pendientes');updateWABadge();}
