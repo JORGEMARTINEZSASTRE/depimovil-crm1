@@ -402,11 +402,12 @@ async function saveReserva(){
     } else {
       reservas.push(mapped);
     }
+    // Guardar en caché ANTES de encolar notificación para que generarMensaje tenga los datos
+    DB.set('reservas',reservas);
     if(!id && typeof encolarNotificacion==='function'){
       const map={solicitud_recibida:'reserva_nueva',aprobada:'reserva_aprobada',confirmada:'reserva_confirmada',rechazada:'reserva_rechazada',cancelada:'reserva_rechazada'};
       if(map[mapped.estado]) encolarNotificacion(map[mapped.estado], mapped.operadoraId, {reservaId:mapped.id, monto:mapped.monto, moneda:mapped.moneda});
     }
-    DB.set('reservas',reservas);
     showToast(id?'✅ Reserva actualizada':'✅ Reserva creada · '+saved.codigo);
     closeModal('modalRes'); renderReservas(); updateReservasBadge();
   }catch(e){showToast('⛔ '+e.message,'warn');}
