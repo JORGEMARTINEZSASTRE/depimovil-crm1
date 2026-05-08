@@ -354,6 +354,9 @@ function onResSelectionChange(){
 }
 
 async function saveReserva(){
+  // Prevenir doble submit
+  const btnGuardar = document.querySelector('#modalRes .btn-add, #modalRes button[onclick*="saveReserva"]');
+  if(btnGuardar){if(btnGuardar._saving)return; btnGuardar._saving=true; btnGuardar.disabled=true;}
   const reservas=DB.get('reservas')||[]; const id=gv('resId');
   const opId=parseInt(gv('resOperadoraId')); const maqId=parseInt(gv('resMaquinaId'));
   const tipo=gv('resTipo');
@@ -407,6 +410,7 @@ async function saveReserva(){
     showToast(id?'✅ Reserva actualizada':'✅ Reserva creada · '+saved.codigo);
     closeModal('modalRes'); renderReservas(); updateReservasBadge();
   }catch(e){showToast('⛔ '+e.message,'warn');}
+  finally{if(btnGuardar){btnGuardar._saving=false; btnGuardar.disabled=false;}}
 }
 
 /* Cambio de estado */
