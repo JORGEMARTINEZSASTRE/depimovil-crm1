@@ -72,20 +72,24 @@ async function enviarMensaje(to, text) {
   }
 
   try {
+    // Evolution API v2 acepta el número solo con código de país (sin @s.whatsapp.net)
     const res = await fetch(`${url}/message/sendText/${inst}`, {
       method: 'POST',
       headers: evoHeaders(),
       body: JSON.stringify({
-        number: phone + '@s.whatsapp.net',
-        textMessage: { text },
+        number: phone,          // ej: 59892787479
+        text,                   // v2 usa "text" directo
+        textMessage: { text },  // compatibilidad v1
       }),
     });
 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const msg = data?.message || data?.error || `HTTP ${res.status}`;
-      console.error('❌ wa_sender error Evolution:', msg);
+      const msg = Array.isArray(data?.message)
+        ? data.message.join(', ')
+        : data?.message || data?.error || `HTTP ${res.status}`;
+      console.error('❌ wa_sender error Evolution:', msg, JSON.stringify(data));
       return { ok: false, error: msg };
     }
 
