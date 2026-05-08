@@ -111,6 +111,26 @@ router.post('/setup', auth, requireRole('superadmin'), async (req, res) => {
   res.json(resultado);
 });
 
+// ─── Desconectar / logout instancia ─────────────────────────────────────────
+router.delete('/setup', auth, requireRole('superadmin'), async (req, res) => {
+  const { url, inst } = require('../utils/wa_sender').normalizePhone
+    ? { url: process.env.EVOLUTION_URL, inst: process.env.EVOLUTION_INST || 'depimovil' }
+    : { url: process.env.EVOLUTION_URL, inst: process.env.EVOLUTION_INST || 'depimovil' };
+  if (!url || !process.env.EVOLUTION_KEY) {
+    return res.status(400).json({ error: 'Faltan EVOLUTION_URL o EVOLUTION_KEY' });
+  }
+  try {
+    const r = await fetch(`${url}/instance/logout/${inst}`, {
+      method: 'DELETE',
+      headers: { 'apikey': process.env.EVOLUTION_KEY },
+    });
+    const data = await r.json().catch(() => ({}));
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/test', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const modo = process.env.WA_MODO || 'simulacion';
   if (modo !== 'produccion') {

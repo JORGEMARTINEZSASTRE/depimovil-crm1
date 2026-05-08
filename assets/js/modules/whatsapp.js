@@ -133,8 +133,136 @@ function updateWABadge(){
   if(pendCount) pendCount.textContent = count>0?`(${count})`:'';
 }
 
+/* ── Conexión WhatsApp QR ── */
+async function renderWAConexion(){
+  const el = document.getElementById('waTabContent');
+  if(!el) return;
+
+  el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:32px 16px;max-width:480px;margin:0 auto">
+    <div id="waConexionStatus" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center">
+      <div style="font-size:13px;color:var(--text2)">Consultando estado...</div>
+    </div>
+    <div id="waQRWrap" style="display:none;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-size:13px;color:var(--text2);text-align:center">
+        Escaneá con WhatsApp → <strong>Dispositivos vinculados</strong> → <strong>Vincular dispositivo</strong>
+      </div>
+      <div id="waQRImg" style="background:white;padding:16px;border-radius:14px;box-shadow:var(--shadow)"></div>
+      <div style="font-size:12px;color:var(--text3)">El QR expira en ~20 segundos. Si venció, pedí uno nuevo.</div>
+      <button class="btn-secondary" onclick="pedirQR()">🔄 Pedir QR nuevo</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button class="btn-add" onclick="verificarConexionWA()">🔌 Verificar conexión</button>
+      <button class="btn-secondary" onclick="pedirQR()" id="btnPedirQR">📱 Conectar WhatsApp</button>
+      ${isSuperAdmin() ? `<button class="btn-secondary" onclick="desconectarWA()" style="color:var(--red);border-color:rgba(224,92,107,.3)">⏏ Desconectar</button>` : ''}
+    </div>
+    <div style="font-size:12px;color:var(--text3);text-align:center;max-width:380px;line-height:1.6">
+      Para cambiar el número vinculado: desconectá primero, luego conectá con el nuevo teléfono.
+    </div>
+  </div>`;
+
+  await verificarConexionWA();
+}
+
+async function verificarConexionWA(){
+  const statusEl = document.getElementById('waConexionStatus');
+  if(!statusEl) return;
+  try {
+    const st = await api('/api/webhook/whatsapp/status');
+    DB.set('wa_status', st);
+    const conectado = st.conectado;
+    const modo = st.modo;
+
+    statusEl.innerHTML = `
+      <div style="font-size:28px;margin-bottom:8px">${conectado ? '✅' : modo === 'simulacion' ? '🔵' : '🔴'}</div>
+      <div style="font-size:16px;font-weight:700;color:${conectado ? 'var(--green)' : 'var(--text)'}">
+        ${conectado ? 'WhatsApp conectado' : modo === 'simulacion' ? 'Modo simulación' : 'Sin conexión'}
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">
+        Modo: <strong>${modo}</strong> · Instancia: <strong>${st.instancia}</strong>
+      </div>
+      ${conectado ? `<div style="font-size:12px;color:var(--green);margin-top:8px">Los mensajes automáticos están activos ✓</div>` : ''}
+      ${modo === 'simulacion' ? `<div style="font-size:12px;color:var(--blue);margin-top:8px">Los mensajes solo se loguean en el servidor. Cambiá WA_MODO=produccion en Railway para enviar mensajes reales.</div>` : ''}
+      ${!conectado && modo === 'produccion' ? `<div style="font-size:12px;color:var(--red);margin-top:8px">Escaneá el QR para vincular un número de WhatsApp.</div>` : ''}
+    `;
+
+    // Mostrar botón de QR solo si no está conectado y está en producción
+    const btnQR = document.getElementById('btnPedirQR');
+    if(btnQR) btnQR.style.display = (!conectado && modo === 'produccion') ? 'inline-flex' : 'none';
+
+  } catch(e) {
+    statusEl.innerHTML = `<div style="color:var(--red)">❌ No se pudo verificar el estado: ${e.message}</div>`;
+  }
+}
+
+async function pedirQR(){
+  const qrWrap = document.getElementById('waQRWrap');
+  const qrImg  = document.getElementById('waQRImg');
+  if(!qrWrap || !qrImg) return;
+
+  qrWrap.style.display = 'flex';
+  qrImg.innerHTML = `<div style="padding:40px;color:var(--text2);font-size:13px">Cargando QR...</div>`;
+
+  try {
+    const d = await api('/api/webhook/whatsapp/qr');
+    if(d.status === 'conectado') {
+      qrWrap.style.display = 'none';
+      showToast('✅ WhatsApp ya está conectado');
+      await verificarConexionWA();
+      return;
+    }
+    if(d.simulado) {
+      qrWrap.style.display = 'none';
+      showToast('ℹ️ Servidor en modo simulación — cambiá WA_MODO=produccion en Railway', 'warn');
+      return;
+    }
+    if(d.qrcode) {
+      const img = document.createElement('img');
+      img.src = d.qrcode;
+      img.style.cssText = 'width:240px;height:240px;display:block';
+      qrImg.innerHTML = '';
+      qrImg.appendChild(img);
+      showToast('📱 Escaneá el QR ahora — expira en 20 segundos');
+      // Auto-verificar conexión cada 5 segundos
+      let intentos = 0;
+      const check = setInterval(async () => {
+        intentos++;
+        try {
+          const st = await api('/api/webhook/whatsapp/status');
+          if(st.conectado) {
+            clearInterval(check);
+            qrWrap.style.display = 'none';
+            showToast('✅ WhatsApp conectado correctamente');
+            await verificarConexionWA();
+          }
+        } catch(_) {}
+        if(intentos >= 12) clearInterval(check); // dejar de verificar después de 60s
+      }, 5000);
+    } else {
+      qrImg.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">No se pudo obtener el QR: ${d.error || 'error desconocido'}</div>`;
+    }
+  } catch(e) {
+    qrImg.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">Error: ${e.message}</div>`;
+  }
+}
+
+async function desconectarWA(){
+  if(!confirm('¿Desconectar WhatsApp? El número quedará desvinculado.')) return;
+  try {
+    await fetch(`${(DB.get('wa_status')?.evolution_url||'')}`.replace('undefined','') || '/api/webhook/whatsapp/status', {});
+    // Llamar al endpoint de logout de Evolution via nuestro servidor
+    const resp = await fetch('/api/webhook/whatsapp/setup', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('dm_jwt') }
+    });
+    showToast('⏏ WhatsApp desconectado');
+  } catch(e) {
+    showToast('⚠️ ' + e.message, 'warn');
+  }
+  await verificarConexionWA();
+}
+
 /* ── Render ── */
-let waActiveTab = 'pendientes';
+let waActiveTab = 'conexion';
 
 function switchWaTab(tab, btn){
   waActiveTab = tab;
@@ -149,6 +277,11 @@ function renderWA(tab){
   const notifs = DB.get('wa_notificaciones')||[];
   const el = document.getElementById('waTabContent');
   if(!el) return;
+
+  if(waActiveTab==='conexion'){
+    renderWAConexion();
+    return;
+  }
 
   if(waActiveTab==='pendientes'){
     const pend = notifs.filter(n=>n.estado==='pendiente').sort((a,b)=>b.ts.localeCompare(a.ts));
