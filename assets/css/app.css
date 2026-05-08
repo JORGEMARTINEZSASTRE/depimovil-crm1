@@ -24,9 +24,8 @@ input,select,textarea{font-family:inherit}
   width:100%;max-width:420px;box-shadow:var(--shadow);animation:fadeUp .5s ease;}
 .login-logo{text-align:center;margin-bottom:36px;}
 .login-logo-mark{width:76px;height:76px;background:linear-gradient(135deg,var(--accent),var(--rose));
-  background-image:url(/logo.jpg?v=3);background-size:cover;background-position:center;
   border-radius:18px;display:inline-flex;align-items:center;justify-content:center;
-  font-size:0;color:transparent;margin-bottom:16px;box-shadow:0 8px 24px rgba(var(--accent-rgb),0.25);}
+  font-size:32px;margin-bottom:16px;box-shadow:0 8px 24px rgba(var(--accent-rgb),0.25);}
 .login-logo h1{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);letter-spacing:.3px;}
 .login-logo p{font-size:13px;color:var(--text2);margin-top:4px}
 .login-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
@@ -796,3 +795,173 @@ select,input,textarea,button{font-size:14px !important}
   #contratoPreviewPrint{position:fixed;left:0;top:0;width:100%;padding:20px}
 }
 /* === FIN CONTRATO === */
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE COMPLETO — Mobile first
+   Breakpoints: 768px (tablet/mobile) · 480px (mobile pequeño)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet y mobile (≤768px) ─────────────────────────────── */
+@media(max-width:768px){
+
+  /* Sidebar — se esconde y aparece como drawer */
+  :root{--sidebar-w:260px}
+  .sidebar{
+    position:fixed;top:0;left:0;height:100vh;z-index:200;
+    transform:translateX(-100%);transition:transform .25s ease;
+    box-shadow:4px 0 24px rgba(0,0,0,0.4);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:199}
+  .sidebar-overlay.open{display:block}
+  .main{margin-left:0!important}
+  .menu-toggle{display:flex!important}
+
+  /* Topbar */
+  .topbar{padding:0 14px;height:54px}
+  .topbar-right .topbar-badge{display:none}
+
+  /* Contenido */
+  .content{padding:14px}
+
+  /* Grids — una columna */
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important}
+  .dashboard-grid{grid-template-columns:1fr!important}
+  .ficha-grid{grid-template-columns:1fr!important}
+  .form-grid{grid-template-columns:1fr!important}
+  .check-grid{grid-template-columns:1fr!important}
+  .revision-detail-grid{grid-template-columns:1fr!important}
+  .docs-detail-grid{grid-template-columns:1fr!important}
+  .fin-summary{grid-template-columns:1fr 1fr!important}
+  .config-row{grid-template-columns:1fr!important}
+  .color-config-grid{grid-template-columns:repeat(2,1fr)!important}
+  .tarifa-grid{grid-template-columns:1fr 1fr!important}
+  .stats-row{grid-template-columns:repeat(3,1fr)!important}
+
+  /* Tablas — scroll horizontal */
+  .table-wrap,.table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{font-size:12px;min-width:520px}
+  td,th{padding:9px 8px;white-space:nowrap}
+
+  /* Table header */
+  .table-header{flex-direction:column;align-items:flex-start;gap:10px}
+  .table-header .search-input{width:100%}
+  .search-input{width:100%!important}
+
+  /* Fichas */
+  .ficha-header{flex-direction:column;align-items:flex-start;gap:12px}
+  .ficha-actions{width:100%;flex-wrap:wrap}
+  .ficha-actions button{flex:1;min-width:120px}
+
+  /* Info cards — full width */
+  .info-card.full{grid-column:1!important}
+
+  /* Modales — ocupan pantalla completa */
+  .modal-overlay{padding:0;align-items:flex-end}
+  .modal-box{
+    max-width:100%!important;width:100%;
+    border-radius:20px 20px 0 0;
+    max-height:92vh;
+    padding:20px 18px 32px;
+  }
+
+  /* Login */
+  .login-box{padding:32px 22px;margin:16px}
+
+  /* Alertas */
+  .alert-banner{flex-direction:column;gap:8px}
+
+  /* Dash cards */
+  .dash-card{padding:16px}
+
+  /* Nav quick grid — 2 columnas en móvil */
+  .nav-quick-grid{grid-template-columns:repeat(2,1fr)!important}
+
+  /* Botones de acción en tablas */
+  .action-btn{padding:5px 8px;font-size:11px}
+
+  /* Timeline */
+  .timeline{padding-left:16px}
+
+  /* Caja / Finanzas */
+  .fin-cell{min-width:100px}
+
+  /* Pago status bar */
+  .pago-status-bar{flex-wrap:wrap;gap:4px}
+  .pago-step{font-size:10px;padding:4px 8px}
+
+  /* Contrato tabs */
+  .contrato-tab{font-size:12px;padding:8px 12px}
+
+  /* WhatsApp panel */
+  .wa-panel{flex-direction:column}
+
+  /* Reservas calendario */
+  .cal-wrap{overflow-x:auto}
+  .cal-grid{min-width:320px}
+  .cal-event{font-size:9px}
+
+  /* Embudo kanban */
+  .kanban-cols{flex-direction:column}
+  .kanban-col{min-width:unset;width:100%}
+
+  /* Transportistas ficha */
+  .ficha-rows .ficha-row{flex-direction:column;gap:4px}
+  .fr-label{width:auto}
+}
+
+/* ── Mobile pequeño (≤480px) ──────────────────────────────── */
+@media(max-width:480px){
+
+  /* Stats — una columna */
+  .stats-grid{grid-template-columns:1fr!important}
+
+  /* Topbar compacta */
+  .topbar{height:50px;padding:0 12px}
+  .topbar-left h2,.page-title{font-size:14px}
+
+  /* Contenido */
+  .content{padding:10px}
+
+  /* Login */
+  .login-box{padding:28px 18px;margin:12px}
+  .login-logo-mark{width:60px;height:60px;font-size:26px}
+
+  /* Fichas — sin padding lateral */
+  .ficha-header{padding:0}
+  .ficha-avatar{width:44px;height:44px;font-size:16px}
+  .ficha-title h2{font-size:17px}
+
+  /* Modales */
+  .modal-box{padding:16px 14px 28px}
+  .form-field label{font-size:12px}
+
+  /* Nav quick — 3 columnas muy compactas */
+  .nav-quick-grid{grid-template-columns:repeat(3,1fr)!important}
+  .nav-quick-grid .nav-item{min-height:54px;padding:8px 4px}
+  .nav-quick-grid .nav-item span:not(.icon):not(.nav-badge){font-size:10px}
+  .nav-quick-grid .nav-item .icon{font-size:16px}
+
+  /* Tablas */
+  table{font-size:11px}
+  td,th{padding:8px 6px}
+
+  /* Botones */
+  .btn-add,.btn-secondary{font-size:12px;padding:8px 12px}
+
+  /* Fin summary */
+  .fin-summary{grid-template-columns:1fr!important}
+
+  /* Alertas */
+  .ab-icon{font-size:18px}
+
+  /* Caja movimientos */
+  .fin-cell{min-width:80px}
+}
+
+/* ── Prevenir zoom en inputs en iOS ──────────────────────── */
+@media(max-width:768px){
+  input[type="text"],input[type="email"],input[type="password"],
+  input[type="number"],input[type="date"],input[type="tel"],
+  select,textarea{font-size:16px!important}
+}
