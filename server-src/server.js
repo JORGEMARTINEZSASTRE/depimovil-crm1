@@ -19,7 +19,12 @@ const PORT = process.env.PORT || 3004;
 // ══════════════════════════════════
 // SEGURIDAD
 // ══════════════════════════════════
-app.use(helmet());
+app.use(helmet({
+  // El CRM usa onclick="..." y scripts inline — CSP estricto los bloquea
+  contentSecurityPolicy: false,
+  // Permite cargar el CRM en iframes del mismo origen (portal)
+  crossOriginEmbedderPolicy: false,
+}));
 
 // CORS — permitir CRM admin y portal de operadoras
 const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean);
@@ -95,6 +100,9 @@ app.use('/api/*', (req, res) => {
 });
 
 // ── Frontend SPA ─────────────────────────────────────────────
+// Favicon — evita 404 en consola del browser
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Portal de operadoras
 app.get('/portal.html', (req, res) => {
   res.sendFile(path.join(ROOT, 'portal.html'));
