@@ -59,9 +59,10 @@ async function notificarWA(reservaId, nuevoEstado, client) {
       return;
     }
     const op = { nombre: row.op_nombre || '' };
+    const toDateStr = (v) => v ? String(v).split('T')[0] : '—';
     const fecha = row.tipo === 'jornada'
-      ? (row.fecha_jornada || '').split('T')[0]
-      : (row.fecha_inicio || '').split('T')[0];
+      ? toDateStr(row.fecha_jornada)
+      : toDateStr(row.fecha_inicio);
     const texto = WA_PLANTILLAS[nuevoEstado](op, {
       maquina: row.maq_nombre,
       fecha,
