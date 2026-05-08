@@ -122,7 +122,7 @@ app.use((err, req, res, next) => {
 // ══════════════════════════════════
 // INICIO
 // ══════════════════════════════════
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`
   ╔═══════════════════════════════════════╗
   ║   DepiMóvil API v1.0                  ║
@@ -130,6 +130,22 @@ app.listen(PORT, '0.0.0.0', () => {
   ║   Entorno: ${process.env.NODE_ENV || 'development'}             ║
   ╚═══════════════════════════════════════╝
   `);
+
+  // Iniciar tabla de cola WA y cron de recordatorios
+  try {
+    const { ensureTable } = require('./utils/wa_queue');
+    await ensureTable();
+    console.log('✅ Tabla wa_queue lista');
+  } catch (err) {
+    console.error('⚠️ wa_queue:', err.message);
+  }
+
+  try {
+    const { iniciarRecordatorios } = require('./recordatorios');
+    iniciarRecordatorios();
+  } catch (err) {
+    console.error('⚠️ Recordatorios:', err.message);
+  }
 });
 
 module.exports = app;
