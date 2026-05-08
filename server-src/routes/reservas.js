@@ -37,8 +37,11 @@ const WA_PLANTILLAS = {
 
 async function notificarWA(reservaId, nuevoEstado, client) {
   try {
-    if (!WA_PLANTILLAS[nuevoEstado]) return;
-    const { rows } = await (client || pool).query(`
+    if (!WA_PLANTILLAS[nuevoEstado]) {
+      console.log(`📱 notificarWA: sin plantilla para estado "${nuevoEstado}"`);
+      return;
+    }
+    const { rows } = await pool.query(`
       SELECT r.*, o.nombre AS op_nombre, o.apellido AS op_apellido, o.whatsapp AS op_wa,
              m.nombre AS maq_nombre
       FROM reservas r
@@ -46,8 +49,15 @@ async function notificarWA(reservaId, nuevoEstado, client) {
       LEFT JOIN maquinas m ON m.id = r.maquina_id
       WHERE r.id = $1
     `, [reservaId]);
-    if (!rows.length || !rows[0].op_wa) return;
+    if (!rows.length) {
+      console.warn(`📱 notificarWA: reserva ${reservaId} no encontrada`);
+      return;
+    }
     const row = rows[0];
+    if (!row.op_wa) {
+      console.warn(`📱 notificarWA: operadora sin WhatsApp (reserva ${reservaId})`);
+      return;
+    }
     const op = { nombre: row.op_nombre || '' };
     const fecha = row.tipo === 'jornada'
       ? (row.fecha_jornada || '').split('T')[0]
@@ -57,8 +67,17 @@ async function notificarWA(reservaId, nuevoEstado, client) {
       fecha,
       codigo: row.codigo,
     });
+    console.log(`📱 notificarWA: enviando a ${row.op_wa} — ${nuevoEstado} — ${row.codigo}`);
     const resultado = await enviarMensaje(row.op_wa, texto);
-    if (!resultado.ok) {
+    if (resultado.ok) {
+      console.log(`✅ notificarWA: enviado OK a ${row.op_wa}`);
+      await pool.query(
+        `INSERT INTO audit_log (usuario_email, accion, entidad, entidad_id, detalle)
+         VALUES ($1,$2,$3,$4,$5)`,
+        ['sistema', 'WA_SEND_AUTO', 'reserva', reservaId, `${nuevoEstado} → ${row.op_wa} — ${row.codigo}`]
+      );
+    } else {
+      console.warn(`⚠️ notificarWA: fallo envío a ${row.op_wa} — ${resultado.error}`);
       await encolar({
         reservaId: reservaId,
         operadoraId: row.operadora_id,
