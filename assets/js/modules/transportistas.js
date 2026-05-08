@@ -12,7 +12,7 @@ function apiHeaders() {
 // ─────────────────────────────────────────────
 // CONSTANTES Y ESTADO
 // ─────────────────────────────────────────────
-const API = 'https://crm.depimovil.live/api'; // ajustar si el base URL es diferente
+const API = '/api'; // URL relativa — funciona en cualquier entorno
 const DEPTOS = [
   'Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores',
   'Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro',
