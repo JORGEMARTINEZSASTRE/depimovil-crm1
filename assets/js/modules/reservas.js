@@ -34,10 +34,13 @@ function getReglaLogistica(departamento){
 }
 
 function calcularRangoBloqueo(fechaInicio, fechaFin, departamento){
+  // Guardar contra fechas nulas o inválidas
+  if(!fechaInicio || !fechaFin) return {bloqueDesde:fechaInicio||'', bloqueHasta:fechaFin||'', diasAntes:2, diasDespues:2};
   const regla = getReglaLogistica(departamento);
   if(regla.mismoDia) return {bloqueDesde:fechaInicio, bloqueHasta:fechaFin};
   const desde = new Date(fechaInicio+'T12:00:00');
   const hasta  = new Date(fechaFin+'T12:00:00');
+  if(isNaN(desde.getTime()) || isNaN(hasta.getTime())) return {bloqueDesde:fechaInicio, bloqueHasta:fechaFin, diasAntes:2, diasDespues:2};
   desde.setDate(desde.getDate() - regla.diasAntes);
   hasta.setDate(hasta.getDate() + regla.diasDespues);
   return {
