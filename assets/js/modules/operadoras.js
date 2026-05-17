@@ -105,7 +105,7 @@ function openOpModal(id){
     sv('opId',o.id);sv('opNombre',o.nombre);sv('opApellido',o.apellido);sv('opGabinete',o.gabinete);
     sv('opCiudad',o.ciudad);sv('opDepartamento',o.departamento);sv('opPais',o.pais);
     sv('opWhatsapp',o.whatsapp);sv('opTelefono',o.telefono);sv('opEmail',o.email);
-    sv('opFechaAlta',o.fechaAlta);sv('opEstado',o.estado);sv('opNivel',o.nivel);sv('opObs',o.obs);
+    sv('opFechaAlta',normalizeDateInput(o.fechaAlta));sv('opEstado',o.estado);sv('opNivel',o.nivel);sv('opObs',o.obs);
     sv('opDireccionEntrega',o.direccionEntrega||'');sv('opTipoDireccion',o.tipoDireccion||'trabajo');
   } else {
     ['opId','opNombre','opApellido','opGabinete','opCiudad','opDepartamento','opWhatsapp','opTelefono','opEmail','opObs','opDireccionEntrega'].forEach(f=>sv(f,''));
