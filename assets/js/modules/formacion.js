@@ -15,6 +15,39 @@ const HAB_API_CATEGORIAS = {
   'Pressoterapia':'Pressoterapia',
   'Electroestimulación':'electroestimulacion',
 };
+const EVAL_DEPILACION_LASER = {
+  id:'depilacion-definitiva-basico',
+  titulo:'Test básico de Depilación Definitiva',
+  categoria:'Láser Depilación',
+  minimoAprobacion:20,
+  preguntas:[
+    {q:'¿Cuál es el principal objetivo de la depilación definitiva con láser?',o:['Arrancar el vello desde la raíz','Debilitar progresivamente el folículo piloso','Exfoliar la piel antes del crecimiento','Cambiar el color natural del vello'],c:1},
+    {q:'¿Qué estructura absorbe principalmente la energía del láser en el vello?',o:['Colágeno','Melanina','Queratinocito','Glándula sebácea'],c:1},
+    {q:'¿En qué fase del crecimiento del vello el tratamiento suele ser más efectivo?',o:['Telógena','Anágena','Catágena','Reposo prolongado'],c:1},
+    {q:'¿Por qué se necesitan varias sesiones?',o:['Porque todos los vellos están siempre en anágena','Porque el vello crece en diferentes fases','Porque el láser solo actúa en piel seca','Porque la piel se acostumbra al láser'],c:1},
+    {q:'Antes de una sesión, la zona debe estar:',o:['Depilada con cera el mismo día','Rasurada y limpia','Bronceada para ver mejor el vello','Con crema corporal abundante'],c:1},
+    {q:'¿Qué método debe evitarse entre sesiones?',o:['Rasurado','Cera o pinza','Limpieza suave','Hidratación indicada'],c:1},
+    {q:'¿Cuál es una contraindicación habitual para realizar la sesión?',o:['Vello rasurado','Bronceado reciente o quemadura solar','Piel limpia','Uso de ropa cómoda'],c:1},
+    {q:'Si la clienta está usando medicación fotosensibilizante, corresponde:',o:['Subir la potencia','Consultar y posponer si corresponde','Aplicar igual con gel frío','Realizar doble pasada'],c:1},
+    {q:'¿Qué debe usarse siempre para proteger los ojos?',o:['Lentes de sol comunes','Protección ocular específica para láser','Algodón sobre los párpados','Ninguna protección si la zona no es facial'],c:1},
+    {q:'¿Qué información debe revisarse antes de iniciar el tratamiento?',o:['Solo forma de pago','Ficha, antecedentes y consentimiento informado','Color de uñas','Preferencia musical'],c:1},
+    {q:'¿Qué reacción puede ser esperable después de una sesión?',o:['Enrojecimiento leve y sensación de calor','Herida profunda inmediata','Manchas negras obligatorias','Dolor intenso persistente siempre'],c:0},
+    {q:'¿Qué se recomienda después de la sesión?',o:['Sol directo sin protección','Evitar calor intenso y usar protección solar','Cera a las 24 horas','Exfoliación agresiva inmediata'],c:1},
+    {q:'¿Se debe disparar láser sobre tatuajes?',o:['Sí, siempre','No, se deben evitar y proteger','Solo si el tatuaje es negro','Solo con potencia máxima'],c:1},
+    {q:'En fototipos altos o piel más oscura, se debe:',o:['Ignorar el fototipo','Ajustar parámetros y extremar cuidados','Aplicar la misma potencia siempre','No usar gel nunca'],c:1},
+    {q:'¿Cuál es una señal para detener la sesión y evaluar?',o:['Ligero olor a vello','Dolor excesivo, ampolla o reacción inusual','Cliente tranquila','Piel rasurada'],c:1},
+    {q:'¿Qué debe hacerse con lunares o lesiones sospechosas?',o:['Disparar encima','Evitar la zona y derivar si corresponde','Aumentar frecuencia','Tapar con maquillaje'],c:1},
+    {q:'¿Por qué se realiza una evaluación inicial de piel y vello?',o:['Para elegir parámetros y detectar riesgos','Para vender más zonas únicamente','Para evitar registrar datos','Para definir música de cabina'],c:0},
+    {q:'¿Qué significa trabajar con parámetros seguros?',o:['Usar siempre el nivel más alto','Ajustar energía, pulso y frecuencia según caso y equipo','Hacer pasadas ilimitadas','Omitir prueba en piel sensible'],c:1},
+    {q:'Si una clienta se expuso al sol recientemente, corresponde:',o:['Tratar igual','Evaluar riesgo y reprogramar si es necesario','Aplicar doble gel y continuar','Usar cera antes'],c:1},
+    {q:'¿Qué zona requiere especial cuidado por cercanía ocular?',o:['Piernas','Rostro y cejas/periocular','Brazos','Espalda baja'],c:1},
+    {q:'¿Cuál es una buena práctica durante la sesión?',o:['No preguntar sensaciones','Mantener comunicación y observar la piel','Tapar la zona y disparar rápido','Cambiar parámetros sin registrar'],c:1},
+    {q:'¿Qué dato conviene registrar luego de la sesión?',o:['Solo clima del día','Zona tratada, parámetros, reacción y observaciones','Color de ropa','Tiempo de espera en recepción'],c:1},
+    {q:'¿Qué debe explicarse a la clienta sobre resultados?',o:['Que será 100% definitivo en una sesión','Que hay reducción progresiva y puede requerir mantenimiento','Que no importa el ciclo del vello','Que el vello cae todo inmediatamente'],c:1},
+    {q:'¿Qué se debe hacer si hay duda sobre una condición médica?',o:['Proceder rápido','Consultar, pedir autorización o derivar antes de tratar','Bajar luz de cabina','Aplicar crema anestésica sin indicación'],c:1},
+    {q:'Para aprobar esta habilitación interna, la operadora debe:',o:['Responder sin leer la ficha','Demostrar criterio de seguridad y protocolo','Saber vender promociones únicamente','Elegir cualquier parámetro al azar'],c:1},
+  ],
+};
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -76,10 +109,147 @@ function renderMateriales(){
     </div>`;
   }).join('');
 
-  document.getElementById('materialesContent').innerHTML = bycat ||
-    `<div class="empty-state"><div class="icon">📚</div><h3>Sin materiales</h3></div>`;
+  document.getElementById('materialesContent').innerHTML = renderEvaluaciones() + (bycat ||
+    `<div class="empty-state"><div class="icon">📚</div><h3>Sin materiales</h3></div>`
+  );
 }
 function filterMateriales(cat){ matFilter=cat; renderMateriales(); }
+
+function getEvaluacionResultados(){
+  return DB.get('evaluaciones_resultados')||[];
+}
+
+function renderEvaluaciones(){
+  const resultados=getEvaluacionResultados().filter(r=>r.evaluacionId===EVAL_DEPILACION_LASER.id);
+  const aprobadas=resultados.filter(r=>r.estado==='aprobada').length;
+  const intentos=resultados.length;
+  return `<div class="table-container" style="margin-bottom:16px">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">📝 Evaluaciones Técnicas</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">Aprobación mínima: ${EVAL_DEPILACION_LASER.minimoAprobacion}/${EVAL_DEPILACION_LASER.preguntas.length} para habilitar ${EVAL_DEPILACION_LASER.categoria}.</div>
+      </div>
+      <span style="font-size:12px;color:var(--text3)">${aprobadas} aprobadas · ${intentos} intentos</span>
+    </div>
+    <div class="material-row">
+      <div class="material-icon">🧪</div>
+      <div class="material-body">
+        <div class="material-title">${EVAL_DEPILACION_LASER.titulo}</div>
+        <div class="material-sub">25 preguntas multiple choice. Al aprobar registra capacitación y habilitación técnica.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span class="badge badge-obligatorio">Obligatorio</span>
+        <span class="badge badge-green">${EVAL_DEPILACION_LASER.categoria}</span>
+        ${canEdit()?`<button class="action-btn" onclick="openEvaluacionModal('${EVAL_DEPILACION_LASER.id}')" style="color:var(--blue)">Tomar evaluación</button>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function openEvaluacionModal(evaluacionId){
+  if(!isSuperAdmin()&&!canEdit()){showToast('⚠️ Sin permisos','warn');return;}
+  if(evaluacionId!==EVAL_DEPILACION_LASER.id) return;
+  const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa');
+  document.getElementById('evalId').value=evaluacionId;
+  document.getElementById('evalTitulo').textContent=EVAL_DEPILACION_LASER.titulo;
+  document.getElementById('evalOperadora').innerHTML=
+    `<option value="">Seleccionar operadora...</option>`+
+    ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido}</option>`).join('');
+  document.getElementById('evalResumen').innerHTML=
+    `Aprobación mínima: <strong>${EVAL_DEPILACION_LASER.minimoAprobacion}/${EVAL_DEPILACION_LASER.preguntas.length}</strong>. Si aprueba, queda habilitada para <strong>${EVAL_DEPILACION_LASER.categoria}</strong>.`;
+  document.getElementById('evalPreguntas').innerHTML=EVAL_DEPILACION_LASER.preguntas.map((p,i)=>`
+    <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">${i+1}. ${p.q}</div>
+      <div style="display:grid;gap:7px">
+        ${p.o.map((op,j)=>`<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text2);line-height:1.35;cursor:pointer">
+          <input type="radio" name="eval_q_${i}" value="${j}" style="margin-top:2px"/>
+          <span>${op}</span>
+        </label>`).join('')}
+      </div>
+    </div>`).join('');
+  openModal('modalEvaluacion');
+}
+
+async function saveEvaluacionLaser(){
+  const opId=parseInt(gv('evalOperadora'));
+  if(!opId){showToast('⚠️ Seleccioná una operadora','warn');return;}
+  let correctas=0;
+  const respuestas=[];
+  for(let i=0;i<EVAL_DEPILACION_LASER.preguntas.length;i++){
+    const checked=document.querySelector(`input[name="eval_q_${i}"]:checked`);
+    if(!checked){showToast(`⚠️ Falta responder la pregunta ${i+1}`,'warn');return;}
+    const valor=parseInt(checked.value);
+    respuestas.push(valor);
+    if(valor===EVAL_DEPILACION_LASER.preguntas[i].c) correctas++;
+  }
+  const aprobada=correctas>=EVAL_DEPILACION_LASER.minimoAprobacion;
+  const op=getOp(opId);
+  const resultados=getEvaluacionResultados();
+  const nId=Math.max(0,...resultados.map(r=>parseInt(r.id)||0))+1;
+  const resultado={
+    id:nId,
+    evaluacionId:EVAL_DEPILACION_LASER.id,
+    titulo:EVAL_DEPILACION_LASER.titulo,
+    operadoraId:opId,
+    categoria:EVAL_DEPILACION_LASER.categoria,
+    fecha:today(),
+    correctas,
+    total:EVAL_DEPILACION_LASER.preguntas.length,
+    porcentaje:Math.round((correctas/EVAL_DEPILACION_LASER.preguntas.length)*100),
+    estado:aprobada?'aprobada':'no_aprobada',
+    respuestas,
+    responsable:currentUser?.email||'—',
+    ts:new Date().toISOString(),
+  };
+  resultados.push(resultado);
+  DB.set('evaluaciones_resultados',resultados);
+
+  const caps=DB.get('capacitaciones')||[];
+  const capId=Math.max(0,...caps.map(c=>parseInt(c.id)||0))+1;
+  caps.push({
+    id:capId,
+    operadoraId:opId,
+    categoria:EVAL_DEPILACION_LASER.categoria,
+    fecha:today(),
+    resultado:aprobada?'aprobada':'no_aprobada',
+    modalidad:'evaluacion',
+    obs:`${EVAL_DEPILACION_LASER.titulo}: ${correctas}/${EVAL_DEPILACION_LASER.preguntas.length} (${resultado.porcentaje}%).`,
+    responsable:currentUser?.email||'—',
+    ts:resultado.ts,
+  });
+  DB.set('capacitaciones',caps);
+
+  if(aprobada){
+    try{
+      const saved=await api('/api/operadoras/'+opId+'/habilitaciones',{
+        method:'POST',
+        body:JSON.stringify({
+          equipo_categoria:HAB_API_CATEGORIAS[EVAL_DEPILACION_LASER.categoria],
+          categoria:EVAL_DEPILACION_LASER.categoria,
+          estado:'activa',
+          fecha_otorgamiento:today(),
+          obs:`Habilitación automática por evaluación aprobada: ${correctas}/${EVAL_DEPILACION_LASER.preguntas.length}.`,
+        })
+      });
+      const habs=(DB.get('habilitaciones')||[]).filter(h=>!(h.id&&saved.id&&parseInt(h.id)===parseInt(saved.id)));
+      habs.push(typeof mapHabilitacion==='function' ? mapHabilitacion(saved) : {
+        id:saved.id,operadoraId:opId,categoria:EVAL_DEPILACION_LASER.categoria,fecha:today(),estado:'activa',ts:resultado.ts
+      });
+      DB.set('habilitaciones',habs);
+      auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${correctas}/${EVAL_DEPILACION_LASER.preguntas.length}`);
+      showToast(`✅ Evaluación aprobada (${correctas}/25). Operadora habilitada.`);
+    }catch(e){
+      showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
+    }
+  }else{
+    auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${EVAL_DEPILACION_LASER.preguntas.length}`);
+    showToast(`❌ No aprobada (${correctas}/25). No se otorgó habilitación.`,'warn');
+  }
+  closeModal('modalEvaluacion');
+  renderMateriales();
+  const fichaEl=document.getElementById('view-operadora-ficha');
+  if(fichaEl&&fichaEl.classList.contains('active')) showOpFicha(opId);
+}
 
 function openMaterialModal(id){
   document.getElementById('modalMaterialTitle').textContent = id ? 'Editar Material' : 'Nuevo Material';

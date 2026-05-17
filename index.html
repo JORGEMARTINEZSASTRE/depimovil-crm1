@@ -1590,6 +1590,33 @@
   </div>
 </div>
 
+<!-- MODAL EVALUACIÓN TÉCNICA -->
+<div class="modal-overlay" id="modalEvaluacion">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head">
+      <h3 id="evalTitulo">Evaluación Técnica</h3>
+      <button class="modal-close" onclick="closeModal('modalEvaluacion')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="evalId"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="evalOperadora"></select>
+        </div>
+        <div class="form-field full">
+          <div id="evalResumen" style="font-size:13px;color:var(--text2);line-height:1.45;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"></div>
+        </div>
+      </div>
+      <div id="evalPreguntas" style="margin-top:8px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalEvaluacion')">Cancelar</button>
+      <button class="btn-add" onclick="saveEvaluacionLaser()">✅ Corregir y guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL HABILITACIÓN -->
 <div class="modal-overlay" id="modalHabilitacion">
   <div class="modal-box" style="max-width:480px">
