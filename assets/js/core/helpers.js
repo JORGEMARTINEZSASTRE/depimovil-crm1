@@ -2,7 +2,22 @@
    HELPERS
 ══════════════════════════════════ */
 function ir(label,value){return `<div class="info-row"><span class="label">${label}</span><span class="value">${value}</span></div>`;}
-function fmtDate(d){if(!d||d==='—')return '—';try{const[y,m,day]=d.split('T')[0].split('-');return `${day}/${m}/${y}`;}catch(e){return d;}}
+function normalizeDateInput(d){
+  if(!d||d==='—')return '';
+  const str=String(d).trim();
+  const isoDate=str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(isoDate)return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+  const localDate=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(localDate)return `${localDate[3]}-${localDate[2].padStart(2,'0')}-${localDate[1].padStart(2,'0')}`;
+  return str;
+}
+function fmtDate(d){
+  const normalized=normalizeDateInput(d);
+  if(!normalized)return '—';
+  const parts=normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!parts)return String(d);
+  return `${parts[3]}/${parts[2]}/${parts[1]}`;
+}
 function today(){return new Date().toISOString().split('T')[0];}
 function daysDiff(from,to){return Math.ceil((new Date(to)-new Date(from))/(1000*60*60*24));}
 function canEdit(){return currentUser&&(currentUser.rol==='superadmin'||currentUser.rol==='operaciones');}
