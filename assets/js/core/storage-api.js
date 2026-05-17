@@ -108,6 +108,29 @@ function mapContrato(c){
     token:c.token||''
   };
 }
+function mapHabilitacion(h){
+  const categoriaMap={
+    laser_diodo:'Láser Depilación',
+    soprano_ice:'Láser Depilación',
+    hifu:'Radiofrecuencia / HIFU',
+    radiofrecuencia_hifu:'Radiofrecuencia / HIFU',
+    pressoterapia:'Pressoterapia',
+    Pressoterapia:'Pressoterapia',
+    electroestimulacion:'Electroestimulación',
+  };
+  const estadoMap={activo:'activa',suspendido:'suspendida',vencido:'vencida'};
+  const categoria=h.categoria||categoriaMap[h.equipo_categoria]||h.equipo_categoria||'';
+  return {
+    id:h.id,
+    operadoraId:h.operadoraId||h.operadora_id,
+    categoria,
+    fecha:h.fecha||h.fecha_otorgamiento||h.fecha_habilitacion||'',
+    estado:estadoMap[h.estado]||h.estado||'activa',
+    obs:h.obs||'',
+    responsable:h.responsable||'servidor',
+    ts:h.ts||h.created_at||new Date().toISOString(),
+  };
+}
 async function syncContratosLocales(contratosApi){
   const locales = DB.get('contratos') || [];
   if ((contratosApi || []).length || !locales.length) return contratosApi;
@@ -173,6 +196,12 @@ async function loadAllData(){
     DB.set('contratos',contratosFinales.map(mapContrato));
     DB.set('revision_operadoras',revisiones||[]);
     aplicarFinanzasCache(finanzas);
+    const habResults=await Promise.allSettled((ops||[]).map(o=>api('/api/operadoras/'+o.id+'/habilitaciones')));
+    const habilitaciones=[];
+    habResults.forEach(function(r){
+      if(r.status==='fulfilled'&&Array.isArray(r.value)) habilitaciones.push(...r.value);
+    });
+    DB.set('habilitaciones',habilitaciones.map(mapHabilitacion));
     const docsResults=await Promise.allSettled((ops||[]).map(o=>api('/api/portal/docs/'+o.id)));
     const docs=[];
     docsResults.forEach(function(r){

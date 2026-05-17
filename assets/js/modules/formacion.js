@@ -9,6 +9,12 @@ const CAT_ICONS = {
 const MAT_ICONS = {manual:'📖',video:'🎬',guia:'📋',protocolo:'⚕️',presentacion:'📊',otro:'📌'};
 const CAP_RESULTADO = {aprobada:'✅ Aprobada',pendiente:'⏳ Pendiente',no_aprobada:'❌ No aprobada'};
 const HAB_ESTADOS   = {activa:'✅ Activa',suspendida:'⏸ Suspendida',vencida:'⛔ Vencida'};
+const HAB_API_CATEGORIAS = {
+  'Láser Depilación':'laser_diodo',
+  'Radiofrecuencia / HIFU':'hifu',
+  'Pressoterapia':'Pressoterapia',
+  'Electroestimulación':'electroestimulacion',
+};
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -170,26 +176,32 @@ function openHabilitacionModal(operadoraId){
   openModal('modalHabilitacion');
 }
 
-function saveHabilitacion(){
+async function saveHabilitacion(){
   const opId=parseInt(gv('habOpSelector')||gv('habOperadoraId'));
   const cat=gv('habCategoria');
   if(!opId){showToast('⚠️ Seleccioná una operadora','warn');return;}
   if(!cat){showToast('⚠️ Seleccioná una categoría','warn');return;}
-  const habs=DB.get('habilitaciones')||[];
-  const nId=Math.max(0,...habs.map(h=>h.id))+1;
   const op=getOp(opId);
-  habs.push({
-    id:nId, operadoraId:opId, categoria:cat,
-    fecha:gv('habFecha')||today(), estado:gv('habEstado'),
+  const payload={
+    equipo_categoria:HAB_API_CATEGORIAS[cat]||cat,
+    categoria:cat,
+    estado:gv('habEstado'),
+    fecha_otorgamiento:gv('habFecha')||today(),
     obs:gv('habObs').trim(),
-    responsable:currentUser?.email||'—', ts:new Date().toISOString(),
-  });
-  DB.set('habilitaciones',habs);
-  auditLog('CREATE','habilitacion',nId,`${op?.nombre||'Op #'+opId} → ${cat}`);
-  closeModal('modalHabilitacion');
-  showToast(`✅ Habilitada: ${op?.nombre||''} para ${cat}`);
-  const fichaEl=document.getElementById('view-operadora-ficha');
-  if(fichaEl&&fichaEl.classList.contains('active')) showOpFicha(opId);
+  };
+  try{
+    const saved=await api('/api/operadoras/'+opId+'/habilitaciones',{method:'POST',body:JSON.stringify(payload)});
+    const habs=(DB.get('habilitaciones')||[]).filter(h=>!(h.id&&saved.id&&parseInt(h.id)===parseInt(saved.id)));
+    habs.push(mapHabilitacion(saved));
+    DB.set('habilitaciones',habs);
+    auditLog('CREATE','habilitacion',saved.id,`${op?.nombre||'Op #'+opId} → ${cat}`);
+    closeModal('modalHabilitacion');
+    showToast(`✅ Habilitada: ${op?.nombre||''} para ${cat}`);
+    const fichaEl=document.getElementById('view-operadora-ficha');
+    if(fichaEl&&fichaEl.classList.contains('active')) showOpFicha(opId);
+  }catch(e){
+    showToast('❌ Error guardando habilitación: '+e.message,'error');
+  }
 }
 
 // ── Panel HTML helpers for fichas ──
