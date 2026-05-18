@@ -87,6 +87,17 @@ input,select,textarea{font-family:inherit}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;
   padding:2px 6px;border-radius:10px;min-width:18px;text-align:center;}
 .nav-quick-grid .nav-badge{position:absolute;margin:0;right:8px;top:8px}
+.nav-share-card{grid-column:1/-1;background:linear-gradient(180deg,rgba(var(--accent-rgb),0.11),rgba(255,255,255,0.025));
+  border:1px solid rgba(var(--accent-rgb),0.2);border-radius:11px;padding:10px;margin:0 0 2px;color:var(--text)}
+.nav-share-head{display:flex;align-items:center;gap:9px}
+.nav-share-head .logo-mark{width:34px;height:34px;border-radius:9px}
+.nav-share-head strong{display:block;font-size:13px;line-height:1.15;color:var(--text)}
+.nav-share-head span{display:block;font-size:11px;line-height:1.2;color:var(--text3);margin-top:2px}
+.nav-share-link{font-family:monospace;color:var(--accent);font-size:10.5px;line-height:1.25;margin-top:9px;word-break:break-all}
+.nav-share-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:9px}
+.nav-share-actions button,.nav-share-actions a{border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  border-radius:8px;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;text-decoration:none}
+.nav-share-actions button:hover,.nav-share-actions a:hover{border-color:rgba(var(--accent-rgb),0.32);color:var(--accent)}
 .nav-group{border:1px solid var(--border);border-radius:11px;margin-bottom:8px;overflow:hidden;background:rgba(255,255,255,0.015)}
 .nav-group[open]{background:rgba(var(--accent-rgb),0.035);border-color:rgba(var(--accent-rgb),0.16)}
 .nav-group summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
