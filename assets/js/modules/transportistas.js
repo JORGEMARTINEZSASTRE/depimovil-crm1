@@ -12,7 +12,7 @@ function apiHeaders() {
 // ─────────────────────────────────────────────
 // CONSTANTES Y ESTADO
 // ─────────────────────────────────────────────
-const API = 'https://crm.depimovil.live/api'; // ajustar si el base URL es diferente
+const API = location.protocol === 'file:' ? 'https://crm.depimovil.live/api' : '/api';
 const DEPTOS = [
   'Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores',
   'Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro',
@@ -49,7 +49,8 @@ async function renderListaTransportistas() {
   `;
 
   try {
-    const res = await fetch(`${API}/transportistas`);
+    const res = await fetch(`${API}/transportistas`, { headers: apiHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     document.getElementById('trans-count').textContent = `${data.length} activos`;
     document.getElementById('lista-transportistas').innerHTML = data.length
@@ -93,10 +94,10 @@ async function abrirFichaTransportista(id) {
 
   try {
     const [tRes, enviosRes, incidentesRes, pagosRes] = await Promise.all([
-      fetch(`${API}/transportistas/${id}`),
-      fetch(`${API}/transportistas/${id}/envios`),
-      fetch(`${API}/transportistas/${id}/incidentes`),
-      fetch(`${API}/transportistas/${id}/pagos`),
+      fetch(`${API}/transportistas/${id}`, { headers: apiHeaders() }),
+      fetch(`${API}/transportistas/${id}/envios`, { headers: apiHeaders() }),
+      fetch(`${API}/transportistas/${id}/incidentes`, { headers: apiHeaders() }),
+      fetch(`${API}/transportistas/${id}/pagos`, { headers: apiHeaders() }),
     ]);
     const t       = await tRes.json();
     const envios  = await enviosRes.json();
@@ -463,7 +464,7 @@ function abrirFormNuevoTransportista() {
 }
 
 async function abrirFormEditarTransportista(id) {
-  const res = await fetch(`${API}/transportistas/${id}`);
+  const res = await fetch(`${API}/transportistas/${id}`, { headers: apiHeaders() });
   const t = await res.json();
   abrirFormTransportista(t);
 }
@@ -590,8 +591,8 @@ async function guardarTransportista(e, id) {
 // 5. NUEVO ENVÍO
 // ─────────────────────────────────────────────
 async function abrirFormNuevoEnvio(transportistaId) {
-  const resM = await fetch(`${API}/maquinas`);
-  const resR = await fetch(`${API}/reservas?estado=activa`);
+  const resM = await fetch(`${API}/maquinas`, { headers: apiHeaders() });
+  const resR = await fetch(`${API}/reservas?estado=activa`, { headers: apiHeaders() });
   const maquinas = await resM.json();
   const reservas = await resR.json();
   const t = transportistaActual;

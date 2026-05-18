@@ -63,7 +63,10 @@ async function api(path,opts={}){
   const token=TOKEN.get();
   const headers={'Content-Type':'application/json',...(opts.headers||{})};
   if(token) headers['Authorization']='Bearer '+token;
-  const res=await fetch(path,{...opts,headers});
+  const apiPath=location.protocol==='file:'&&path.startsWith('/api')
+    ? `https://crm.depimovil.live${path}`
+    : path;
+  const res=await fetch(apiPath,{...opts,headers});
   if(res.status===401){doLogout();throw new Error('Sesión expirada');}
   if(!res.ok){
     const err=await res.json().catch(()=>({error:'Error '+res.status}));
