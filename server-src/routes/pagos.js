@@ -88,7 +88,7 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.operadora_id) return res.json([]);
       params.push(req.user.operadora_id);
       where = `WHERE p.operadora_id = $${params.length}`;
-    } else if (req.user.rol === 'transportista') {
+    } else if (!['superadmin', 'administrador'].includes(req.user.rol)) {
       return res.json([]);
     }
     const { rows } = await pool.query(`
@@ -114,7 +114,7 @@ router.get('/:id', auth, async (req, res) => {
     if (isOperadoraRole(req.user.rol)) {
       params.push(req.user.operadora_id || 0);
       query += ` AND operadora_id = $${params.length}`;
-    } else if (req.user.rol === 'transportista') {
+    } else if (!['superadmin', 'administrador'].includes(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para pagos' });
     }
     const { rows } = await pool.query(query, params);
@@ -129,7 +129,7 @@ router.get('/:id', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // POST /api/pagos — crear nuevo
 // ─────────────────────────────────────────────
-router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), async (req, res) => {
+router.post('/', auth, requireRole('superadmin'), async (req, res) => {
   const {
     reserva_id, operadora_id, tipo, estado,
     monto_total, moneda, sena_requerida, sena_abonada, saldo_pendiente,
@@ -183,7 +183,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
 // ─────────────────────────────────────────────
 // PUT /api/pagos/:id — actualizar
 // ─────────────────────────────────────────────
-router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'comercial'), async (req, res) => {
+router.put('/:id', auth, requireRole('superadmin'), async (req, res) => {
   const {
     reserva_id, operadora_id, tipo, estado,
     monto_total, moneda, sena_requerida, sena_abonada, saldo_pendiente,

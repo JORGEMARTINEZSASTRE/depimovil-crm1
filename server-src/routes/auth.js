@@ -6,6 +6,7 @@ const { auth, requireRole, generateToken } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
 
 const router = express.Router();
+const LOGIN_ROLES = ['superadmin', 'administrador', 'operaciones', 'operadora', 'operadora_habilitada', 'operadora_limitada', 'transportista', 'comercial'];
 
 function normalizeWhatsapp(input) {
   let digits = String(input || '').replace(/\D/g, '');
@@ -52,11 +53,19 @@ async function findLinkedRecord(whatsapp, rol) {
 }
 
 async function findOrCreateWhatsappUser(whatsapp, rol) {
+  rol = normalizeRole(rol);
+  if (!LOGIN_ROLES.includes(rol)) return null;
+  const variants = phoneVariants(whatsapp);
   const { rows: existing } = await pool.query(
-    'SELECT * FROM usuarios WHERE whatsapp = $1 AND rol = $2 AND status = $3 LIMIT 1',
-    [whatsapp, rol, 'activo']
+    `SELECT * FROM usuarios
+     WHERE regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
+       AND rol = $2 AND status = $3
+     LIMIT 1`,
+    [variants, rol, 'activo']
   );
   if (existing.length) return existing[0];
+
+  if (!['operadora', 'transportista'].includes(rol)) return null;
 
   const linked = await findLinkedRecord(whatsapp, rol);
   if (!linked) return null;
@@ -233,14 +242,15 @@ router.get('/me', auth, async (req, res) => {
 router.post('/whatsapp/request', async (req, res) => {
   try {
     const whatsapp = normalizeWhatsapp(req.body.whatsapp);
-    const rol = req.body.rol === 'transportista' ? 'transportista' : 'operadora';
+    const rol = normalizeRole(req.body.rol || 'operadora');
+    if (!LOGIN_ROLES.includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
     if (!whatsapp || whatsapp.length < 9) {
       return res.status(400).json({ error: 'WhatsApp requerido' });
     }
 
     const user = await findOrCreateWhatsappUser(whatsapp, rol);
     if (!user) {
-      return res.status(404).json({ error: rol === 'transportista' ? 'Transportista no habilitado' : 'Operadora no encontrada' });
+      return res.status(404).json({ error: rol === 'transportista' ? 'Transportista no habilitado' : rol === 'operadora' ? 'Operadora no encontrada' : 'Usuario no encontrado o sin WhatsApp cargado' });
     }
 
     const recent = await pool.query(
@@ -280,7 +290,8 @@ router.post('/whatsapp/request', async (req, res) => {
 router.post('/whatsapp/verify', async (req, res) => {
   try {
     const whatsapp = normalizeWhatsapp(req.body.whatsapp);
-    const rol = req.body.rol === 'transportista' ? 'transportista' : 'operadora';
+    const rol = normalizeRole(req.body.rol || 'operadora');
+    if (!LOGIN_ROLES.includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
     const codigo = String(req.body.codigo || '').replace(/\D/g, '');
     if (!whatsapp || codigo.length !== 6) {
       return res.status(400).json({ error: 'WhatsApp y código requeridos' });
@@ -562,12 +573,13 @@ router.post('/register', auth, requireRole('superadmin'), async (req, res) => {
   try {
     const { nombre, email, password, operadora_id, transportista_id } = req.body;
     const rol = normalizeRole(req.body.rol);
+    const whatsapp = normalizeWhatsapp(req.body.whatsapp);
     
     if (!nombre || !email || !password || !rol) {
       return res.status(400).json({ error: 'Campos obligatorios: nombre, email, password, rol' });
     }
 
-    if (!['superadmin', 'administrador', 'operaciones', 'operadora', 'operadora_habilitada', 'operadora_limitada', 'transportista', 'comercial'].includes(rol)) {
+    if (!LOGIN_ROLES.includes(rol)) {
       return res.status(400).json({ error: 'Rol inválido' });
     }
 
@@ -579,9 +591,9 @@ router.post('/register', auth, requireRole('superadmin'), async (req, res) => {
 
     const hash = await bcrypt.hash(password, 12);
     const { rows } = await pool.query(
-      `INSERT INTO usuarios (nombre, email, password_hash, rol, operadora_id, transportista_id)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, nombre, email, rol, operadora_id, transportista_id`,
-      [nombre.trim(), email.toLowerCase().trim(), hash, rol, operadora_id || null, transportista_id || null]
+      `INSERT INTO usuarios (nombre, email, password_hash, rol, whatsapp, operadora_id, transportista_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, nombre, email, rol, whatsapp, operadora_id, transportista_id`,
+      [nombre.trim(), email.toLowerCase().trim(), hash, rol, whatsapp || null, operadora_id || null, transportista_id || null]
     );
 
     await pool.query(

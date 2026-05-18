@@ -33,10 +33,10 @@ const ROLE_LABELS={
 const VIEW_PERMISSIONS={
   superadmin:['*'],
   administrador:['*'],
-  operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','reservas','reserva-ficha','calendario','logistica','pagos','pago-ficha','caja','proveedores','compras','ventas-maquinas','contratos','whatsapp','envios','envio-ficha','transportistas','reportes','auditoria','configuracion','materiales'],
-  comercial:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','pagos','pago-ficha','contratos','whatsapp','leads','lead-ficha','embudo'],
-  operadora_habilitada:['dashboard','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
-  operadora:['dashboard','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','materiales'],
+  comercial:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','contratos','whatsapp','leads','lead-ficha','embudo'],
+  operadora_habilitada:['dashboard','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operadora:['dashboard','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
   operadora_limitada:['dashboard','materiales'],
   transportista:['dashboard','envios','envio-ficha','transportistas'],
 };

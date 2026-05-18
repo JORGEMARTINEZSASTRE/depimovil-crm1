@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -48,6 +48,13 @@ router.get('/habilitaciones', auth, async (req, res) => {
     const { operadora_id } = req.query;
     let query = 'SELECT * FROM habilitaciones ORDER BY operadora_id, categoria';
     const params = [];
+    if (isOperadoraRole(req.user.rol)) {
+      if (!req.user.operadora_id) return res.json([]);
+      query = 'SELECT * FROM habilitaciones WHERE operadora_id=$1 ORDER BY categoria';
+      params.push(parseInt(req.user.operadora_id));
+    } else if (req.user.rol === 'transportista') {
+      return res.json([]);
+    } else
     if (operadora_id) {
       query = 'SELECT * FROM habilitaciones WHERE operadora_id=$1 ORDER BY categoria';
       params.push(parseInt(operadora_id));

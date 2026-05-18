@@ -16,10 +16,11 @@ function renderDashboard(){
   const mantVenc=maqs.filter(m=>m.proxMant&&m.proxMant!=='—'&&m.proxMant<hoy&&m.estado!=='fuera_servicio');
   const deudasVenc=pagos.filter(p=>p.estado==='deuda_vencida');
   const envTransito=envios.filter(e=>e.estado==='en_transito');
+  const puedeVerPagos=typeof canView==='function'&&canView('pagos');
 
   let alertsHTML='';
   if(vencidas.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🚨</span><div><strong>${vencidas.length} reserva${vencidas.length>1?'s':''} vencida${vencidas.length>1?'s':''}</strong> — Requieren atención. <button class="action-btn" style="margin-left:8px" onclick="navigate('reservas')">Ver →</button></div></div>`;
-  if(deudasVenc.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">💳</span><div><strong>${deudasVenc.length} deuda${deudasVenc.length>1?'s':''} vencida${deudasVenc.length>1?'s':''}</strong> — Operadoras con pagos pendientes. <button class="action-btn" style="margin-left:8px" onclick="navigate('pagos')">Ver →</button></div></div>`;
+  if(puedeVerPagos&&deudasVenc.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">💳</span><div><strong>${deudasVenc.length} deuda${deudasVenc.length>1?'s':''} vencida${deudasVenc.length>1?'s':''}</strong> — Operadoras con pagos pendientes. <button class="action-btn" style="margin-left:8px" onclick="navigate('pagos')">Ver →</button></div></div>`;
   if(mantVenc.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🔧</span><div><strong>${mantVenc.length} máquina${mantVenc.length>1?'s':''} con mantenimiento vencido</strong>. <button class="action-btn" style="margin-left:8px" onclick="navigate('maquinas')">Ver →</button></div></div>`;
   if(proxVencer.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⏰</span><div><strong>${proxVencer.length} reserva${proxVencer.length>1?'s':''}</strong> vence${proxVencer.length>1?'n':''} en ≤5 días. <button class="action-btn" style="margin-left:8px" onclick="navigate('reservas')">Ver →</button></div></div>`;
   if(mantProx.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⚙️</span><div><strong>${mantProx.length} máquina${mantProx.length>1?'s':''} con mantenimiento próximo</strong> (≤7 días). <button class="action-btn" style="margin-left:8px" onclick="navigate('maquinas')">Ver →</button></div></div>`;
@@ -30,8 +31,10 @@ function renderDashboard(){
     {icon:'👩‍💼',label:'Operadoras Activas',value:ops.filter(o=>o.estado==='activa').length,color:'#d4a96a',bg:'rgba(212,169,106,0.1)',trend:`${ops.length} total · ${ops.filter(o=>o.estado==='prospecto').length} prospectos`},
     {icon:'⚙️',label:'Máquinas Disponibles',value:maqs.filter(m=>m.estado==='disponible').length,color:'#52c48a',bg:'rgba(82,196,138,0.1)',trend:`${maqs.length} total · ${maqs.filter(m=>m.estado==='mantenimiento').length} en mant.`},
     {icon:'📅',label:'Reservas Confirmadas',value:reservas.filter(r=>r.estado==='confirmada').length,color:'#9b7fe8',bg:'rgba(155,127,232,0.1)',trend:`${reservas.filter(r=>r.estado==='solicitud_recibida').length} solicitudes sin revisar`},
-    {icon:'💳',label:'Pagos Pendientes',value:pagos.filter(p=>['pendiente','sena_pendiente'].includes(p.estado)).length,color:'#e0c05c',bg:'rgba(224,192,92,0.1)',trend:`${deudasVenc.length} deuda${deudasVenc.length!==1?'s':''} vencida${deudasVenc.length!==1?'s':''}`},
   ];
+  if(puedeVerPagos) statsData.push(
+    {icon:'💳',label:'Pagos Pendientes',value:pagos.filter(p=>['pendiente','sena_pendiente'].includes(p.estado)).length,color:'#e0c05c',bg:'rgba(224,192,92,0.1)',trend:`${deudasVenc.length} deuda${deudasVenc.length!==1?'s':''} vencida${deudasVenc.length!==1?'s':''}`}
+  );
   document.getElementById('statsGrid').innerHTML=statsData.map(s=>`
     <div class="stat-card">
       <div class="stat-card-icon" style="background:${s.bg}">${s.icon}</div>

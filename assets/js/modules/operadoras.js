@@ -27,6 +27,10 @@ function renderOperadoras(){
 function filterOperadoras(v){opFilter.search=v;renderOperadoras();}
 function filterOpStatus(v){opFilter.status=v;renderOperadoras();}
 function showOpFicha(id){
+  if(typeof isOperadoraRole==='function'&&isOperadoraRole(currentUser?.rol)&&parseInt(id)!==parseInt(currentUser?.operadora_id)){
+    showToast('⚠️ No podés ver la ficha de otra operadora','warn');
+    return;
+  }
   const ops=DB.get('operadoras')||[];const o=ops.find(x=>x.id===id);if(!o)return;
   const reservas=(DB.get('reservas')||[]).filter(r=>r.operadoraId===id);
   navigate('operadora-ficha');
@@ -67,7 +71,7 @@ function showOpFicha(id){
         <h4>📝 Observaciones Internas</h4>
         <div class="obs-text">${o.obs||'Sin observaciones.'}</div>
       </div>
-      <div class="info-card full">
+      ${isSuperAdmin()?`<div class="info-card full">
         <h4>💳 Resumen Financiero</h4>
         ${(()=>{
           const opPagos=(DB.get('pagos')||[]).filter(p=>p.operadoraId===id);
@@ -85,7 +89,7 @@ function showOpFicha(id){
           ${pendSena.length?`<div class="alert-banner warn" style="margin-top:8px;padding:8px 12px"><span class="ab-icon">💰</span><strong>${pendSena.length} seña${pendSena.length>1?'s':''} pendiente${pendSena.length>1?'s':''}</strong> — Esperando confirmación de pago.</div>`:''}
           <div style="text-align:right;margin-top:8px"><button class="action-btn" onclick="navigate('pagos')">Ver todos los pagos →</button></div>`;
         })()}
-      </div>
+      </div>`:''}
       <div class="info-card full" id="docsPanel_${o.id}">
         <h4 style="display:flex;align-items:center;justify-content:space-between">
           🪨 Documentos & Contrato

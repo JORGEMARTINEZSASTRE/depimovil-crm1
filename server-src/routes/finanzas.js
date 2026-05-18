@@ -3,7 +3,7 @@ const pool = require('../utils/db');
 const { auth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-const adminOnly = requireRole('superadmin', 'operaciones');
+const adminOnly = requireRole('superadmin');
 
 let schemaReady = false;
 
@@ -214,7 +214,7 @@ router.use(async (req, res, next) => {
 
 router.get('/bootstrap', async (req, res) => {
   try {
-    if (!['superadmin', 'administrador', 'operaciones'].includes(req.user.rol)) {
+    if (!['superadmin', 'administrador'].includes(req.user.rol)) {
       return res.json({
         caja_cuentas: [],
         caja_categorias: [],
