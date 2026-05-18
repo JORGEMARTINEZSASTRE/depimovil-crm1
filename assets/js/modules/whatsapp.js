@@ -126,18 +126,176 @@ function limpiarEnviadas(){
 }
 
 function updateWABadge(){
-  const count = (DB.get('wa_notificaciones')||[]).filter(n=>n.estado==='pendiente').length;
+  const count = (DB.get('wa_notificaciones')||[]).filter(n=>n.estado==='pendiente').length + (DB.get('wa_queue_server')||[]).length;
   const badge = document.getElementById('navBadgeWA');
   if(badge){badge.textContent=count;badge.style.display=count>0?'inline':'none';}
   const pendCount = document.getElementById('waPendCount');
   if(pendCount) pendCount.textContent = count>0?`(${count})`:'';
 }
 
+async function cargarColaServidorWA(){
+  try{
+    const queue = await api('/api/webhook/whatsapp/queue');
+    DB.set('wa_queue_server', Array.isArray(queue) ? queue : []);
+    DB.set('wa_queue_server_error', '');
+    return DB.get('wa_queue_server')||[];
+  }catch(e){
+    DB.set('wa_queue_server_error', e.message);
+    return DB.get('wa_queue_server')||[];
+  }
+}
+
+async function enviarColaServidorWA(id){
+  if(!confirm('¿Reintentar enviar este mensaje pendiente del servidor?')) return;
+  try{
+    await api(`/api/webhook/whatsapp/queue/${id}/send`, {method:'POST'});
+    showToast('💬 Mensaje pendiente enviado');
+    await cargarColaServidorWA();
+    updateWABadge();
+    renderWA('pendientes');
+  }catch(e){
+    showToast('❌ '+e.message, 'error');
+  }
+}
+
+/* ── Conexión WhatsApp QR ── */
+async function renderWAConexion(){
+  const el = document.getElementById('waTabContent');
+  if(!el) return;
+
+  el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:32px 16px;max-width:480px;margin:0 auto">
+    <div id="waConexionStatus" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center">
+      <div style="font-size:13px;color:var(--text2)">Consultando estado...</div>
+    </div>
+    <div id="waQRWrap" style="display:none;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-size:13px;color:var(--text2);text-align:center">
+        Escaneá con WhatsApp → <strong>Dispositivos vinculados</strong> → <strong>Vincular dispositivo</strong>
+      </div>
+      <div id="waQRImg" style="background:white;padding:16px;border-radius:14px;box-shadow:var(--shadow)"></div>
+      <div style="font-size:12px;color:var(--text3)">El QR expira en ~20 segundos. Si venció, pedí uno nuevo.</div>
+      <button class="btn-secondary" onclick="pedirQR()">🔄 Pedir QR nuevo</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button class="btn-add" onclick="verificarConexionWA()">🔌 Verificar conexión</button>
+      <button class="btn-secondary" onclick="pedirQR()" id="btnPedirQR">📱 Conectar WhatsApp</button>
+      ${isSuperAdmin() ? `<button class="btn-secondary" onclick="desconectarWA()" style="color:var(--red);border-color:rgba(224,92,107,.3)">⏏ Desconectar</button>` : ''}
+    </div>
+    <div style="font-size:12px;color:var(--text3);text-align:center;max-width:380px;line-height:1.6">
+      Para cambiar el número vinculado: desconectá primero, luego conectá con el nuevo teléfono.
+    </div>
+  </div>`;
+
+  await verificarConexionWA();
+}
+
+async function verificarConexionWA(){
+  const statusEl = document.getElementById('waConexionStatus');
+  if(!statusEl) return;
+  try {
+    const st = await api('/api/webhook/whatsapp/status');
+    DB.set('wa_status', st);
+    const conectado = st.conectado;
+    const modo = st.modo;
+    const provider = st.proveedor || '—';
+    const realActivo = !!st.envio_real_activo;
+
+    statusEl.innerHTML = `
+      <div style="font-size:28px;margin-bottom:8px">${realActivo ? '✅' : modo === 'simulacion' ? '🔵' : '🔴'}</div>
+      <div style="font-size:16px;font-weight:700;color:${realActivo ? 'var(--green)' : 'var(--text)'}">
+        ${realActivo ? 'WhatsApp conectado' : modo === 'simulacion' ? 'Modo simulación' : 'WhatsApp sin envío real'}
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">
+        Modo: <strong>${modo}</strong> · Proveedor: <strong>${provider}</strong> · Instancia: <strong>${st.instancia||'—'}</strong>
+      </div>
+      ${realActivo ? `<div style="font-size:12px;color:var(--green);margin-top:8px">Los mensajes automáticos están activos ✓</div>` : ''}
+      ${modo === 'simulacion' ? `<div style="font-size:12px;color:var(--blue);margin-top:8px">Los mensajes solo se loguean en el servidor.</div>` : ''}
+      ${!realActivo && modo !== 'simulacion' && provider === 'meta' ? `<div style="font-size:12px;color:var(--red);margin-top:8px">Meta WhatsApp no validó el token actual. Renovar el acceso en Meta para enviar mensajes reales.</div>` : ''}
+      ${!realActivo && modo !== 'simulacion' && provider === 'evolution' ? `<div style="font-size:12px;color:var(--red);margin-top:8px">Escaneá el QR para vincular un número de WhatsApp.</div>` : ''}
+    `;
+
+    // Mostrar botón de QR solo si no está conectado y está en producción
+    const btnQR = document.getElementById('btnPedirQR');
+    if(btnQR) btnQR.style.display = (!realActivo && provider === 'evolution' && modo !== 'simulacion') ? 'inline-flex' : 'none';
+
+  } catch(e) {
+    statusEl.innerHTML = `<div style="color:var(--red)">❌ No se pudo verificar el estado: ${e.message}</div>`;
+  }
+}
+
+async function pedirQR(){
+  const qrWrap = document.getElementById('waQRWrap');
+  const qrImg  = document.getElementById('waQRImg');
+  if(!qrWrap || !qrImg) return;
+
+  qrWrap.style.display = 'flex';
+  qrImg.innerHTML = `<div style="padding:40px;color:var(--text2);font-size:13px">Cargando QR...</div>`;
+
+  try {
+    const d = await api('/api/webhook/whatsapp/qr');
+    if(d.status === 'conectado') {
+      qrWrap.style.display = 'none';
+      showToast('✅ WhatsApp ya está conectado');
+      await verificarConexionWA();
+      return;
+    }
+    if(d.simulado) {
+      qrWrap.style.display = 'none';
+      showToast('ℹ️ Servidor en modo simulación — cambiá WA_MODO=produccion en Railway', 'warn');
+      return;
+    }
+    if(d.qrcode) {
+      const img = document.createElement('img');
+      img.src = d.qrcode;
+      img.style.cssText = 'width:240px;height:240px;display:block';
+      qrImg.innerHTML = '';
+      qrImg.appendChild(img);
+      showToast('📱 Escaneá el QR ahora — expira en 20 segundos');
+      // Auto-verificar conexión cada 5 segundos
+      let intentos = 0;
+      const check = setInterval(async () => {
+        intentos++;
+        try {
+          const st = await api('/api/webhook/whatsapp/status');
+          if(st.conectado) {
+            clearInterval(check);
+            qrWrap.style.display = 'none';
+            showToast('✅ WhatsApp conectado correctamente');
+            await verificarConexionWA();
+          }
+        } catch(_) {}
+        if(intentos >= 12) clearInterval(check); // dejar de verificar después de 60s
+      }, 5000);
+    } else {
+      qrImg.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">No se pudo obtener el QR: ${d.error || 'error desconocido'}</div>`;
+    }
+  } catch(e) {
+    qrImg.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">Error: ${e.message}</div>`;
+  }
+}
+
+async function desconectarWA(){
+  if(!confirm('¿Desconectar WhatsApp? El número quedará desvinculado.')) return;
+  try {
+    await fetch(`${(DB.get('wa_status')?.evolution_url||'')}`.replace('undefined','') || '/api/webhook/whatsapp/status', {});
+    // Llamar al endpoint de logout de Evolution via nuestro servidor
+    const resp = await fetch('/api/webhook/whatsapp/setup', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('dm_jwt') }
+    });
+    showToast('⏏ WhatsApp desconectado');
+  } catch(e) {
+    showToast('⚠️ ' + e.message, 'warn');
+  }
+  await verificarConexionWA();
+}
+
 /* ── Render ── */
-let waActiveTab = 'pendientes';
+let waActiveTab = 'conexion';
+let waServerQueueLoaded = false;
 
 function switchWaTab(tab, btn){
   waActiveTab = tab;
+  if(tab === 'pendientes') waServerQueueLoaded = false;
   document.querySelectorAll('#waTabs .view-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderWA(tab);
@@ -150,16 +308,45 @@ function renderWA(tab){
   const el = document.getElementById('waTabContent');
   if(!el) return;
 
+  if(waActiveTab==='conexion'){
+    renderWAConexion();
+    return;
+  }
+
   if(waActiveTab==='pendientes'){
+    if(!waServerQueueLoaded){
+      waServerQueueLoaded = true;
+      cargarColaServidorWA().then(()=>{ if(waActiveTab==='pendientes') renderWA('pendientes'); });
+    }
     const pend = notifs.filter(n=>n.estado==='pendiente').sort((a,b)=>b.ts.localeCompare(a.ts));
-    if(!pend.length){
+    const serverPend = DB.get('wa_queue_server')||[];
+    const serverError = DB.get('wa_queue_server_error')||'';
+    if(!pend.length && !serverPend.length){
       el.innerHTML=`<div class="empty-state"><div class="icon">✅</div><h3>Sin pendientes</h3><p>No hay notificaciones en cola. Se generan automáticamente al cambiar estados.</p></div>`;
       return;
     }
     el.innerHTML=`
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-        <button class="btn-add" onclick="simularEnviarTodas()">💬 Enviar todas (${pend.length})</button>
+        ${pend.length?`<button class="btn-add" onclick="simularEnviarTodas()">💬 Enviar locales (${pend.length})</button>`:''}
       </div>
+      ${serverError?`<div class="alert-banner warn"><span class="ab-icon">⚠️</span><div><strong>No se pudo leer la cola del servidor</strong> — ${serverError}</div></div>`:''}
+      ${serverPend.length?`
+        <div class="alert-banner warn"><span class="ab-icon">⏳</span><div><strong>${serverPend.length} mensaje${serverPend.length>1?'s':''} pendiente${serverPend.length>1?'s':''} en servidor</strong> — Se guardaron porque el envío automático no pudo completarse.</div></div>
+        <div class="table-container" style="margin-bottom:14px">
+          ${serverPend.map(q=>`
+            <div class="notif-row">
+              <div class="notif-icon" style="background:rgba(224,192,92,0.12)">⏳</div>
+              <div class="notif-body">
+                <div class="notif-name">${q.op_nombre||''} ${q.op_apellido||''} <span style="font-size:11px;color:var(--text3);font-weight:400">${q.telefono||''}</span></div>
+                <div style="font-size:11px;color:var(--accent);margin:2px 0">${q.tipo||'pendiente'} ${q.reserva_codigo?'· '+q.reserva_codigo:''}</div>
+                <div class="wa-bubble" style="margin-top:8px;max-width:100%">${String(q.mensaje||'').replace(/\n/g,'<br>')}</div>
+                <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="action-btn" onclick="enviarColaServidorWA(${q.id})" style="color:var(--green);border-color:rgba(82,196,138,.3)">Reintentar envío</button>
+                </div>
+              </div>
+              <div class="notif-time">${q.creado_en?fmtDate(String(q.creado_en).split('T')[0]):''}</div>
+            </div>`).join('')}
+        </div>`:''}
       <div class="table-container">
         ${pend.map(n=>{
           const op=getOp(n.operadoraId);
