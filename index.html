@@ -217,6 +217,26 @@
         <div class="view" id="view-operadoras">
           <div class="table-container">
             <div class="table-header">
+              <div>
+                <h3>🔗 Alta online de operadoras</h3>
+                <p style="font-size:13px;color:var(--text2);margin-top:4px">Compartí este acceso para que una operadora complete su registro.</p>
+              </div>
+              <div class="table-actions">
+                <button class="btn-secondary" onclick="previewRegistroOperadoraLink()">Vista preliminar</button>
+                <button class="btn-add" onclick="copyRegistroOperadoraLink()">Copiar link</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px">
+              <div class="logo-mark" style="width:46px;height:46px;flex-shrink:0"></div>
+              <div style="min-width:220px;flex:1">
+                <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Link de registro</div>
+                <div style="font-family:monospace;color:var(--accent);font-size:13px;word-break:break-all" id="registroOperadoraLinkText">https://crm.depimovil.live/?registro=operadora</div>
+              </div>
+              <a class="action-btn" href="https://crm.depimovil.live/?registro=operadora" target="_blank" rel="noopener">Abrir</a>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-header">
               <h3>👩‍💼 Operadoras</h3>
               <div class="table-actions">
                 <input class="search-input" type="text" placeholder="🔍 Buscar…" oninput="filterOperadoras(this.value)"/>
@@ -2005,7 +2025,7 @@
 <script data-cfasync="false" src="assets/js/core/auth.js"></script>
 <script data-cfasync="false" src="assets/js/core/navigation.js"></script>
 <script data-cfasync="false" src="assets/js/modules/dashboard.js"></script>
-<script data-cfasync="false" src="assets/js/modules/operadoras.js"></script>
+<script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260518-registro-link"></script>
 <script data-cfasync="false" src="assets/js/modules/revision-operadoras.js"></script>
 <script data-cfasync="false" src="assets/js/modules/documentos.js"></script>
 <script data-cfasync="false" src="assets/js/modules/maquinas.js"></script>

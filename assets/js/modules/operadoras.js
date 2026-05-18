@@ -26,6 +26,42 @@ function renderOperadoras(){
 }
 function filterOperadoras(v){opFilter.search=v;renderOperadoras();}
 function filterOpStatus(v){opFilter.status=v;renderOperadoras();}
+function registroOperadoraLink(){
+  return window.location.origin + '/?registro=operadora';
+}
+function copyRegistroOperadoraLink(){
+  const url = registroOperadoraLink();
+  const text = `Hola, te comparto el link para registrarte como operadora en DepiMovil:\n\n${url}\n\nCompleta tus datos y luego el equipo revisa tu alta.`;
+  navigator.clipboard.writeText(text)
+    .then(()=>showToast('📋 Link de alta copiado'))
+    .catch(()=>prompt('Copiá este mensaje:', text));
+}
+function previewRegistroOperadoraLink(){
+  const url = registroOperadoraLink();
+  const old = document.getElementById('registroOperadoraPreview');
+  if(old) old.remove();
+  const div = document.createElement('div');
+  div.id = 'registroOperadoraPreview';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2200;display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(4px)';
+  div.innerHTML = `<div style="width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden">
+    <div style="padding:26px 24px;text-align:center;background:var(--surface2);border-bottom:1px solid var(--border)">
+      <div class="login-logo-mark" style="margin-bottom:12px"></div>
+      <h3 style="font-size:18px;color:var(--text);margin:0">Alta de Operadora DepiMovil</h3>
+      <p style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.5">Formulario para completar datos de contacto, experiencia y tratamientos.</p>
+    </div>
+    <div style="padding:20px 22px">
+      <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Vista para compartir</div>
+      <div style="font-family:monospace;font-size:13px;color:var(--accent);word-break:break-all;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px">${url}</div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap">
+        <button class="btn-secondary" onclick="document.getElementById('registroOperadoraPreview').remove()">Cerrar</button>
+        <a class="btn-secondary" href="${url}" target="_blank" rel="noopener">Abrir</a>
+        <button class="btn-add" onclick="copyRegistroOperadoraLink()">Copiar link</button>
+      </div>
+    </div>
+  </div>`;
+  div.addEventListener('click', e=>{ if(e.target===div) div.remove(); });
+  document.body.appendChild(div);
+}
 function showOpFicha(id){
   if(typeof isOperadoraRole==='function'&&isOperadoraRole(currentUser?.rol)&&parseInt(id)!==parseInt(currentUser?.operadora_id)){
     showToast('⚠️ No podés ver la ficha de otra operadora','warn');
