@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -26,6 +26,19 @@ async function ensurePortalToken(client, operadoraId, currentToken) {
 // ─────────────────────────────────────────────
 router.get('/', auth, async (req, res) => {
   try {
+    if (isOperadoraRole(req.user.rol)) {
+      if (!req.user.operadora_id) return res.json([]);
+      const { rows } = await pool.query(
+        `SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
+                whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
+                direccion_entrega, tipo_direccion, portal_token
+         FROM operadoras
+         WHERE id = $1`,
+        [req.user.operadora_id]
+      );
+      return res.json(rows);
+    }
+    if (req.user.rol === 'transportista') return res.json([]);
     const { rows } = await pool.query(`
       SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
              whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
@@ -45,6 +58,9 @@ router.get('/', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 router.get('/:id', auth, async (req, res) => {
   try {
+    if (isOperadoraRole(req.user.rol) && parseInt(req.params.id) !== parseInt(req.user.operadora_id)) {
+      return res.status(403).json({ error: 'Sin permisos para esta operadora' });
+    }
     const { rows } = await pool.query(`
       SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
              whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
@@ -181,6 +197,9 @@ router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
 // ─────────────────────────────────────────────
 router.get('/:id/habilitaciones', auth, async (req, res) => {
   try {
+    if (isOperadoraRole(req.user.rol) && parseInt(req.params.id) !== parseInt(req.user.operadora_id)) {
+      return res.status(403).json({ error: 'Sin permisos para esta operadora' });
+    }
     const { rows } = await pool.query(
       `SELECT * FROM habilitaciones WHERE operadora_id = $1 ORDER BY categoria`,
       [req.params.id]

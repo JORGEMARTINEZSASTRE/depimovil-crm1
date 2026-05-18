@@ -32,6 +32,12 @@ const navGroupByView={
   reportes:'sistema',auditoria:'sistema',configuracion:'sistema'
 };
 function navigate(view){
+  if(typeof canView==='function'&&!canView(view)){
+    const fallback=(typeof getAccessRole==='function'&&getAccessRole()==='transportista')?'envios':'dashboard';
+    showToast('⚠️ Tu usuario no tiene acceso a ese módulo','warn');
+    if(view!==fallback)return navigate(fallback);
+    return;
+  }
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const el=document.getElementById('view-'+view);

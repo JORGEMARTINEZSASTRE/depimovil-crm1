@@ -103,6 +103,11 @@ function publicUser(user) {
   };
 }
 
+function normalizeRole(rol) {
+  if (rol === 'administrador') return 'superadmin';
+  return rol;
+}
+
 function cleanText(value, max = 500) {
   return String(value || '').trim().slice(0, max);
 }
@@ -555,13 +560,14 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
  */
 router.post('/register', auth, requireRole('superadmin'), async (req, res) => {
   try {
-    const { nombre, email, password, rol, operadora_id } = req.body;
+    const { nombre, email, password, operadora_id, transportista_id } = req.body;
+    const rol = normalizeRole(req.body.rol);
     
     if (!nombre || !email || !password || !rol) {
       return res.status(400).json({ error: 'Campos obligatorios: nombre, email, password, rol' });
     }
 
-    if (!['superadmin', 'operaciones', 'operadora', 'comercial'].includes(rol)) {
+    if (!['superadmin', 'administrador', 'operaciones', 'operadora', 'operadora_habilitada', 'operadora_limitada', 'transportista', 'comercial'].includes(rol)) {
       return res.status(400).json({ error: 'Rol inválido' });
     }
 
@@ -573,9 +579,9 @@ router.post('/register', auth, requireRole('superadmin'), async (req, res) => {
 
     const hash = await bcrypt.hash(password, 12);
     const { rows } = await pool.query(
-      `INSERT INTO usuarios (nombre, email, password_hash, rol, operadora_id) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING id, nombre, email, rol, operadora_id`,
-      [nombre.trim(), email.toLowerCase().trim(), hash, rol, operadora_id || null]
+      `INSERT INTO usuarios (nombre, email, password_hash, rol, operadora_id, transportista_id)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, nombre, email, rol, operadora_id, transportista_id`,
+      [nombre.trim(), email.toLowerCase().trim(), hash, rol, operadora_id || null, transportista_id || null]
     );
 
     await pool.query(

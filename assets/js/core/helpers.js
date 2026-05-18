@@ -20,9 +20,70 @@ function fmtDate(d){
 }
 function today(){return new Date().toISOString().split('T')[0];}
 function daysDiff(from,to){return Math.ceil((new Date(to)-new Date(from))/(1000*60*60*24));}
-function canEdit(){return currentUser&&(currentUser.rol==='superadmin'||currentUser.rol==='operaciones');}
-function canEditLead(){return currentUser&&(currentUser.rol==='superadmin'||currentUser.rol==='operaciones'||currentUser.rol==='comercial');}
-function isSuperAdmin(){return currentUser&&currentUser.rol==='superadmin';}
+const ROLE_LABELS={
+  superadmin:'Administrador',
+  administrador:'Administrador',
+  operaciones:'Administración / Ops',
+  comercial:'Comercial / CRM',
+  operadora:'Operadora',
+  operadora_habilitada:'Operadora habilitada',
+  operadora_limitada:'Operadora en capacitación',
+  transportista:'Transportista',
+};
+const VIEW_PERMISSIONS={
+  superadmin:['*'],
+  administrador:['*'],
+  operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','reservas','reserva-ficha','calendario','logistica','pagos','pago-ficha','caja','proveedores','compras','ventas-maquinas','contratos','whatsapp','envios','envio-ficha','transportistas','reportes','auditoria','configuracion','materiales'],
+  comercial:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','pagos','pago-ficha','contratos','whatsapp','leads','lead-ficha','embudo'],
+  operadora_habilitada:['dashboard','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operadora:['dashboard','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operadora_limitada:['dashboard','materiales'],
+  transportista:['dashboard','envios','envio-ficha','transportistas'],
+};
+function isAdminRole(rol){return ['superadmin','administrador'].includes(rol);}
+function isOpsRole(rol){return isAdminRole(rol)||rol==='operaciones';}
+function isOperadoraRole(rol){return ['operadora','operadora_habilitada','operadora_limitada'].includes(rol);}
+function currentOperadoraHabs(){
+  if(!currentUser||!currentUser.operadora_id)return[];
+  return (DB.get('habilitaciones')||[]).filter(h=>
+    parseInt(h.operadoraId)===parseInt(currentUser.operadora_id)&&h.estado==='activa'
+  );
+}
+function getAccessRole(user=currentUser){
+  if(!user)return'';
+  if(user.rol==='operadora'){
+    return currentOperadoraHabs().length?'operadora_habilitada':'operadora_limitada';
+  }
+  return user.rol;
+}
+function getRoleLabel(user=currentUser){return ROLE_LABELS[getAccessRole(user)]||ROLE_LABELS[user?.rol]||user?.rol||'';}
+function canView(view){
+  const role=getAccessRole();
+  const allowed=VIEW_PERMISSIONS[role]||[];
+  return allowed.includes('*')||allowed.includes(view);
+}
+function applyRoleUI(){
+  const role=getAccessRole();
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
+    btn.style.display=canView(btn.dataset.view)?'':'none';
+  });
+  document.querySelectorAll('.nav-group').forEach(group=>{
+    const visible=Array.from(group.querySelectorAll('.nav-item[data-view]')).some(btn=>btn.style.display!=='none');
+    group.style.display=visible?'':'none';
+  });
+  ['btnAddOp','btnAddMaq','btnAddRes','btnAddPago','btnAddEnvio','btnAddLead'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.style.display=canEdit()?'':'none';
+  });
+  const roleEl=document.getElementById('userRole');
+  const topEl=document.getElementById('topbarRole');
+  if(roleEl)roleEl.textContent=getRoleLabel();
+  if(topEl)topEl.textContent=getRoleLabel();
+  document.body.dataset.accessRole=role;
+}
+function canEdit(){return currentUser&&isOpsRole(currentUser.rol);}
+function canEditLead(){return currentUser&&(isOpsRole(currentUser.rol)||currentUser.rol==='comercial');}
+function isSuperAdmin(){return currentUser&&isAdminRole(currentUser.rol);}
 function gv(id){const el=document.getElementById(id);return el?el.value:'';}
 function sv(id,val){const el=document.getElementById(id);if(el)el.value=val;}
 function badgeTxt(e){const l={disponible:'Disponible',reservada:'Reservada',mantenimiento:'Mantenimiento',fuera_servicio:'Fuera Servicio',en_viaje:'En Viaje de China'};return l[e]||e;}

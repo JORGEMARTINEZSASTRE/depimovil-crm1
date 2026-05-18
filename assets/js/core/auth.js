@@ -152,16 +152,11 @@ async function tryRestoreSession(){
 function startApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='block';
-  const rl={superadmin:'Super Admin',operaciones:'Administración / Ops',operadora:'Operadora',comercial:'Comercial / CRM'};
   document.getElementById('userName').textContent=currentUser.nombre;
-  document.getElementById('userRole').textContent=rl[currentUser.rol]||currentUser.rol;
+  document.getElementById('userRole').textContent=typeof getRoleLabel==='function'?getRoleLabel():currentUser.rol;
   document.getElementById('userAvatar').textContent=currentUser.nombre.charAt(0).toUpperCase();
-  document.getElementById('topbarRole').textContent=rl[currentUser.rol]||currentUser.rol;
-  if(currentUser.rol==='operadora'||currentUser.rol==='transportista'){
-    ['btnAddOp','btnAddMaq','btnAddRes','btnAddPago','btnAddEnvio','btnAddLead','adminNav'].forEach(id=>{
-      const el=document.getElementById(id);if(el)el.style.display='none';
-    });
-  }
+  document.getElementById('topbarRole').textContent=typeof getRoleLabel==='function'?getRoleLabel():currentUser.rol;
+  if(typeof applyRoleUI==='function') applyRoleUI();
   updateReservasBadge();
   updatePagosBadge();
   if(typeof updateCajaBadge==='function') updateCajaBadge();
@@ -172,5 +167,6 @@ function startApp(){
   updateMaqBadge();
   updateLeadsBadge();
   if(typeof updateRevisionOperadorasBadge==='function') updateRevisionOperadorasBadge();
-  navigate('dashboard');
+  if(typeof applyRoleUI==='function') applyRoleUI();
+  navigate((typeof canView==='function'&&canView('dashboard'))?'dashboard':'envios');
 }

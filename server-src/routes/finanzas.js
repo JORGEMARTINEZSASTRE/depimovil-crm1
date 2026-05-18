@@ -214,6 +214,17 @@ router.use(async (req, res, next) => {
 
 router.get('/bootstrap', async (req, res) => {
   try {
+    if (!['superadmin', 'administrador', 'operaciones'].includes(req.user.rol)) {
+      return res.json({
+        caja_cuentas: [],
+        caja_categorias: [],
+        caja_movimientos: [],
+        caja_cierres: [],
+        proveedores: [],
+        compras: [],
+        ventas_maquinas: []
+      });
+    }
     const [cuentas,categorias,movs,cierres,proveedores,compras,ventas] = await Promise.all([
       pool.query('SELECT * FROM caja_cuentas ORDER BY id'),
       pool.query('SELECT * FROM caja_categorias ORDER BY tipo,label'),
