@@ -38,7 +38,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 200, // máximo 200 requests por IP
+  max: 2000, // el CRM carga muchos módulos y puede superar 200 en uso normal
   message: { error: 'Demasiadas solicitudes, intentá en unos minutos' },
 });
 app.use('/api/', limiter);
