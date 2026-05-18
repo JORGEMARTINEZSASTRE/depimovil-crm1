@@ -34,7 +34,7 @@ async function requestWhatsappCode(){
   const err=document.getElementById('loginError');
   err.style.display='none';
   const whatsapp=document.getElementById('waLoginPhone').value.trim();
-  const rol=document.getElementById('waLoginRol').value;
+  const rol='operadora';
   const btn=document.getElementById('waRequestBtn');
   btn.disabled=true; btn.textContent='Enviando código...';
   try{
@@ -56,7 +56,7 @@ async function verifyWhatsappCode(){
   const err=document.getElementById('loginError');
   err.style.display='none';
   const whatsapp=document.getElementById('waLoginPhone').value.trim();
-  const rol=document.getElementById('waLoginRol').value;
+  const rol='operadora';
   const codigo=document.getElementById('waLoginCode').value.trim();
   const btn=document.getElementById('waVerifyBtn');
   btn.disabled=true; btn.textContent='Validando...';
@@ -130,7 +130,8 @@ async function submitOperadoraRegistro(){
     const data=await api('/api/auth/operadora/register',{method:'POST',body:JSON.stringify(payload)});
     closeModal('modalRegistroOperadora');
     switchLoginMode('whatsapp');
-    document.getElementById('waLoginRol').value='operadora';
+    const rol=document.getElementById('waLoginRol');
+    if(rol) rol.value='operadora';
     document.getElementById('waLoginPhone').value=data.whatsapp||payload.whatsapp;
     showToast('✅ Registro creado. Ahora pedí el código de WhatsApp para ingresar.');
   }catch(e){
