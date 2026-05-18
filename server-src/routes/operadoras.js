@@ -21,6 +21,18 @@ async function ensurePortalToken(client, operadoraId, currentToken) {
   return token;
 }
 
+function normalizeDateForDb(value) {
+  if (!value || value === '—') return null;
+  const str = String(value).trim();
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const local = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (local) return `${local[3]}-${local[2].padStart(2, '0')}-${local[1].padStart(2, '0')}`;
+  const parsed = new Date(str);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return null;
+}
+
 // ─────────────────────────────────────────────
 // GET /api/operadoras — listar todas
 // ─────────────────────────────────────────────
@@ -102,7 +114,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
     `, [
       nombre.trim(), apellido.trim(), gabinete || null, ciudad || null, departamento || null,
       pais || 'Uruguay', whatsapp || null, telefono || null, email || null,
-      fecha_alta || new Date().toISOString().split('T')[0],
+      normalizeDateForDb(fecha_alta) || new Date().toISOString().split('T')[0],
       estado || 'prospecto', nivel || 'Inicial', obs || null,
       direccion_entrega || null, tipo_direccion || 'trabajo'
     ]);
@@ -152,7 +164,7 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'comercial'), 
     `, [
       nombre.trim(), apellido.trim(), gabinete || null, ciudad || null, departamento || null,
       pais || 'Uruguay', whatsapp || null, telefono || null, email || null,
-      fecha_alta || null, estado || 'activa', nivel || 'Inicial', obs || null,
+      normalizeDateForDb(fecha_alta), estado || 'activa', nivel || 'Inicial', obs || null,
       direccion_entrega || null, tipo_direccion || 'trabajo', req.params.id
     ]);
     if (!rows.length) return res.status(404).json({ error: 'Operadora no encontrada' });
