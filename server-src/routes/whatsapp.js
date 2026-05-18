@@ -21,6 +21,7 @@ const express = require('express');
 const pool = require('../utils/db');
 const { getSession, setSession, clearSession } = require('../utils/wa_sessions');
 const { enviarMensaje, enviarBotones, enviarLista, obtenerQR, crearInstancia } = require('../utils/wa_sender');
+const { getPendientes, marcarEnviado } = require('../utils/wa_queue');
 const { auth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -52,6 +53,44 @@ router.post('/send', auth, requireRole('superadmin', 'operaciones', 'comercial')
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error('WA send error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// ═══════════════════════════════════
+// COLA DE MENSAJES PENDIENTES (wa_queue)
+// ═══════════════════════════════════
+router.get('/queue', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  try {
+    const pendientes = await getPendientes(100);
+    res.json(pendientes);
+  } catch (err) {
+    console.error('WA queue list error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+router.post('/queue/:id/send', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { rows } = await pool.query('SELECT * FROM wa_queue WHERE id = $1 AND enviado = false', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Mensaje no encontrado o ya enviado' });
+
+    const msg = rows[0];
+    const result = await enviarMensaje(msg.telefono, msg.mensaje);
+    if (!result.ok) {
+      return res.status(502).json({ error: result.error || 'No se pudo enviar', result });
+    }
+
+    await marcarEnviado(id);
+    await pool.query(
+      'INSERT INTO audit_log (accion, entidad, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5)',
+      ['WA_QUEUE_SEND', 'whatsapp', `queue#${id} -> ${msg.telefono} (${msg.tipo})`, req.user.id, req.ip]
+    );
+
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('WA queue send error:', err);
     res.status(500).json({ error: 'Error interno' });
   }
 });
