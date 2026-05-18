@@ -27,7 +27,7 @@ function renderOperadoras(){
 function filterOperadoras(v){opFilter.search=v;renderOperadoras();}
 function filterOpStatus(v){opFilter.status=v;renderOperadoras();}
 function registroOperadoraLink(){
-  return window.location.origin + '/?registro=operadora';
+  return 'https://crm.depimovil.live/alta-operadoras.html';
 }
 function copyRegistroOperadoraLink(){
   const url = registroOperadoraLink();
