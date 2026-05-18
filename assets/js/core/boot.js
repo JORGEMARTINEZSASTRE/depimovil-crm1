@@ -38,4 +38,7 @@ async function loadOpDocs(opId){
 }
 
 initData();
-(async()=>{await tryRestoreSession();})();
+(async()=>{
+  await tryRestoreSession();
+  if(!currentUser && typeof openOperadoraRegistroFromLink==='function') openOperadoraRegistroFromLink();
+})();

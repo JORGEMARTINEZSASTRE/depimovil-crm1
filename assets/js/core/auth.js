@@ -83,6 +83,15 @@ function openOperadoraRegistro(){
   }
 }
 
+function openOperadoraRegistroFromLink(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('registro') !== 'operadora') return;
+  switchLoginMode('whatsapp');
+  const rol = document.getElementById('waLoginRol');
+  if(rol) rol.value = 'operadora';
+  setTimeout(openOperadoraRegistro, 100);
+}
+
 function toggleRegistroTrabajoExtra(){
   const wrap=document.getElementById('regOpTrabajoExtraWrap');
   const value=document.getElementById('regOpTrabajoNoEstetico').value;
