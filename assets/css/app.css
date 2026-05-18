@@ -87,17 +87,6 @@ input,select,textarea{font-family:inherit}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;
   padding:2px 6px;border-radius:10px;min-width:18px;text-align:center;}
 .nav-quick-grid .nav-badge{position:absolute;margin:0;right:8px;top:8px}
-.nav-share-card{grid-column:1/-1;background:linear-gradient(180deg,rgba(var(--accent-rgb),0.11),rgba(255,255,255,0.025));
-  border:1px solid rgba(var(--accent-rgb),0.2);border-radius:11px;padding:10px;margin:0 0 2px;color:var(--text)}
-.nav-share-head{display:flex;align-items:center;gap:9px}
-.nav-share-head .logo-mark{width:34px;height:34px;border-radius:9px}
-.nav-share-head strong{display:block;font-size:13px;line-height:1.15;color:var(--text)}
-.nav-share-head span{display:block;font-size:11px;line-height:1.2;color:var(--text3);margin-top:2px}
-.nav-share-link{font-family:monospace;color:var(--accent);font-size:10.5px;line-height:1.25;margin-top:9px;word-break:break-all}
-.nav-share-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:9px}
-.nav-share-actions button,.nav-share-actions a{border:1px solid var(--border);background:var(--surface2);color:var(--text2);
-  border-radius:8px;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;text-decoration:none}
-.nav-share-actions button:hover,.nav-share-actions a:hover{border-color:rgba(var(--accent-rgb),0.32);color:var(--accent)}
 .nav-group{border:1px solid var(--border);border-radius:11px;margin-bottom:8px;overflow:hidden;background:rgba(255,255,255,0.015)}
 .nav-group[open]{background:rgba(var(--accent-rgb),0.035);border-color:rgba(var(--accent-rgb),0.16)}
 .nav-group summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
@@ -186,6 +175,13 @@ input,select,textarea{font-family:inherit}
   border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
 .table-header h3{font-size:15px;font-weight:700;color:var(--text)}
 .table-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.op-share-card{display:flex;align-items:center;gap:14px;margin:14px 20px 16px;padding:14px;
+  background:var(--surface2);border:1px solid rgba(var(--accent-rgb),0.22);border-radius:10px}
+.op-share-card .logo-mark{width:44px;height:44px;flex-shrink:0}
+.op-share-copy{min-width:220px;flex:1}
+.op-share-copy strong{display:block;color:var(--text);font-size:14px;line-height:1.2}
+.op-share-copy span{display:block;font-family:monospace;color:var(--accent);font-size:12.5px;line-height:1.35;margin-top:4px;word-break:break-all}
+.op-share-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .search-input{padding:8px 14px;background:var(--surface2);border:1px solid var(--border);
   border-radius:8px;color:var(--text);font-size:13px;outline:none;width:220px;transition:border-color .2s;}
 .search-input:focus{border-color:var(--accent)}

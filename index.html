@@ -154,21 +154,6 @@
             <button class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')"><span class="icon">⊞</span><span>Inicio</span></button>
             <button class="nav-item" data-view="reservas" onclick="navigate('reservas')"><span class="icon">📅</span><span>Reservas</span><span class="nav-badge" id="navBadgeReservas" style="display:none">0</span></button>
             <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')"><span class="icon">👩‍💼</span><span>Operadoras</span></button>
-            <div class="nav-share-card" data-requires-view="operadoras">
-              <div class="nav-share-head">
-                <div class="logo-mark"></div>
-                <div>
-                  <strong>Alta online</strong>
-                  <span>Link para operadoras nuevas</span>
-                </div>
-              </div>
-              <div class="nav-share-link" id="registroOperadoraLinkMenu">crm.depimovil.live/?registro=operadora</div>
-              <div class="nav-share-actions">
-                <button type="button" onclick="previewRegistroOperadoraLink()">Vista</button>
-                <button type="button" onclick="copyRegistroOperadoraLink()">Copiar</button>
-                <a href="https://crm.depimovil.live/?registro=operadora" target="_blank" rel="noopener">Abrir</a>
-              </div>
-            </div>
             <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')"><span class="icon">⚙️</span><span>Máquinas</span><span class="nav-badge" id="navBadgeMaq" style="display:none">0</span></button>
             <button class="nav-item" data-view="caja" onclick="navigate('caja')"><span class="icon">💵</span><span>Caja</span><span class="nav-badge" id="navBadgeCaja" style="display:none">0</span></button>
             <button class="nav-item" data-view="whatsapp" onclick="navigate('whatsapp')"><span class="icon">💬</span><span>WhatsApp</span><span class="nav-badge" id="navBadgeWA" style="display:none">0</span></button>
@@ -259,6 +244,18 @@
                   <option value="suspendida">Suspendida</option>
                 </select>
                 <button class="btn-add" onclick="openOpModal()" id="btnAddOp">+ Nueva</button>
+              </div>
+            </div>
+            <div class="op-share-card">
+              <div class="logo-mark"></div>
+              <div class="op-share-copy">
+                <strong>Alta online de operadoras</strong>
+                <span id="registroOperadoraLinkText">https://crm.depimovil.live/?registro=operadora</span>
+              </div>
+              <div class="op-share-actions">
+                <button class="btn-secondary" type="button" onclick="previewRegistroOperadoraLink()">Vista preliminar</button>
+                <button class="btn-add" type="button" onclick="copyRegistroOperadoraLink()">Copiar link</button>
+                <a class="action-btn" href="https://crm.depimovil.live/?registro=operadora" target="_blank" rel="noopener">Abrir</a>
               </div>
             </div>
             <div style="overflow-x:auto">

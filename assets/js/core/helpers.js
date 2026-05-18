@@ -67,9 +67,6 @@ function applyRoleUI(){
   document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
     btn.style.display=canView(btn.dataset.view)?'':'none';
   });
-  document.querySelectorAll('[data-requires-view]').forEach(el=>{
-    el.style.display=canView(el.dataset.requiresView)?'':'none';
-  });
   document.querySelectorAll('.nav-group').forEach(group=>{
     const visible=Array.from(group.querySelectorAll('.nav-item[data-view]')).some(btn=>btn.style.display!=='none');
     group.style.display=visible?'':'none';
