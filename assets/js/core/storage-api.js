@@ -134,6 +134,19 @@ function mapHabilitacion(h){
     ts:h.ts||h.created_at||new Date().toISOString(),
   };
 }
+function mapEnvio(e){
+  return {
+    id:e.id,codigo:e.codigo,reservaId:e.reserva_id,
+    operadoraId:e.operadora_id,maquinaId:e.maquina_id,
+    departamento:e.departamento||'',direccion:e.direccion||'',
+    transportista:e.transportista||'',tracking:e.tracking||'',
+    estado:e.estado||'pendiente',
+    fechaEnvioEst:e.fecha_envio_est||'',fechaEnvioReal:e.fecha_envio_real||'',
+    fechaRetiroEst:e.fecha_retiro_est||'',fechaRetiroReal:e.fecha_retiro_real||'',
+    costoEnvio:parseFloat(e.costo_envio)||0,costoRetiro:parseFloat(e.costo_retiro)||0,
+    moneda:e.moneda||'UYU',obs:e.obs||''
+  };
+}
 async function syncContratosLocales(contratosApi){
   const locales = DB.get('contratos') || [];
   if ((contratosApi || []).length || !locales.length) return contratosApi;
@@ -168,10 +181,11 @@ async function loadAllData(){
     const results=await Promise.allSettled([
       api('/api/operadoras'),api('/api/maquinas'),api('/api/reservas'),
       api('/api/pagos'),api('/api/leads'),api('/api/contratos'),
-      api('/api/auth/operadoras/revision'),api('/api/finanzas/bootstrap')
+      api('/api/auth/operadoras/revision'),api('/api/finanzas/bootstrap'),
+      api('/api/envios'),api('/api/transportistas')
     ]);
     const val=function(i, fallback){return results[i].status==='fulfilled'?results[i].value:fallback};
-    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]), finanzas=val(7,null);
+    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]), finanzas=val(7,null), envios=val(8,[]), transportistas=val(9,[]);
     DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
       gabinete:o.gabinete||'',ciudad:o.ciudad,departamento:o.departamento||'',
       pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
@@ -197,6 +211,8 @@ async function loadAllData(){
       fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',operadoraId:null})));
     const contratosFinales = await syncContratosLocales(contratos);
     DB.set('contratos',contratosFinales.map(mapContrato));
+    DB.set('envios',envios.map(mapEnvio));
+    DB.set('transportistas',transportistas||[]);
     DB.set('revision_operadoras',revisiones||[]);
     aplicarFinanzasCache(finanzas);
     const habResults=await Promise.allSettled((ops||[]).map(o=>api('/api/operadoras/'+o.id+'/habilitaciones')));
