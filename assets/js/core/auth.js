@@ -4,12 +4,18 @@
 let currentUser=null;
 
 function switchLoginMode(mode){
-  document.getElementById('loginAdminPanel').style.display = mode === 'admin' ? '' : 'none';
-  document.getElementById('loginWhatsappPanel').style.display = mode === 'whatsapp' ? '' : 'none';
-  document.getElementById('tabLoginAdmin').classList.toggle('active', mode === 'admin');
-  document.getElementById('tabLoginWhatsapp').classList.toggle('active', mode === 'whatsapp');
-  document.getElementById('loginDemoBox').style.display = mode === 'admin' ? '' : 'none';
-  document.getElementById('loginError').style.display = 'none';
+  const adminPanel=document.getElementById('loginAdminPanel');
+  const whatsappPanel=document.getElementById('loginWhatsappPanel');
+  const tabAdmin=document.getElementById('tabLoginAdmin');
+  const tabWhatsapp=document.getElementById('tabLoginWhatsapp');
+  const demoBox=document.getElementById('loginDemoBox');
+  const err=document.getElementById('loginError');
+  if(adminPanel) adminPanel.style.display = mode === 'admin' ? '' : 'none';
+  if(whatsappPanel) whatsappPanel.style.display = mode === 'whatsapp' ? '' : 'none';
+  if(tabAdmin) tabAdmin.classList.toggle('active', mode === 'admin');
+  if(tabWhatsapp) tabWhatsapp.classList.toggle('active', mode === 'whatsapp');
+  if(demoBox) demoBox.style.display = mode === 'admin' ? '' : 'none';
+  if(err) err.style.display = 'none';
 }
 
 async function doLogin(){
