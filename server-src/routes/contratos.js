@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const pool = require('../utils/db');
 const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
 
@@ -41,6 +42,10 @@ async function ensureTable() {
 }
 
 ensureTable().catch(err => console.error('Error creando tabla contratos:', err.message));
+
+function makeContratoToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
 
 // ─────────────────────────────────────────────
 // GET /api/contratos — listar todos
@@ -117,8 +122,8 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
         operadora_id, maquina_id, reserva_id,
         nombre, ci, domicilio, ciudad, maquina, serial,
         fecha_inicio, fecha_fin, monto, moneda, forma_pago, garantia,
-        estado, firmado_en, cedula_frente_meta, cedula_dorso_meta, obs, contenido
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+        estado, firmado_en, cedula_frente_meta, cedula_dorso_meta, obs, contenido, token
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
       RETURNING *
     `, [
       operadora_id ? parseInt(operadora_id) : null,
@@ -133,7 +138,8 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
       estadoFinal, firmadoEn || null,
       cedula_frente_meta ? JSON.stringify(cedula_frente_meta) : null,
       cedula_dorso_meta ? JSON.stringify(cedula_dorso_meta) : null,
-      obs || null, contenido || null
+      obs || null, contenido || null,
+      makeContratoToken()
     ]);
 
     await pool.query(
