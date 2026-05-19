@@ -113,7 +113,7 @@ async function obtenerNumerosAdminWhatsapp() {
   const { rows: userRows } = await pool.query(`
     SELECT whatsapp
     FROM usuarios
-    WHERE activo = true
+    WHERE COALESCE(status, 'activo') = 'activo'
       AND rol IN ('superadmin','administrador','operaciones')
       AND COALESCE(whatsapp, '') <> ''
   `);
