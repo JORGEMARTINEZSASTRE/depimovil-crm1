@@ -106,6 +106,51 @@ async function encolarMensaje(pool, { reservaId, operadoraId, tipo, mensaje, tel
   }
 }
 
+async function obtenerNumerosAdminWhatsapp() {
+  const { rows: configRows } = await pool.query(
+    "SELECT valor FROM configuracion WHERE clave = 'admin_whatsapp_notificaciones' AND COALESCE(valor, '') <> ''"
+  );
+  const { rows: userRows } = await pool.query(`
+    SELECT whatsapp
+    FROM usuarios
+    WHERE activo = true
+      AND rol IN ('superadmin','administrador','operaciones')
+      AND COALESCE(whatsapp, '') <> ''
+  `);
+
+  return Array.from(new Set(
+    [
+      ...configRows.map(r => r.valor),
+      ...userRows.map(r => r.whatsapp),
+    ]
+      .flatMap(v => String(v || '').split(/[,\n;]/))
+      .map(v => v.trim())
+      .filter(Boolean)
+  ));
+}
+
+async function notificarAdminsLogistica({ tipo, envio, mensaje }) {
+  const numeros = await obtenerNumerosAdminWhatsapp();
+  if (!numeros.length) {
+    console.warn(`⚠️ [${tipo}] Sin WhatsApp admin configurado para alerta ${envio.codigo}`);
+    return;
+  }
+
+  for (const telefono of numeros) {
+    const result = await enviarMensaje(telefono, mensaje);
+    if (!result.ok) {
+      await encolarMensaje(pool, {
+        reservaId: envio.reserva_id,
+        operadoraId: envio.operadora_id,
+        tipo,
+        mensaje,
+        telefono,
+      });
+      console.warn(`⚠️ [${tipo}] Fallo aviso admin ${telefono} — encolado. Error: ${result.error}`);
+    }
+  }
+}
+
 // ══════════════════════════════════════════════
 // LÓGICA PRINCIPAL
 // ══════════════════════════════════════════════
@@ -244,6 +289,66 @@ async function procesarColaAutomatica() {
   }
 }
 
+async function procesarAlertasEnvios() {
+  const { rows: alertas } = await pool.query(`
+    SELECT e.*,
+           r.codigo AS reserva_codigo,
+           o.nombre AS op_nombre,
+           o.apellido AS op_apellido,
+           m.nombre AS maquina_nombre
+    FROM envios e
+    LEFT JOIN reservas r ON r.id = e.reserva_id
+    LEFT JOIN operadoras o ON o.id = e.operadora_id
+    LEFT JOIN maquinas m ON m.id = e.maquina_id
+    WHERE e.estado NOT IN ('retirado','cancelado')
+      AND (
+        (
+          e.fecha_envio_est IS NOT NULL
+          AND e.fecha_envio_est < CURRENT_DATE
+          AND e.fecha_envio_real IS NULL
+          AND e.estado IN ('pendiente_envio','preparando','en_transito')
+        )
+        OR
+        (
+          e.fecha_retiro_est IS NOT NULL
+          AND e.fecha_retiro_est < CURRENT_DATE
+          AND e.fecha_retiro_real IS NULL
+          AND e.estado IN ('entregado','retiro_pendiente')
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM audit_log a
+        WHERE a.accion = 'ALERTA_ENVIO'
+          AND a.entidad = 'envio'
+          AND a.entidad_id = e.id
+          AND a.created_at::date = CURRENT_DATE
+      )
+    ORDER BY COALESCE(e.fecha_envio_est, e.fecha_retiro_est), e.id
+    LIMIT 20
+  `);
+
+  if (!alertas.length) return;
+
+  console.log(`🚚 Alertas logística: ${alertas.length} envío(s) requieren revisión`);
+  for (const e of alertas) {
+    const esRetiro = ['entregado', 'retiro_pendiente'].includes(e.estado);
+    const tipo = esRetiro ? 'alerta_retiro_atrasado' : 'alerta_envio_atrasado';
+    const fecha = formatearFecha(esRetiro ? e.fecha_retiro_est : e.fecha_envio_est);
+    const operadora = [e.op_nombre, e.op_apellido].filter(Boolean).join(' ') || 'Sin operadora';
+    const mensaje = esRetiro
+      ? `⚠️ *Retiro pendiente vencido*\n\nEnvío: *${e.codigo}*\nReserva: ${e.reserva_codigo || '—'}\nOperadora: ${operadora}\nMáquina: ${e.maquina_nombre || '—'}\nDepartamento: ${e.departamento || '—'}\nRetiro estimado: *${fecha}*\n\nRevisar logística y coordinar retiro.`
+      : `⚠️ *Envío atrasado*\n\nEnvío: *${e.codigo}*\nReserva: ${e.reserva_codigo || '—'}\nOperadora: ${operadora}\nMáquina: ${e.maquina_nombre || '—'}\nDepartamento: ${e.departamento || '—'}\nEnvío estimado: *${fecha}*\nEstado actual: ${e.estado}\n\nRevisar logística y actualizar estado.`;
+
+    await notificarAdminsLogistica({ tipo, envio: e, mensaje });
+    await pool.query(
+      `INSERT INTO audit_log (accion, entidad, entidad_id, detalle)
+       VALUES ('ALERTA_ENVIO', 'envio', $1, $2)`,
+      [e.id, `${tipo} — ${e.codigo}`]
+    );
+  }
+}
+
 // ══════════════════════════════════════════════
 // CRON JOB
 // ══════════════════════════════════════════════
@@ -260,6 +365,7 @@ function iniciarRecordatorios() {
     const inicio = Date.now();
     try {
       await procesarColaAutomatica();
+      await procesarAlertasEnvios();
 
       // ── Recordatorio 24 horas antes ──
       // Ventana: entre 23h50m y 24h10m desde ahora
