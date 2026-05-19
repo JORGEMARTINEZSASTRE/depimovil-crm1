@@ -151,6 +151,32 @@ async function notificarAdminsLogistica({ tipo, envio, mensaje }) {
   }
 }
 
+async function notificarAdminsSistema({ tipo, mensaje }) {
+  const numeros = await obtenerNumerosAdminWhatsapp();
+  if (!numeros.length) {
+    console.warn(`⚠️ [${tipo}] Sin WhatsApp admin configurado`);
+    return false;
+  }
+
+  let enviado = false;
+  for (const telefono of numeros) {
+    const result = await enviarMensaje(telefono, mensaje);
+    if (result.ok) {
+      enviado = true;
+    } else {
+      await encolarMensaje(pool, {
+        reservaId: null,
+        operadoraId: null,
+        tipo,
+        mensaje,
+        telefono,
+      });
+      console.warn(`⚠️ [${tipo}] Fallo aviso admin ${telefono} — encolado. Error: ${result.error}`);
+    }
+  }
+  return enviado;
+}
+
 // ══════════════════════════════════════════════
 // LÓGICA PRINCIPAL
 // ══════════════════════════════════════════════
@@ -349,6 +375,110 @@ async function procesarAlertasEnvios() {
   }
 }
 
+async function procesarResumenDiarioOperativo() {
+  const yaEnviado = await pool.query(`
+    SELECT id
+    FROM audit_log
+    WHERE accion = 'RESUMEN_DIARIO'
+      AND entidad = 'operativa'
+      AND created_at::date = CURRENT_DATE
+    LIMIT 1
+  `);
+  if (yaEnviado.rows.length) return;
+
+  const [
+    reservasHoy,
+    reservasManana,
+    reservasSinAprobar,
+    enviosPendientes,
+    enviosAtrasados,
+    retirosPendientes,
+    pagosPendientes,
+    deudasVencidas,
+    operadorasRevision,
+  ] = await Promise.all([
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM reservas
+      WHERE estado IN ('aprobada','confirmada')
+        AND COALESCE(fecha_jornada, fecha_inicio) = CURRENT_DATE
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM reservas
+      WHERE estado IN ('aprobada','confirmada')
+        AND COALESCE(fecha_jornada, fecha_inicio) = CURRENT_DATE + INTERVAL '1 day'
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM reservas
+      WHERE estado IN ('solicitud_recibida','pendiente_aprobacion')
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM envios
+      WHERE estado IN ('pendiente_envio','preparando','en_transito')
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM envios
+      WHERE estado NOT IN ('retirado','cancelado')
+        AND fecha_envio_est IS NOT NULL
+        AND fecha_envio_est < CURRENT_DATE
+        AND fecha_envio_real IS NULL
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM envios
+      WHERE estado IN ('entregado','retiro_pendiente')
+        AND fecha_retiro_real IS NULL
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM pagos
+      WHERE estado IN ('pendiente','sena_pendiente','sena_abonada')
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM pagos
+      WHERE estado = 'deuda_vencida'
+    `),
+    pool.query(`
+      SELECT COUNT(*)::int AS total
+      FROM usuarios
+      WHERE (registro_origen = 'registro_web_operadora' OR requiere_revision_admin = true)
+        AND COALESCE(revision_admin_estado, 'pendiente') IN ('pendiente','documentos_solicitados','observada')
+    `),
+  ]);
+
+  const hoy = new Date().toLocaleDateString('es-UY', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  const v = r => r.rows[0]?.total || 0;
+  const mensaje =
+    `📋 *Resumen operativo DepiMóvil*\n` +
+    `${hoy}\n\n` +
+    `Reservas hoy: *${v(reservasHoy)}*\n` +
+    `Reservas mañana: *${v(reservasManana)}*\n` +
+    `Reservas sin aprobar: *${v(reservasSinAprobar)}*\n\n` +
+    `Envíos en proceso: *${v(enviosPendientes)}*\n` +
+    `Envíos atrasados: *${v(enviosAtrasados)}*\n` +
+    `Retiros pendientes: *${v(retirosPendientes)}*\n\n` +
+    `Pagos pendientes: *${v(pagosPendientes)}*\n` +
+    `Deudas vencidas: *${v(deudasVencidas)}*\n` +
+    `Operadoras a revisar: *${v(operadorasRevision)}*\n\n` +
+    `Entrá al CRM para resolver los puntos marcados.`;
+
+  await notificarAdminsSistema({ tipo: 'resumen_diario_operativo', mensaje });
+  await pool.query(
+    `INSERT INTO audit_log (accion, entidad, entidad_id, detalle)
+     VALUES ('RESUMEN_DIARIO', 'operativa', NULL, $1)`,
+    [`Resumen operativo enviado: reservas hoy ${v(reservasHoy)}, envíos atrasados ${v(enviosAtrasados)}, deudas ${v(deudasVencidas)}`]
+  );
+}
+
 // ══════════════════════════════════════════════
 // CRON JOB
 // ══════════════════════════════════════════════
@@ -359,6 +489,15 @@ async function procesarAlertasEnvios() {
  */
 function iniciarRecordatorios() {
   console.log('⏰ Recordatorios WhatsApp: scheduler iniciado (cada 5 min)');
+  console.log('📋 Resumen diario operativo: scheduler iniciado (08:00 America/Montevideo)');
+
+  cron.schedule('0 8 * * *', async () => {
+    try {
+      await procesarResumenDiarioOperativo();
+    } catch (err) {
+      console.error('❌ Error en resumen diario operativo:', err.message);
+    }
+  }, { timezone: 'America/Montevideo' });
 
   // Corre cada 5 minutos: */5 * * * *
   cron.schedule('*/5 * * * *', async () => {
