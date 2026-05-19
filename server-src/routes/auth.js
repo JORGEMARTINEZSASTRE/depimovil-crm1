@@ -446,7 +446,34 @@ router.post('/operadora/register', async (req, res) => {
     await client.query('COMMIT');
 
     await notifyAdminNuevaOperadora(payload, operadora.id);
-    res.status(201).json({ ok: true, whatsapp: payload.whatsapp, operadora, user: publicUser(usuarioResult.rows[0]) });
+    let codigoEnviado = false;
+    let codigoError = null;
+    try {
+      const codigo = String(Math.floor(100000 + Math.random() * 900000));
+      const codigoHash = await bcrypt.hash(codigo, 10);
+      await pool.query(
+        `INSERT INTO sesiones_whatsapp (whatsapp, codigo_hash, rol_solicitado, usuario_id, expires_at, ip, user_agent)
+         VALUES ($1,$2,$3,$4,NOW() + INTERVAL '10 minutes',$5,$6)`,
+        [payload.whatsapp, codigoHash, 'operadora', usuarioResult.rows[0].id, req.ip, req.headers['user-agent'] || '']
+      );
+      const envio = await enviarMensaje(
+        payload.whatsapp,
+        `Tu código de ingreso a DepiMóvil es: *${codigo}*.\n\nVence en 10 minutos. Si no lo pediste, ignorá este mensaje.`
+      );
+      codigoEnviado = !!envio?.ok;
+      codigoError = envio?.error || null;
+    } catch (codeErr) {
+      codigoError = codeErr.message || 'No se pudo enviar el código';
+      console.error('Operadora register auto-code error:', codeErr);
+    }
+    res.status(201).json({
+      ok: true,
+      whatsapp: payload.whatsapp,
+      codigo_enviado: codigoEnviado,
+      codigo_error: codigoError,
+      operadora,
+      user: publicUser(usuarioResult.rows[0])
+    });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Operadora register error:', err);

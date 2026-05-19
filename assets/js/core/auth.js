@@ -139,7 +139,14 @@ async function submitOperadoraRegistro(){
     const rol=document.getElementById('waLoginRol');
     if(rol) rol.value='operadora';
     document.getElementById('waLoginPhone').value=data.whatsapp||payload.whatsapp;
-    showToast('✅ Registro creado. Ahora pedí el código de WhatsApp para ingresar.');
+    if(data.codigo_enviado){
+      document.getElementById('waCodeGroup').style.display='';
+      document.getElementById('waVerifyBtn').style.display='';
+      document.getElementById('waRequestBtn').textContent='Reenviar código';
+      showToast('✅ Registro creado. Te enviamos el código por WhatsApp.');
+    }else{
+      showToast('✅ Registro creado. Si no llega el código, tocá Enviar código por WhatsApp.');
+    }
   }catch(e){
     err.textContent=e.message||'No se pudo crear el registro';
     err.style.display='block';
