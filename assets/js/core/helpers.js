@@ -7,8 +7,12 @@ function normalizeDateInput(d){
   const str=String(d).trim();
   const isoDate=str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if(isoDate)return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+  const isoUyMixed=str.match(/^(\d{1,2})T[\d:.]+Z\/(\d{1,2})\/(\d{4})$/);
+  if(isoUyMixed)return `${isoUyMixed[3]}-${isoUyMixed[2].padStart(2,'0')}-${isoUyMixed[1].padStart(2,'0')}`;
   const localDate=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if(localDate)return `${localDate[3]}-${localDate[2].padStart(2,'0')}-${localDate[1].padStart(2,'0')}`;
+  const parsed=new Date(str);
+  if(!Number.isNaN(parsed.getTime()))return parsed.toISOString().slice(0,10);
   return str;
 }
 function fmtDate(d){
