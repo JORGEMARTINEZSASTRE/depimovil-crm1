@@ -157,7 +157,7 @@ async function confirmarReservaAutomatica(id){
     await api(`/api/reservas/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado:'confirmada',motivo:'Confirmación automática: controles completos'})});
     reservas[idx].estado='confirmada';
     DB.set('reservas',reservas);
-    if(reservas[idx].bloqueLogistico&&typeof crearEnvioDesdeReserva==='function')crearEnvioDesdeReserva(reservas[idx]);
+    if(reservas[idx].bloqueLogistico&&typeof syncEnviosDesdeServidor==='function')await syncEnviosDesdeServidor();
     if(typeof encolarNotificacion==='function')encolarNotificacion('reserva_confirmada', reservas[idx].operadoraId, {reservaId:id, monto:reservas[idx].monto, moneda:reservas[idx].moneda});
     showToast('✅ Reserva confirmada automáticamente');
     updateReservasBadge();

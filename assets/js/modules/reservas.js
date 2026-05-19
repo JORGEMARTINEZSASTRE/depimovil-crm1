@@ -34,10 +34,13 @@ function getReglaLogistica(departamento){
 }
 
 function calcularRangoBloqueo(fechaInicio, fechaFin, departamento){
+  // Guardar contra fechas nulas o inválidas
+  if(!fechaInicio || !fechaFin) return {bloqueDesde:fechaInicio||'', bloqueHasta:fechaFin||'', diasAntes:2, diasDespues:2};
   const regla = getReglaLogistica(departamento);
   if(regla.mismoDia) return {bloqueDesde:fechaInicio, bloqueHasta:fechaFin};
   const desde = new Date(fechaInicio+'T12:00:00');
   const hasta  = new Date(fechaFin+'T12:00:00');
+  if(isNaN(desde.getTime()) || isNaN(hasta.getTime())) return {bloqueDesde:fechaInicio, bloqueHasta:fechaFin, diasAntes:2, diasDespues:2};
   desde.setDate(desde.getDate() - regla.diasAntes);
   hasta.setDate(hasta.getDate() + regla.diasDespues);
   return {
@@ -351,6 +354,9 @@ function onResSelectionChange(){
 }
 
 async function saveReserva(){
+  // Prevenir doble submit
+  const btnGuardar = document.querySelector('#modalRes .btn-add, #modalRes button[onclick*="saveReserva"]');
+  if(btnGuardar){if(btnGuardar._saving)return; btnGuardar._saving=true; btnGuardar.disabled=true;}
   const reservas=DB.get('reservas')||[]; const id=gv('resId');
   const opId=parseInt(gv('resOperadoraId')); const maqId=parseInt(gv('resMaquinaId'));
   const tipo=gv('resTipo');
@@ -396,14 +402,17 @@ async function saveReserva(){
     } else {
       reservas.push(mapped);
     }
+    // Guardar en caché ANTES de encolar notificación para que generarMensaje tenga los datos
+    DB.set('reservas',reservas);
+    if(mapped.estado==='confirmada'&&mapped.bloqueLogistico&&typeof syncEnviosDesdeServidor==='function')await syncEnviosDesdeServidor();
     if(!id && typeof encolarNotificacion==='function'){
       const map={solicitud_recibida:'reserva_nueva',aprobada:'reserva_aprobada',confirmada:'reserva_confirmada',rechazada:'reserva_rechazada',cancelada:'reserva_rechazada'};
       if(map[mapped.estado]) encolarNotificacion(map[mapped.estado], mapped.operadoraId, {reservaId:mapped.id, monto:mapped.monto, moneda:mapped.moneda});
     }
-    DB.set('reservas',reservas);
     showToast(id?'✅ Reserva actualizada':'✅ Reserva creada · '+saved.codigo);
     closeModal('modalRes'); renderReservas(); updateReservasBadge();
   }catch(e){showToast('⛔ '+e.message,'warn');}
+  finally{if(btnGuardar){btnGuardar._saving=false; btnGuardar.disabled=false;}}
 }
 
 /* Cambio de estado */
@@ -431,10 +440,7 @@ async function confirmarCambioEstadoRes(){
     await api(`/api/reservas/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado:nuevoEstado,motivo})});
     reservas[idx].estado=nuevoEstado;
     DB.set('reservas',reservas);
-    // Auto-crear envío al confirmar reserva con bloqueo logístico
-    if(nuevoEstado==='confirmada'&&reservas[idx].bloqueLogistico){
-      crearEnvioDesdeReserva(reservas[idx]);
-    }
+    if(nuevoEstado==='confirmada'&&reservas[idx].bloqueLogistico&&typeof syncEnviosDesdeServidor==='function')await syncEnviosDesdeServidor();
     if(typeof encolarNotificacion==='function'){
       const map={solicitud_recibida:'reserva_nueva',aprobada:'reserva_aprobada',confirmada:'reserva_confirmada',rechazada:'reserva_rechazada',cancelada:'reserva_rechazada'};
       if(map[nuevoEstado]) encolarNotificacion(map[nuevoEstado], reservas[idx].operadoraId, {reservaId:id, monto:reservas[idx].monto, moneda:reservas[idx].moneda});

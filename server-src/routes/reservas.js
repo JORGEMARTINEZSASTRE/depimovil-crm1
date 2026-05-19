@@ -22,6 +22,94 @@ async function generarCodigo(client) {
   return `RES-${String(n).padStart(5, '0')}`;
 }
 
+async function generarCodigoEnvio(client) {
+  const { rows } = await client.query('SELECT COUNT(*) AS cnt FROM envios');
+  const n = parseInt(rows[0].cnt, 10) + 1;
+  return `ENV-${String(n).padStart(3, '0')}`;
+}
+
+function dateOnly(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().split('T')[0];
+  return String(value).split('T')[0];
+}
+
+function addDays(dateValue, days) {
+  const base = dateOnly(dateValue);
+  if (!base) return null;
+  const d = new Date(`${base}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+async function crearEnvioAutomaticoSiCorresponde(client, reservaId, usuarioEmail = 'sistema') {
+  const { rows } = await client.query(`
+    SELECT r.*,
+           o.direccion_entrega, o.ciudad AS op_ciudad, o.departamento AS op_departamento,
+           m.categoria AS maquina_categoria
+    FROM reservas r
+    LEFT JOIN operadoras o ON o.id = r.operadora_id
+    LEFT JOIN maquinas m ON m.id = r.maquina_id
+    WHERE r.id = $1
+    FOR UPDATE OF r
+  `, [reservaId]);
+  if (!rows.length) return null;
+
+  const r = rows[0];
+  if (r.estado !== 'confirmada' || !r.bloque_logistico) return null;
+
+  const existe = await client.query('SELECT id FROM envios WHERE reserva_id=$1 LIMIT 1', [reservaId]);
+  if (existe.rows.length) return existe.rows[0];
+
+  const departamento = r.dept_logistica || r.op_departamento || null;
+  const direccion = r.direccion_entrega || [r.op_ciudad, r.op_departamento].filter(Boolean).join(', ') || departamento;
+  const transportista = departamento
+    ? await client.query(`
+        SELECT id, nombre
+        FROM transportistas
+        WHERE estado = 'activo'
+          AND ($1 = ANY(departamentos) OR COALESCE(array_length(departamentos, 1), 0) = 0)
+        ORDER BY CASE WHEN $1 = ANY(departamentos) THEN 0 ELSE 1 END, nombre
+        LIMIT 1
+      `, [departamento])
+    : { rows: [] };
+  const t = transportista.rows[0] || {};
+  const fechaBase = r.fecha_inicio || r.fecha_jornada;
+  const fechaFin = r.fecha_fin || r.fecha_jornada || r.fecha_inicio;
+  const codigo = await generarCodigoEnvio(client);
+
+  const { rows: envios } = await client.query(`
+    INSERT INTO envios (
+      codigo, reserva_id, operadora_id, maquina_id, transportista_id,
+      departamento, direccion, transportista, estado, tipo_envio, tipo_maquina,
+      departamento_destino, fecha_envio_est, fecha_retiro_est, moneda, obs
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pendiente_envio','ida',$9,$10,$11,$12,$13,$14)
+    RETURNING *
+  `, [
+    codigo,
+    r.id,
+    r.operadora_id,
+    r.maquina_id,
+    t.id || null,
+    departamento,
+    direccion || null,
+    t.nombre || null,
+    r.maquina_categoria || 'chica',
+    departamento,
+    dateOnly(fechaBase),
+    addDays(fechaFin, 2),
+    r.moneda || 'UYU',
+    `Creado automáticamente al confirmar reserva ${r.codigo}`
+  ]);
+
+  await client.query(`
+    INSERT INTO audit_log (usuario_email, accion, entidad, entidad_id, detalle)
+    VALUES ($1,'CREATE_AUTO','envio',$2,$3)
+  `, [usuarioEmail, envios[0].id, `Envío automático para reserva ${r.codigo}`]);
+
+  return envios[0];
+}
+
 const WA_PLANTILLAS = {
   solicitud_recibida: (op, r) =>
     `¡Hola ${op.nombre}! 📥 Recibimos tu solicitud de reserva.\n📌 Equipo: ${r.maquina||'—'}\n📅 Fecha: ${r.fecha}\n🔖 Código: ${r.codigo}\n\nLa revisaremos pronto.`,
@@ -205,6 +293,8 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
       VALUES ($1,$2,$3,$4,$5,$6)
     `, [req.user.id, req.user.email, 'CREATE', 'reserva', reserva.id, codigo]);
 
+    await crearEnvioAutomaticoSiCorresponde(client, reserva.id, req.user.email);
+
     await client.query('COMMIT');
 
     // Notificar por WA fuera de la transacción
@@ -260,6 +350,20 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
       notificarWA(parseInt(req.params.id), estado, null).catch(() => {});
     }
 
+    if (rows[0].estado === 'confirmada') {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await crearEnvioAutomaticoSiCorresponde(client, req.params.id, req.user.email);
+        await client.query('COMMIT');
+      } catch (autoErr) {
+        await client.query('ROLLBACK');
+        console.error('PUT /api/reservas/:id envio auto error:', autoErr.message);
+      } finally {
+        client.release();
+      }
+    }
+
     res.json(rows[0]);
   } catch (err) {
     console.error('PUT /api/reservas/:id error:', err);
@@ -309,6 +413,8 @@ router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones', 'come
       INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle)
       VALUES ($1,$2,$3,$4,$5,$6)
     `, [req.user.id, req.user.email, 'ESTADO', 'reserva', req.params.id, `${estadoPrevio} → ${estado}: ${motivo}`]);
+
+    await crearEnvioAutomaticoSiCorresponde(client, req.params.id, req.user.email);
 
     await client.query('COMMIT');
 

@@ -22,6 +22,24 @@ function getEnvio(id){return (DB.get('envios')||[]).find(e=>e.id===parseInt(id))
 
 let envioFilter={search:'',estado:''};
 
+function mapEnvio(e){
+  return {id:e.id,codigo:e.codigo,reservaId:e.reserva_id,
+    operadoraId:e.operadora_id,maquinaId:e.maquina_id,
+    departamento:e.departamento||'',direccion:e.direccion||'',
+    transportista:e.transportista||'',tracking:e.tracking||'',
+    estado:e.estado||'pendiente_envio',
+    fechaEnvioEst:e.fecha_envio_est||'',fechaEnvioReal:e.fecha_envio_real||'',
+    fechaRetiroEst:e.fecha_retiro_est||'',fechaRetiroReal:e.fecha_retiro_real||'',
+    costoEnvio:parseFloat(e.costo_envio)||0,costoRetiro:parseFloat(e.costo_retiro)||0,
+    moneda:e.moneda||'UYU',obs:e.obs||''};
+}
+
+async function syncEnviosDesdeServidor(){
+  const envios=await api('/api/envios');
+  DB.set('envios',envios.map(mapEnvio));
+  updateEnviosBadge();
+}
+
 function renderEnvios(){
   const envios=DB.get('envios')||[];
   const hoy=today();
@@ -199,11 +217,13 @@ function onEnvioReservaChange(){
 
 async function saveEnvio(){
   const id=gv('envioId');
+  const reservaId=parseInt(gv('envioReservaId'))||null;
+  const res=reservaId?(DB.get('reservas')||[]).find(r=>parseInt(r.id)===reservaId):null;
   const payload={
-    reserva_id:parseInt(gv('envioReservaId'))||null,
-    operadora_id:parseInt(gv('envioOperadoraId')),
-    maquina_id:parseInt(gv('envioMaquinaId')),
-    departamento:gv('envioDepartamento').trim(),
+    reserva_id:reservaId,
+    operadora_id:res?parseInt(res.operadoraId):null,
+    maquina_id:res?parseInt(res.maquinaId):null,
+    departamento:res?(res.deptLogistica||''): '',
     direccion:gv('envioDireccion').trim(),
     transportista:gv('envioTransportista').trim(),
     tracking:gv('envioTracking').trim(),
@@ -212,11 +232,12 @@ async function saveEnvio(){
     fecha_envio_real:gv('envioFechaEnvioReal')||null,
     fecha_retiro_est:gv('envioFechaRetiroEst')||null,
     fecha_retiro_real:gv('envioFechaRetiroReal')||null,
-    costo_envio:parseFloat(gv('envioCostoEnvio'))||0,
-    costo_retiro:parseFloat(gv('envioCostoRetiro'))||0,
-    moneda:gv('envioMoneda')||'UYU',
+    costo_envio:0,
+    costo_retiro:0,
+    moneda:(res&&res.moneda)||'UYU',
     obs:gv('envioObs').trim()};
-  if(!payload.operadora_id||!payload.maquina_id){showToast('\u26a0\ufe0f Operadora y m\u00e1quina son obligatorios','warn');return;}
+  if(!payload.reserva_id){showToast('\u26a0\ufe0f Seleccioná una reserva','warn');return;}
+  if(!payload.operadora_id||!payload.maquina_id){showToast('\u26a0\ufe0f La reserva seleccionada no tiene operadora o máquina','warn');return;}
   try{
     if(id){
       await api('/api/envios/'+id,{method:'PUT',body:JSON.stringify(payload)});
@@ -225,16 +246,7 @@ async function saveEnvio(){
       await api('/api/envios',{method:'POST',body:JSON.stringify(payload)});
       showToast('\u2705 Env\u00edo creado');
     }
-    const envios=await api('/api/envios');
-    DB.set('envios',envios.map(e=>({id:e.id,codigo:e.codigo,reservaId:e.reserva_id,
-      operadoraId:e.operadora_id,maquinaId:e.maquina_id,
-      departamento:e.departamento||'',direccion:e.direccion||'',
-      transportista:e.transportista||'',tracking:e.tracking||'',
-      estado:e.estado||'pendiente',
-      fechaEnvioEst:e.fecha_envio_est||'',fechaEnvioReal:e.fecha_envio_real||'',
-      fechaRetiroEst:e.fecha_retiro_est||'',fechaRetiroReal:e.fecha_retiro_real||'',
-      costoEnvio:parseFloat(e.costo_envio)||0,costoRetiro:parseFloat(e.costo_retiro)||0,
-      moneda:e.moneda||'UYU',obs:e.obs||''})));
+    await syncEnviosDesdeServidor();
     closeModal('modalEnvio');renderEnvios();updateEnviosBadge();
   }catch(e){showToast('\u274c Error: '+e.message,'error');}
 }
@@ -267,16 +279,7 @@ async function deleteEnvio(id){
   if(!confirm('\u00bfEliminar este env\u00edo?'))return;
   try{
     await api('/api/envios/'+id,{method:'DELETE'});
-    const envios=await api('/api/envios');
-    DB.set('envios',envios.map(e=>({id:e.id,codigo:e.codigo,reservaId:e.reserva_id,
-      operadoraId:e.operadora_id,maquinaId:e.maquina_id,
-      departamento:e.departamento||'',direccion:e.direccion||'',
-      transportista:e.transportista||'',tracking:e.tracking||'',
-      estado:e.estado||'pendiente',
-      fechaEnvioEst:e.fecha_envio_est||'',fechaEnvioReal:e.fecha_envio_real||'',
-      fechaRetiroEst:e.fecha_retiro_est||'',fechaRetiroReal:e.fecha_retiro_real||'',
-      costoEnvio:parseFloat(e.costo_envio)||0,costoRetiro:parseFloat(e.costo_retiro)||0,
-      moneda:e.moneda||'UYU',obs:e.obs||''})));
+    await syncEnviosDesdeServidor();
     showToast('\ud83d\uddd1 Env\u00edo eliminado');navigate('envios');updateEnviosBadge();
   }catch(e){showToast('\u274c Error: '+e.message,'error');}
 }
