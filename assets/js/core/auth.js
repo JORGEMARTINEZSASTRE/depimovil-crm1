@@ -44,11 +44,11 @@ async function requestWhatsappCode(){
   const btn=document.getElementById('waRequestBtn');
   btn.disabled=true; btn.textContent='Enviando código...';
   try{
-    await api('/api/auth/whatsapp/request',{method:'POST',body:JSON.stringify({whatsapp,rol})});
+    const data=await api('/api/auth/whatsapp/request',{method:'POST',body:JSON.stringify({whatsapp,rol})});
     document.getElementById('waCodeGroup').style.display='';
     document.getElementById('waVerifyBtn').style.display='';
     btn.textContent='Reenviar código';
-    showToast('📱 Código enviado por WhatsApp');
+    showToast(data.codigo_enviado ? '📱 Código enviado por WhatsApp' : '⏳ Código generado. Lo reintentaremos por WhatsApp.');
   }catch(e){
     err.textContent=e.message||'No se pudo enviar el código';
     err.style.display='block';
@@ -145,7 +145,7 @@ async function submitOperadoraRegistro(){
       document.getElementById('waRequestBtn').textContent='Reenviar código';
       showToast('✅ Registro creado. Te enviamos el código por WhatsApp.');
     }else{
-      showToast('✅ Registro creado. Si no llega el código, tocá Enviar código por WhatsApp.');
+      showToast('✅ Registro creado. El código quedó en reintento automático por WhatsApp.');
     }
   }catch(e){
     err.textContent=e.message||'No se pudo crear el registro';

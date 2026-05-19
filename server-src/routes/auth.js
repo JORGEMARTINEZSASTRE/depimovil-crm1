@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const pool = require('../utils/db');
 const { auth, requireRole, generateToken } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
+const { encolar } = require('../utils/wa_queue');
 
 const router = express.Router();
 const LOGIN_ROLES = ['superadmin', 'administrador', 'operaciones', 'operadora', 'operadora_habilitada', 'operadora_limitada', 'transportista', 'comercial'];
@@ -133,16 +134,53 @@ function buildOperadoraRegistroObs(payload) {
   return parts.join('\n');
 }
 
+function mensajeCodigoLogin(codigo) {
+  return `Tu código de ingreso a DepiMóvil es: *${codigo}*.\n\nVence en 10 minutos. Si no lo pediste, ignorá este mensaje.`;
+}
+
+async function crearSesionCodigoWhatsapp({ whatsapp, rol, usuarioId, ip, userAgent }) {
+  const codigo = String(Math.floor(100000 + Math.random() * 900000));
+  const codigoHash = await bcrypt.hash(codigo, 10);
+  await pool.query(
+    `INSERT INTO sesiones_whatsapp (whatsapp, codigo_hash, rol_solicitado, usuario_id, expires_at, ip, user_agent)
+     VALUES ($1,$2,$3,$4,NOW() + INTERVAL '10 minutes',$5,$6)`,
+    [whatsapp, codigoHash, rol, usuarioId, ip, userAgent || '']
+  );
+  return { codigo, mensaje: mensajeCodigoLogin(codigo) };
+}
+
+async function enviarOEncolarWhatsapp({ telefono, mensaje, tipo, operadoraId = null, reservaId = null }) {
+  const envio = await enviarMensaje(telefono, mensaje);
+  if (envio?.ok) return { enviado: true, error: null, result: envio };
+
+  await encolar({
+    reservaId,
+    operadoraId,
+    tipo,
+    mensaje,
+    telefono,
+  });
+  return { enviado: false, error: envio?.error || 'No se pudo enviar por WhatsApp', result: envio };
+}
+
 async function notifyAdminNuevaOperadora(payload, operadoraId) {
   try {
-    const { rows } = await pool.query(
-      "SELECT valor FROM configuracion WHERE clave = 'admin_whatsapp_notificaciones' LIMIT 1"
+    const { rows: configRows } = await pool.query(
+      "SELECT valor FROM configuracion WHERE clave = 'admin_whatsapp_notificaciones' AND COALESCE(valor, '') <> ''"
     );
-    const adminWhatsapp = rows[0]?.valor;
-    if (!adminWhatsapp) return;
-    await enviarMensaje(
-      adminWhatsapp,
-      [
+    const { rows: userRows } = await pool.query(
+      `SELECT whatsapp FROM usuarios
+       WHERE rol IN ('superadmin','administrador','operaciones')
+         AND status = 'activo'
+         AND COALESCE(whatsapp, '') <> ''`
+    );
+    const telefonos = [...new Set([
+      ...configRows.map(r => r.valor),
+      ...userRows.map(r => r.whatsapp),
+    ].filter(Boolean))];
+    if (!telefonos.length) return;
+
+    const mensaje = [
         'Nueva operadora registrada en DepiMóvil.',
         `ID: ${operadoraId}`,
         `Nombre: ${payload.nombre} ${payload.apellido}`,
@@ -150,8 +188,16 @@ async function notifyAdminNuevaOperadora(payload, operadoraId) {
         `Ciudad: ${payload.ciudad}${payload.departamento ? ` / ${payload.departamento}` : ''}`,
         `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
         'Estado: activa, pendiente de revisión administrativa.'
-      ].join('\n')
-    );
+      ].join('\n');
+
+    for (const telefono of telefonos) {
+      await enviarOEncolarWhatsapp({
+        telefono,
+        mensaje,
+        tipo: 'admin_nueva_operadora',
+        operadoraId,
+      });
+    }
   } catch (err) {
     console.error('Admin notification error:', err.message);
   }
@@ -263,20 +309,22 @@ router.post('/whatsapp/request', async (req, res) => {
       return res.status(429).json({ error: 'Esperá un minuto antes de pedir otro código' });
     }
 
-    const codigo = String(Math.floor(100000 + Math.random() * 900000));
-    const codigoHash = await bcrypt.hash(codigo, 10);
-    await pool.query(
-      `INSERT INTO sesiones_whatsapp (whatsapp, codigo_hash, rol_solicitado, usuario_id, expires_at, ip, user_agent)
-       VALUES ($1,$2,$3,$4,NOW() + INTERVAL '10 minutes',$5,$6)`,
-      [whatsapp, codigoHash, rol, user.id, req.ip, req.headers['user-agent'] || '']
-    );
-
-    await enviarMensaje(
+    const { mensaje } = await crearSesionCodigoWhatsapp({
       whatsapp,
-      `Tu código de ingreso a DepiMóvil es: *${codigo}*.\n\nVence en 10 minutos. Si no lo pediste, ignorá este mensaje.`
-    );
+      rol,
+      usuarioId: user.id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] || '',
+    });
 
-    res.json({ ok: true, whatsapp, expires_in_minutes: 10 });
+    const envio = await enviarOEncolarWhatsapp({
+      telefono: whatsapp,
+      mensaje,
+      tipo: rol === 'operadora' ? 'codigo_login_operadora' : 'codigo_login',
+      operadoraId: user.operadora_id || null,
+    });
+
+    res.json({ ok: true, whatsapp, expires_in_minutes: 10, codigo_enviado: envio.enviado, codigo_error: envio.error });
   } catch (err) {
     console.error('WhatsApp request error:', err);
     res.status(500).json({ error: 'Error interno' });
@@ -449,19 +497,21 @@ router.post('/operadora/register', async (req, res) => {
     let codigoEnviado = false;
     let codigoError = null;
     try {
-      const codigo = String(Math.floor(100000 + Math.random() * 900000));
-      const codigoHash = await bcrypt.hash(codigo, 10);
-      await pool.query(
-        `INSERT INTO sesiones_whatsapp (whatsapp, codigo_hash, rol_solicitado, usuario_id, expires_at, ip, user_agent)
-         VALUES ($1,$2,$3,$4,NOW() + INTERVAL '10 minutes',$5,$6)`,
-        [payload.whatsapp, codigoHash, 'operadora', usuarioResult.rows[0].id, req.ip, req.headers['user-agent'] || '']
-      );
-      const envio = await enviarMensaje(
-        payload.whatsapp,
-        `Tu código de ingreso a DepiMóvil es: *${codigo}*.\n\nVence en 10 minutos. Si no lo pediste, ignorá este mensaje.`
-      );
-      codigoEnviado = !!envio?.ok;
-      codigoError = envio?.error || null;
+      const { mensaje } = await crearSesionCodigoWhatsapp({
+        whatsapp: payload.whatsapp,
+        rol: 'operadora',
+        usuarioId: usuarioResult.rows[0].id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'] || '',
+      });
+      const envio = await enviarOEncolarWhatsapp({
+        telefono: payload.whatsapp,
+        mensaje,
+        tipo: 'codigo_login_operadora',
+        operadoraId: operadora.id,
+      });
+      codigoEnviado = envio.enviado;
+      codigoError = envio.error;
     } catch (codeErr) {
       codigoError = codeErr.message || 'No se pudo enviar el código';
       console.error('Operadora register auto-code error:', codeErr);
