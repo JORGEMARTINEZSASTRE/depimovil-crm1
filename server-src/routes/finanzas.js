@@ -157,7 +157,7 @@ async function ensureSchema() {
     ['sena','ingreso','Seña',false], ['saldo_reserva','ingreso','Saldo reserva',false],
     ['venta_maquina','ingreso','Venta máquina',false], ['adelanto_venta','ingreso','Adelanto venta máquina',false],
     ['ajuste_positivo','ingreso','Ajuste positivo',false], ['otros_ingreso','ingreso','Otros ingresos',true],
-    ['transporte','egreso','Transporte',false], ['limpieza','egreso','Limpieza',false],
+    ['transporte','egreso','Transporte',false], ['limpieza','egreso','Puesta a punto de la máquina',false],
     ['servicio_tecnico','egreso','Servicio técnico',false], ['repuestos','egreso','Repuestos',false],
     ['insumos','egreso','Insumos',false], ['comisiones','egreso','Comisiones',false],
     ['ajuste_negativo','egreso','Ajuste negativo',true], ['otros_egreso','egreso','Otros egresos',true],

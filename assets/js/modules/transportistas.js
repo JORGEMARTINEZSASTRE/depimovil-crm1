@@ -159,8 +159,8 @@ function htmlFicha(t, envios, incs, pagos) {
       <div class="tarifa-grid">
         <div class="tarifa-item"><div class="t-lbl">Envío chica</div><div class="t-val">$${t.tarifa_envio_chica}</div></div>
         <div class="tarifa-item"><div class="t-lbl">Envío grande</div><div class="t-val">$${t.tarifa_envio_grande}</div></div>
-        <div class="tarifa-item"><div class="t-lbl">Limpieza chica</div><div class="t-val">$${t.tarifa_limpieza_chica || 0}</div></div>
-        <div class="tarifa-item"><div class="t-lbl">Limpieza grande</div><div class="t-val">$${t.tarifa_limpieza_grande || 0}</div></div>
+        <div class="tarifa-item"><div class="t-lbl">Puesta a punto máquina chica</div><div class="t-val">$${t.tarifa_limpieza_chica || 0}</div></div>
+        <div class="tarifa-item"><div class="t-lbl">Puesta a punto máquina grande</div><div class="t-val">$${t.tarifa_limpieza_grande || 0}</div></div>
       </div>
     </div>
 
@@ -225,7 +225,7 @@ function htmlEnvioRow(e) {
         </div>
         <div class="envio-detalle">
           ${e.departamento_destino || ''} · ${e.tipo_maquina} · $${e.costo_total}
-          ${e.incluye_limpieza ? '+ limpieza' : ''}
+          ${e.incluye_limpieza ? '+ puesta a punto de la máquina' : ''}
           &nbsp;${rastreo}&nbsp;${notif}
         </div>
       </div>
@@ -239,7 +239,7 @@ function htmlPagoRow(p) {
   return `
     <div class="pago-row">
       <div class="pago-periodo">${formatFecha(p.periodo_desde)} — ${formatFecha(p.periodo_hasta)}
-        <span class="pago-meta">${p.total_envios} envíos · ${p.total_limpiezas} limpiezas</span>
+        <span class="pago-meta">${p.total_envios} envíos · ${p.total_limpiezas} puestas a punto</span>
       </div>
       <div class="pago-right">
         <span class="pago-monto">$${p.monto_total}</span>
@@ -527,11 +527,11 @@ function abrirFormTransportista(t) {
             <input type="number" id="f-env-grande" value="${t?.tarifa_envio_grande||0}" min="0">
           </div>
           <div>
-            <label class="field-label">Limpieza chica ($)</label>
+            <label class="field-label">Puesta a punto máquina chica ($)</label>
             <input type="number" id="f-limp-chica" value="${t?.tarifa_limpieza_chica||0}" min="0">
           </div>
           <div>
-            <label class="field-label">Limpieza grande ($)</label>
+            <label class="field-label">Puesta a punto máquina grande ($)</label>
             <input type="number" id="f-limp-grande" value="${t?.tarifa_limpieza_grande||0}" min="0">
           </div>
         </div>
@@ -661,7 +661,7 @@ async function abrirFormNuevoEnvio(transportistaId) {
 
         <label class="dep-check" style="margin-top:10px">
           <input type="checkbox" id="env-limpieza" onchange="actualizarCostosEnvio()">
-          Incluye limpieza
+          Incluye puesta a punto de la máquina
         </label>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
@@ -670,7 +670,7 @@ async function abrirFormNuevoEnvio(transportistaId) {
             <input type="number" id="env-costo" value="${t?.tarifa_envio_chica||0}" min="0">
           </div>
           <div>
-            <label class="field-label">Costo limpieza ($)</label>
+            <label class="field-label">Costo puesta a punto ($)</label>
             <input type="number" id="env-costo-limp" value="0" min="0" disabled>
           </div>
         </div>
@@ -808,7 +808,7 @@ function abrirFormLiquidacion(transportistaId) {
             <input type="number" id="liq-env" value="0" min="0">
           </div>
           <div>
-            <label class="field-label">Total limpiezas</label>
+            <label class="field-label">Total puestas a punto</label>
             <input type="number" id="liq-limp" value="0" min="0">
           </div>
         </div>
@@ -818,7 +818,7 @@ function abrirFormLiquidacion(transportistaId) {
             <input type="number" id="liq-monto-env" value="0" min="0">
           </div>
           <div>
-            <label class="field-label">Monto limpiezas ($)</label>
+            <label class="field-label">Monto puestas a punto ($)</label>
             <input type="number" id="liq-monto-limp" value="0" min="0">
           </div>
         </div>

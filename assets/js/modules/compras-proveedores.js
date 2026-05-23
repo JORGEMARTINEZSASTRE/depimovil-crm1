@@ -10,7 +10,7 @@ function ensureComprasData(){
 }
 function getProveedor(id){return (DB.get('proveedores')||[]).find(p=>parseInt(p.id)===parseInt(id));}
 function compraCategoriaLabel(c){
-  return {repuestos:'Repuestos',insumos:'Insumos',servicio_tecnico:'Servicio técnico',limpieza:'Limpieza',transporte:'Transporte',otros:'Otros'}[c]||c;
+  return {repuestos:'Repuestos',insumos:'Insumos',servicio_tecnico:'Servicio técnico',limpieza:'Puesta a punto de la máquina',transporte:'Transporte',otros:'Otros'}[c]||c;
 }
 function compraEstadoBadge(e){
   const map={pendiente:['badge-yellow','Pendiente'],parcial:['badge-blue','Parcial'],pagada:['badge-green','Pagada'],anulada:['badge-red','Anulada']};

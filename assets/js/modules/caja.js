@@ -12,7 +12,7 @@ const CAJA_CATEGORIAS_DEFAULT=[
   {id:'ajuste_positivo',tipo:'ingreso',label:'Ajuste positivo'},
   {id:'otros_ingreso',tipo:'ingreso',label:'Otros ingresos',requiereObs:true},
   {id:'transporte',tipo:'egreso',label:'Transporte'},
-  {id:'limpieza',tipo:'egreso',label:'Limpieza'},
+  {id:'limpieza',tipo:'egreso',label:'Puesta a punto de la máquina'},
   {id:'servicio_tecnico',tipo:'egreso',label:'Servicio técnico'},
   {id:'repuestos',tipo:'egreso',label:'Repuestos'},
   {id:'insumos',tipo:'egreso',label:'Insumos'},
