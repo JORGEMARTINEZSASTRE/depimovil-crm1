@@ -33,6 +33,52 @@ function normalizeDateForDb(value) {
   return null;
 }
 
+function normalizeJsonArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizeDirecciones(value, direccionEntrega, tipoDireccion) {
+  const direcciones = normalizeJsonArray(value).map((d, idx) => ({
+    direccion: String(d.direccion || '').trim(),
+    localidad: String(d.localidad || d.ciudad || '').trim(),
+    departamento: String(d.departamento || '').trim(),
+    pais: String(d.pais || '').trim(),
+    referencia: String(d.referencia || d.obs || '').trim(),
+    tipo: String(d.tipo || tipoDireccion || 'trabajo').trim(),
+    principal: !!d.principal || idx === 0
+  })).filter(d => d.direccion);
+  if (!direcciones.length && direccionEntrega) {
+    direcciones.push({
+      direccion: String(direccionEntrega).trim(),
+      localidad: '',
+      departamento: '',
+      pais: '',
+      referencia: '',
+      tipo: tipoDireccion || 'trabajo',
+      principal: true
+    });
+  }
+  return direcciones;
+}
+
+function normalizeEquipos(value) {
+  return normalizeJsonArray(value).map(e => ({
+    equipo: String(e.equipo || e.maquina || '').trim(),
+    valor: Number(e.valor || e.monto || 0) || 0,
+    jornadas: Number.parseInt(e.jornadas || e.cantidad_jornadas || 0, 10) || 0,
+    obs: String(e.obs || e.notas || '').trim()
+  })).filter(e => e.equipo);
+}
+
 // ─────────────────────────────────────────────
 // GET /api/operadoras — listar todas
 // ─────────────────────────────────────────────
@@ -42,8 +88,8 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.operadora_id) return res.json([]);
       const { rows } = await pool.query(
         `SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
-                whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
-                direccion_entrega, tipo_direccion, portal_token
+                whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+                direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila, portal_token
          FROM operadoras
          WHERE id = $1`,
         [req.user.operadora_id]
@@ -53,8 +99,8 @@ router.get('/', auth, async (req, res) => {
     if (req.user.rol === 'transportista') return res.json([]);
     const { rows } = await pool.query(`
       SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
-             whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
-             direccion_entrega, tipo_direccion, portal_token
+             whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+             direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila, portal_token
       FROM operadoras
       ORDER BY nombre, apellido
     `);
@@ -75,8 +121,8 @@ router.get('/:id', auth, async (req, res) => {
     }
     const { rows } = await pool.query(`
       SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
-             whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
-             direccion_entrega, tipo_direccion, portal_token
+             whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+             direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila, portal_token
       FROM operadoras WHERE id = $1
     `, [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Operadora no encontrada' });
@@ -93,13 +139,17 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), async (req, res) => {
   const {
     nombre, apellido, gabinete, ciudad, departamento, pais,
-    whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
-    direccion_entrega, tipo_direccion
+    whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+    direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila
   } = req.body;
 
   if (!nombre || !apellido) {
     return res.status(400).json({ error: 'Nombre y apellido son obligatorios' });
   }
+
+  const direcciones = normalizeDirecciones(direcciones_entrega, direccion_entrega, tipo_direccion);
+  const direccionPrincipal = direcciones.find(d => d.principal) || direcciones[0] || null;
+  const equipos = normalizeEquipos(equipos_alquila);
 
   const client = await pool.connect();
   try {
@@ -107,16 +157,17 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
     const { rows } = await client.query(`
       INSERT INTO operadoras (
         nombre, apellido, gabinete, ciudad, departamento, pais,
-        whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
-        direccion_entrega, tipo_direccion
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+        direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING *
     `, [
       nombre.trim(), apellido.trim(), gabinete || null, ciudad || null, departamento || null,
-      pais || 'Uruguay', whatsapp || null, telefono || null, email || null,
+      pais || 'Uruguay', whatsapp || null, null, instagram_usuario || null, email || null,
       normalizeDateForDb(fecha_alta) || new Date().toISOString().split('T')[0],
       estado || 'prospecto', nivel || 'Inicial', obs || null,
-      direccion_entrega || null, tipo_direccion || 'trabajo'
+      direccionPrincipal?.direccion || null, direccionPrincipal?.tipo || tipo_direccion || 'trabajo',
+      JSON.stringify(direcciones), JSON.stringify(equipos)
     ]);
     const op = rows[0];
     // Generar portal_token automáticamente
@@ -145,27 +196,32 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
 router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'comercial'), async (req, res) => {
   const {
     nombre, apellido, gabinete, ciudad, departamento, pais,
-    whatsapp, telefono, email, fecha_alta, estado, nivel, obs,
-    direccion_entrega, tipo_direccion
+    whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+    direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila
   } = req.body;
 
   if (!nombre || !apellido) {
     return res.status(400).json({ error: 'Nombre y apellido son obligatorios' });
   }
 
+  const direcciones = normalizeDirecciones(direcciones_entrega, direccion_entrega, tipo_direccion);
+  const direccionPrincipal = direcciones.find(d => d.principal) || direcciones[0] || null;
+  const equipos = normalizeEquipos(equipos_alquila);
+
   try {
     const { rows } = await pool.query(`
       UPDATE operadoras SET
         nombre=$1, apellido=$2, gabinete=$3, ciudad=$4, departamento=$5, pais=$6,
-        whatsapp=$7, telefono=$8, email=$9, fecha_alta=$10, estado=$11, nivel=$12,
-        obs=$13, direccion_entrega=$14, tipo_direccion=$15, updated_at=NOW()
-      WHERE id=$16
+        whatsapp=$7, telefono=$8, instagram_usuario=$9, email=$10, fecha_alta=$11, estado=$12, nivel=$13,
+        obs=$14, direccion_entrega=$15, tipo_direccion=$16, direcciones_entrega=$17, equipos_alquila=$18, updated_at=NOW()
+      WHERE id=$19
       RETURNING *
     `, [
       nombre.trim(), apellido.trim(), gabinete || null, ciudad || null, departamento || null,
-      pais || 'Uruguay', whatsapp || null, telefono || null, email || null,
+      pais || 'Uruguay', whatsapp || null, null, instagram_usuario || null, email || null,
       normalizeDateForDb(fecha_alta), estado || 'activa', nivel || 'Inicial', obs || null,
-      direccion_entrega || null, tipo_direccion || 'trabajo', req.params.id
+      direccionPrincipal?.direccion || null, direccionPrincipal?.tipo || tipo_direccion || 'trabajo',
+      JSON.stringify(direcciones), JSON.stringify(equipos), req.params.id
     ]);
     if (!rows.length) return res.status(404).json({ error: 'Operadora no encontrada' });
 
@@ -185,23 +241,7 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'comercial'), 
 // DELETE /api/operadoras/:id — eliminar
 // ─────────────────────────────────────────────
 router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
-  try {
-    const { rows } = await pool.query('DELETE FROM operadoras WHERE id=$1 RETURNING id, nombre, apellido', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ error: 'Operadora no encontrada' });
-
-    await pool.query(
-      `INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
-      [req.user.id, req.user.email, 'DELETE', 'operadora', req.params.id, `${rows[0].nombre} ${rows[0].apellido}`]
-    );
-    res.status(204).end();
-  } catch (err) {
-    console.error('DELETE /api/operadoras/:id error:', err);
-    if (err.code === '23503') {
-      return res.status(409).json({ error: 'No se puede eliminar: la operadora tiene registros asociados' });
-    }
-    res.status(500).json({ error: 'Error al eliminar operadora' });
-  }
+  res.status(405).json({ error: 'La eliminación de operadoras está deshabilitada. Usá estado Inactiva o Suspendida.' });
 });
 
 // ─────────────────────────────────────────────

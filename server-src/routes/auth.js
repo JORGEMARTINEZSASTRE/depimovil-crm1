@@ -445,9 +445,9 @@ router.post('/operadora/register', async (req, res) => {
     const operadoraResult = await client.query(
       `INSERT INTO operadoras (
         nombre, apellido, gabinete, ciudad, departamento, pais, whatsapp, telefono, email,
-        fecha_alta, estado, nivel, obs, portal_token
+        fecha_alta, estado, nivel, obs, direccion_entrega, tipo_direccion, direcciones_entrega, portal_token
       )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_DATE,$10,$11,$12,$13)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_DATE,$10,$11,$12,$13,$14,$15,$16)
        RETURNING *`,
       [
         payload.nombre,
@@ -457,11 +457,22 @@ router.post('/operadora/register', async (req, res) => {
         payload.departamento,
         'Uruguay',
         payload.whatsapp,
-        payload.whatsapp,
+        null,
         '',
         'activa',
         payload.experiencia || 'Inicial',
         obs,
+        payload.lugares_trabajo || null,
+        'trabajo',
+        JSON.stringify(payload.lugares_trabajo ? [{
+          direccion: payload.lugares_trabajo,
+          localidad: payload.ciudad,
+          departamento: payload.departamento,
+          pais: 'Uruguay',
+          referencia: '',
+          tipo: 'trabajo',
+          principal: true
+        }] : []),
         makePortalToken()
       ]
     );

@@ -3,8 +3,37 @@
 ══════════════════════════════════ */
 
 /* ── Core helpers ── */
+function defaultWAPlantillas(){
+  return [
+    {id:'registro_operadora', evento:'Operadora: Registro recibido', activa:true,
+     mensaje:'Hola {{nombre}} 👋\nRecibimos tu registro como operadora DepiMóvil. El equipo va a revisar tus datos y documentación para habilitarte.\n_Equipo DepiMóvil_ ✦'},
+    {id:'codigo_acceso', evento:'Acceso: Código de ingreso', activa:true,
+     mensaje:'Tu código de ingreso a DepiMóvil es: *{{codigo}}*.\n\nVence en 10 minutos. Si no lo pediste, ignorá este mensaje.'},
+    {id:'reserva_nueva', evento:'Reserva: Solicitud recibida', activa:true,
+     mensaje:'Hola {{nombre}} 👋\nRecibimos tu solicitud de reserva *{{reserva}}* para la máquina *{{maquina}}* el *{{fecha}}*.\nEstamos revisando disponibilidad y te confirmamos a la brevedad.\n_Equipo DepiMóvil_ ✦'},
+    {id:'reserva_confirmada', evento:'Reserva: Confirmada', activa:true,
+     mensaje:'Hola {{nombre}}, tu reserva *{{reserva}}* está confirmada.\nMáquina: *{{maquina}}*\nFecha: *{{fecha}}*\nMonto: *{{monto}}*\nCoordinamos logística por este medio.\n_Equipo DepiMóvil_ ✦'},
+    {id:'recordatorio_jornada', evento:'Reserva: Recordatorio de jornada', activa:true,
+     mensaje:'Hola {{nombre}}, te recordamos tu jornada DepiMóvil de mañana.\nMáquina: *{{maquina}}*\nReserva: *{{reserva}}*\nAnte cualquier cambio, avisanos por este WhatsApp.'},
+    {id:'documentacion_pendiente', evento:'Documentos: Pendiente', activa:true,
+     mensaje:'Hola {{nombre}}, para avanzar necesitamos que completes la documentación pendiente en tu portal DepiMóvil.\nSi precisás ayuda, respondé este mensaje.'},
+    {id:'material_educativo', evento:'Formación: Material educativo', activa:true,
+     mensaje:'Hola {{nombre}}, te compartimos material de capacitación para la máquina *{{maquina}}*.\nRevisá el manual/video antes de realizar el test o la jornada.\n_Equipo DepiMóvil_ ✦'},
+    {id:'post_servicio', evento:'Seguimiento: Post servicio', activa:true,
+     mensaje:'Hola {{nombre}}, ¿cómo salió la jornada con *{{maquina}}*?\nTu devolución nos ayuda a mejorar equipos, logística y capacitación.'}
+  ];
+}
+
+function ensureWAPlantillas(){
+  const actuales = DB.get('wa_plantillas')||[];
+  const defaults = defaultWAPlantillas();
+  const faltantes = defaults.filter(d=>!actuales.some(p=>p.id===d.id));
+  if(faltantes.length) DB.set('wa_plantillas',[...actuales,...faltantes]);
+  return DB.get('wa_plantillas')||[];
+}
+
 function generarMensaje(plantillaId, operadoraId, ctx){
-  const plantillas = DB.get('wa_plantillas')||[];
+  const plantillas = ensureWAPlantillas();
   const pt = plantillas.find(p=>p.id===plantillaId);
   if(!pt) return '';
   const op = getOp(operadoraId)||{};
@@ -20,12 +49,13 @@ function generarMensaje(plantillaId, operadoraId, ctx){
     monto: ctx.monto ? `${Number(ctx.monto).toLocaleString()} ${ctx.moneda||'UYU'}` : (res.monto ? `${res.monto.toLocaleString()} ${res.moneda||'UYU'}` : ''),
     estado: RES_ESTADOS[res.estado]?.label || res.estado || '',
     departamento: res.deptLogistica || op.departamento || '',
+    codigo: ctx.codigo || '',
   };
   return pt.mensaje.replace(/\{\{(\w+)\}\}/g, (_,k) => vars[k]||'');
 }
 
 function encolarNotificacion(plantillaId, operadoraId, ctx){
-  const plantillas = DB.get('wa_plantillas')||[];
+  const plantillas = ensureWAPlantillas();
   const pt = plantillas.find(p=>p.id===plantillaId);
   if(!pt || !pt.activa) return;
   const op = getOp(operadoraId);
@@ -303,6 +333,7 @@ function switchWaTab(tab, btn){
 
 function renderWA(tab){
   waActiveTab = tab||waActiveTab;
+  ensureWAPlantillas();
   updateWABadge();
   const notifs = DB.get('wa_notificaciones')||[];
   const el = document.getElementById('waTabContent');

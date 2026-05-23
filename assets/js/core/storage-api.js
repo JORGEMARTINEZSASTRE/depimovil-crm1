@@ -134,6 +134,22 @@ function mapHabilitacion(h){
     ts:h.ts||h.created_at||new Date().toISOString(),
   };
 }
+function mapOperadora(o){
+  const direcciones = Array.isArray(o.direcciones_entrega) ? o.direcciones_entrega : [];
+  const equipos = Array.isArray(o.equipos_alquila) ? o.equipos_alquila : [];
+  return {
+    id:o.id,nombre:o.nombre,apellido:o.apellido||'',
+    gabinete:o.gabinete||'',ciudad:o.ciudad||'',departamento:o.departamento||'',
+    pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
+    instagramUsuario:o.instagram_usuario||'',email:o.email||'',fechaAlta:o.fecha_alta,
+    estado:o.estado,nivel:o.nivel||'Intermedio',obs:o.obs||'',
+    direccionEntrega:o.direccion_entrega||direcciones[0]?.direccion||'',
+    tipoDireccion:o.tipo_direccion||direcciones[0]?.tipo||'trabajo',
+    direccionesEntrega:direcciones,
+    equiposAlquila:equipos,
+    portalToken:o.portal_token||''
+  };
+}
 function mapEnvio(e){
   return {
     id:e.id,codigo:e.codigo,reservaId:e.reserva_id,
@@ -186,12 +202,7 @@ async function loadAllData(){
     ]);
     const val=function(i, fallback){return results[i].status==='fulfilled'?results[i].value:fallback};
     const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]), finanzas=val(7,null), envios=val(8,[]), transportistas=val(9,[]);
-    DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
-      gabinete:o.gabinete||'',ciudad:o.ciudad,departamento:o.departamento||'',
-      pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
-      email:o.email||'',fechaAlta:o.fecha_alta,estado:o.estado,
-      nivel:o.nivel||'Intermedio',obs:o.obs||'',
-      direccionEntrega:o.direccion_entrega||'',tipoDireccion:o.tipo_direccion||'trabajo',portalToken:o.portal_token||''})));
+    DB.set('operadoras',ops.map(mapOperadora));
     DB.set('maquinas',maqs.map(m=>({id:m.id,codigo:m.codigo,nombre:m.nombre,
       categoria:m.categoria||'',ubicacion:m.ubicacion||'',estado:m.estado||'disponible',
       serial:m.serial_num||'',obs:m.obs||''})));

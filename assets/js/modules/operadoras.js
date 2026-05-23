@@ -62,6 +62,50 @@ function previewRegistroOperadoraLink(){
   div.addEventListener('click', e=>{ if(e.target===div) div.remove(); });
   document.body.appendChild(div);
 }
+function parseOperadoraDirecciones(text, fallbackTipo){
+  return String(text||'').split('\n').map((line, idx)=>{
+    const parts=line.split('|').map(p=>p.trim());
+    return {
+      direccion:parts[0]||'',
+      localidad:parts[1]||'',
+      departamento:parts[2]||'',
+      pais:parts[3]||'',
+      referencia:parts[4]||'',
+      tipo:parts[5]||fallbackTipo||'trabajo',
+      principal:idx===0
+    };
+  }).filter(d=>d.direccion);
+}
+function formatOperadoraDirecciones(direcciones, direccionEntrega, tipoDireccion){
+  const ds=(Array.isArray(direcciones)&&direcciones.length)?direcciones:[];
+  const base=ds.length?ds:(direccionEntrega?[{direccion:direccionEntrega,tipo:tipoDireccion||'trabajo',principal:true}]:[]);
+  return base.map(d=>[d.direccion,d.localidad,d.departamento,d.pais,d.referencia,d.tipo].filter((v,i)=>i===0||v).join(' | ')).join('\n');
+}
+function parseOperadoraEquipos(text){
+  return String(text||'').split('\n').map(line=>{
+    const parts=line.split('|').map(p=>p.trim());
+    return {
+      equipo:parts[0]||'',
+      valor:parseFloat(String(parts[1]||'').replace(',','.'))||0,
+      jornadas:parseInt(parts[2]||'0',10)||0,
+      obs:parts[3]||''
+    };
+  }).filter(e=>e.equipo);
+}
+function formatOperadoraEquipos(equipos){
+  return (Array.isArray(equipos)?equipos:[]).map(e=>[e.equipo,e.valor||'',e.jornadas||'',e.obs||''].filter((v,i)=>i===0||v!==''&&v!=null).join(' | ')).join('\n');
+}
+function mapOperadoraLocal(o){
+  const direcciones=Array.isArray(o.direcciones_entrega)?o.direcciones_entrega:[];
+  const equipos=Array.isArray(o.equipos_alquila)?o.equipos_alquila:[];
+  return {id:o.id,nombre:o.nombre,apellido:o.apellido||'',
+    gabinete:o.gabinete||'',ciudad:o.ciudad||'',departamento:o.departamento||'',
+    pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
+    instagramUsuario:o.instagram_usuario||'',email:o.email||'',fechaAlta:o.fecha_alta,estado:o.estado,
+    nivel:o.nivel||'Intermedio',obs:o.obs||'',
+    direccionEntrega:o.direccion_entrega||direcciones[0]?.direccion||'',tipoDireccion:o.tipo_direccion||direcciones[0]?.tipo||'trabajo',
+    direccionesEntrega:direcciones,equiposAlquila:equipos,portalToken:o.portal_token||''};
+}
 function showOpFicha(id){
   if(typeof isOperadoraRole==='function'&&isOperadoraRole(currentUser?.rol)&&parseInt(id)!==parseInt(currentUser?.operadora_id)){
     showToast('⚠️ No podés ver la ficha de otra operadora','warn');
@@ -79,14 +123,13 @@ function showOpFicha(id){
       <div class="ficha-actions">
         ${badgeOp(o.estado)}
         ${canEdit()?`<button class="btn-secondary" onclick="openOpModal(${o.id})">✏️ Editar</button>`:''}
-        ${isSuperAdmin()?`<button class="btn-danger" onclick="deleteOperadora(${o.id})">🗑</button>`:''}
       </div>
     </div>
     <div class="ficha-grid">
       <div class="info-card">
         <h4>📋 Datos Personales</h4>
         ${ir('Nombre completo',o.nombre+' '+o.apellido)}${ir('Email',o.email||'—')}
-        ${ir('WhatsApp',o.whatsapp||'—')}${ir('Teléfono',o.telefono||'—')}
+        ${ir('WhatsApp',o.whatsapp||'—')}${ir('Instagram',o.instagramUsuario?('@'+String(o.instagramUsuario).replace(/^@/,'')):'—')}
         ${ir('Fecha de alta',fmtDate(o.fechaAlta))}${ir('Estado',badgeOp(o.estado))}
         ${ir('Nivel',`<span class="badge badge-blue">${o.nivel}</span>`)}
       </div>
@@ -94,7 +137,15 @@ function showOpFicha(id){
         <h4>📍 Ubicación & Entrega</h4>
         ${ir('Gabinete',o.gabinete||'—')}${ir('Ciudad',o.ciudad)}
         ${ir('Departamento',o.departamento)}${ir('País',o.pais)}
-        ${o.direccionEntrega?ir('📦 Dir. Entrega',`<span style="color:var(--accent);font-weight:600">${o.direccionEntrega}</span><span class="badge ${o.tipoDireccion==='trabajo'?'badge-blue':'badge-purple'}" style="margin-left:8px">${o.tipoDireccion==='trabajo'?'🏢 Trabajo':'🏠 Domicilio'}</span>`):ir('📦 Dir. Entrega','<span style="color:var(--red);font-size:12px">⚠️ Sin dirección</span>')}
+        ${(()=>{
+          const direcciones=(o.direccionesEntrega&&o.direccionesEntrega.length)?o.direccionesEntrega:(o.direccionEntrega?[{direccion:o.direccionEntrega,tipo:o.tipoDireccion,principal:true}]:[]);
+          if(!direcciones.length)return ir('📦 Direcciones de entrega','<span style="color:var(--red);font-size:12px">⚠️ Sin dirección</span>');
+          return ir('📦 Direcciones de entrega',direcciones.map(d=>`<div style="margin-bottom:6px"><span style="color:var(--accent);font-weight:600">${d.direccion}</span>${d.localidad?` · ${d.localidad}`:''}${d.departamento?` · ${d.departamento}`:''}${d.principal?'<span class="badge badge-blue" style="margin-left:8px">Principal</span>':''}</div>`).join(''));
+        })()}
+      </div>
+      <div class="info-card">
+        <h4>🧾 Equipos que alquila</h4>
+        ${(o.equiposAlquila||[]).length?(o.equiposAlquila||[]).map(e=>`<div class="dash-list-item"><div><div class="name">${e.equipo}</div><div class="sub">${e.jornadas||0} jornada${parseInt(e.jornadas||0,10)===1?'':'s'}${e.obs?' · '+e.obs:''}</div></div><strong>${(parseFloat(e.valor)||0).toLocaleString()} UYU</strong></div>`).join(''):`<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin equipos cargados.</div>`}
       </div>
       <div class="info-card">
         <h4>📅 Reservas (${reservas.length})</h4>
@@ -144,11 +195,12 @@ function openOpModal(id){
     const o=(DB.get('operadoras')||[]).find(x=>x.id===id);if(!o)return;
     sv('opId',o.id);sv('opNombre',o.nombre);sv('opApellido',o.apellido);sv('opGabinete',o.gabinete);
     sv('opCiudad',o.ciudad);sv('opDepartamento',o.departamento);sv('opPais',o.pais);
-    sv('opWhatsapp',o.whatsapp);sv('opTelefono',o.telefono);sv('opEmail',o.email);
+    sv('opWhatsapp',o.whatsapp);sv('opInstagram',o.instagramUsuario||'');sv('opEmail',o.email);
     sv('opFechaAlta',normalizeDateInput(o.fechaAlta));sv('opEstado',o.estado);sv('opNivel',o.nivel);sv('opObs',o.obs);
-    sv('opDireccionEntrega',o.direccionEntrega||'');sv('opTipoDireccion',o.tipoDireccion||'trabajo');
+    sv('opDireccionesEntrega',formatOperadoraDirecciones(o.direccionesEntrega,o.direccionEntrega,o.tipoDireccion));sv('opTipoDireccion',o.tipoDireccion||'trabajo');
+    sv('opEquiposAlquila',formatOperadoraEquipos(o.equiposAlquila));
   } else {
-    ['opId','opNombre','opApellido','opGabinete','opCiudad','opDepartamento','opWhatsapp','opTelefono','opEmail','opObs','opDireccionEntrega'].forEach(f=>sv(f,''));
+    ['opId','opNombre','opApellido','opGabinete','opCiudad','opDepartamento','opWhatsapp','opInstagram','opEmail','opObs','opDireccionesEntrega','opEquiposAlquila'].forEach(f=>sv(f,''));
     sv('opTipoDireccion','trabajo');
     sv('opPais','Uruguay');sv('opFechaAlta',today());sv('opEstado','prospecto');sv('opNivel','Inicial');
   }
@@ -159,9 +211,12 @@ async function saveOperadora(){
   const payload={
     nombre:gv('opNombre').trim(),apellido:gv('opApellido').trim(),gabinete:gv('opGabinete').trim(),
     ciudad:gv('opCiudad').trim(),departamento:gv('opDepartamento').trim(),pais:gv('opPais').trim(),
-    whatsapp:gv('opWhatsapp').trim(),telefono:gv('opTelefono').trim(),email:gv('opEmail').trim(),
+    whatsapp:gv('opWhatsapp').trim(),instagram_usuario:gv('opInstagram').trim(),email:gv('opEmail').trim(),
     fecha_alta:gv('opFechaAlta'),estado:gv('opEstado'),nivel:gv('opNivel'),obs:gv('opObs').trim(),
-    direccion_entrega:gv('opDireccionEntrega').trim(),tipo_direccion:gv('opTipoDireccion')};
+    tipo_direccion:gv('opTipoDireccion'),
+    direcciones_entrega:parseOperadoraDirecciones(gv('opDireccionesEntrega'),gv('opTipoDireccion')),
+    equipos_alquila:parseOperadoraEquipos(gv('opEquiposAlquila'))};
+  payload.direccion_entrega=payload.direcciones_entrega[0]?.direccion||'';
   if(!payload.nombre||!payload.apellido){showToast('\u26a0\ufe0f Nombre y apellido son obligatorios','warn');return;}
   try{
     let saved;
@@ -180,26 +235,10 @@ async function saveOperadora(){
       }
     }
     const ops=await api('/api/operadoras');
-    DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
-      gabinete:o.gabinete||'',ciudad:o.ciudad||'',departamento:o.departamento||'',
-      pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
-      email:o.email||'',fechaAlta:o.fecha_alta,estado:o.estado,
-      nivel:o.nivel||'Intermedio',obs:o.obs||'',
-      direccionEntrega:o.direccion_entrega||'',tipoDireccion:o.tipo_direccion||'trabajo',portalToken:o.portal_token||''})));
+    DB.set('operadoras',ops.map(mapOperadoraLocal));
     closeModal('modalOp');renderOperadoras();
   }catch(e){showToast('\u274c Error: '+e.message,'error');}
 }
 async function deleteOperadora(id){
-  if(!confirm('\u00bfEliminar esta operadora?'))return;
-  try{
-    await api('/api/operadoras/'+id,{method:'DELETE'});
-    const ops=await api('/api/operadoras');
-    DB.set('operadoras',ops.map(o=>({id:o.id,nombre:o.nombre,apellido:o.apellido||'',
-      gabinete:o.gabinete||'',ciudad:o.ciudad||'',departamento:o.departamento||'',
-      pais:o.pais||'Uruguay',whatsapp:o.whatsapp||'',telefono:o.telefono||'',
-      email:o.email||'',fechaAlta:o.fecha_alta,estado:o.estado,
-      nivel:o.nivel||'Intermedio',obs:o.obs||'',
-      direccionEntrega:o.direccion_entrega||'',tipoDireccion:o.tipo_direccion||'trabajo',portalToken:o.portal_token||''})));
-    showToast('\ud83d\uddd1 Operadora eliminada');navigate('operadoras');
-  }catch(e){showToast('\u274c Error: '+e.message,'error');}
+  showToast('La eliminación de operadoras está deshabilitada. Cambiá el estado a Inactiva o Suspendida.','warn');
 }
