@@ -579,7 +579,7 @@ router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'
 
 /**
  * POST /api/auth/operadoras/revision/:usuarioId
- * Acciones: aprobar, observar, rechazar, pedir_documentos.
+ * Acciones: aprobar, observar, rechazar, pedir_documentos, eliminar.
  */
 router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const client = await pool.connect();
@@ -587,7 +587,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     const usuarioId = parseInt(req.params.usuarioId, 10);
     const accion = cleanText(req.body.accion, 40);
     const obs = cleanText(req.body.obs, 1000);
-    const acciones = ['aprobar', 'observar', 'rechazar', 'pedir_documentos'];
+    const acciones = ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'eliminar'];
     if (!usuarioId || !acciones.includes(accion)) {
       return res.status(400).json({ error: 'Acción inválida' });
     }
@@ -601,15 +601,50 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     );
     if (!rows.length) return res.status(404).json({ error: 'Registro no encontrado' });
     const row = rows[0];
-    if (!row.operadora_id) return res.status(400).json({ error: 'Usuario sin operadora vinculada' });
+
+    if (!row.operadora_id) {
+      if (accion === 'aprobar') {
+        return res.status(400).json({ error: 'No se puede aprobar: el pedido no tiene ficha de operadora vinculada' });
+      }
+      await client.query('BEGIN');
+      if (accion === 'eliminar') {
+        await client.query('DELETE FROM usuarios WHERE id = $1 AND rol = $2', [usuarioId, 'operadora']);
+        await client.query(
+          'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+          ['REVISION_ELIMINAR_HUERFANA', 'usuario', usuarioId, obs || 'Pedido de alta sin ficha de operadora eliminado', req.user.id, req.ip]
+        );
+        await client.query('COMMIT');
+        return res.json({ ok: true, estado: 'eliminada' });
+      }
+      await client.query(
+        `UPDATE usuarios
+         SET requiere_revision_admin = $1,
+             revision_admin_estado = $2,
+             revision_admin_obs = $3,
+             status = CASE WHEN $2 = 'rechazada' THEN 'suspendido' ELSE status END,
+             updated_at = NOW()
+         WHERE id = $4`,
+        [accion !== 'rechazar', accion === 'rechazar' ? 'rechazada' : (accion === 'observar' ? 'observada' : 'documentos_solicitados'), obs || 'Pedido sin ficha de operadora vinculada', usuarioId]
+      );
+      await client.query(
+        'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+        [`REVISION_${accion.toUpperCase()}_HUERFANA`, 'usuario', usuarioId, obs || 'Pedido de alta sin ficha de operadora vinculada', req.user.id, req.ip]
+      );
+      await client.query('COMMIT');
+      return res.json({ ok: true, estado: accion === 'rechazar' ? 'rechazada' : (accion === 'observar' ? 'observada' : 'documentos_solicitados') });
+    }
 
     const estadoMap = {
       aprobar: 'aprobada',
       observar: 'observada',
       rechazar: 'rechazada',
-      pedir_documentos: 'documentos_solicitados'
+      pedir_documentos: 'documentos_solicitados',
+      eliminar: 'eliminada'
     };
-    const requiereRevision = accion !== 'aprobar';
+    if (accion === 'eliminar') {
+      return res.status(400).json({ error: 'Este pedido tiene ficha vinculada. Rechazalo o cambiá el estado de la operadora.' });
+    }
+    const requiereRevision = ['observar', 'pedir_documentos'].includes(accion);
     await client.query('BEGIN');
     const portalToken = await ensurePortalToken(client, row.operadora_id, row.portal_token);
     await client.query(

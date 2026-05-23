@@ -58,7 +58,7 @@ async function updateRevisionOperadorasBadge(){
   try{
     const rows = await cargarRevisionOperadoras();
     const pendientes = rows.filter(function(r){
-      return r.requiere_revision_admin || ['pendiente','documentos_solicitados','observada'].includes(r.revision_admin_estado);
+      return ['pendiente','documentos_solicitados','observada'].includes(r.revision_admin_estado);
     }).length;
     badge.textContent = pendientes;
     badge.style.display = pendientes ? 'inline-flex' : 'none';
@@ -106,7 +106,7 @@ function renderRevisionOperadorasRows(){
   const estado = revisionOpsFilter.estado;
   const rows = revisionOpsCache.filter(function(r){
     const md = revMetadata(r);
-    const hay = [r.nombre, r.apellido, r.whatsapp, r.ciudad, r.departamento, r.usuario_email, md.documento]
+    const hay = [r.nombre, r.apellido, r.usuario_nombre, r.whatsapp, r.ciudad, r.departamento, r.usuario_email, md.documento]
       .filter(Boolean).join(' ').toLowerCase();
     if(q && !hay.includes(q)) return false;
     if(estado && r.revision_admin_estado !== estado) return false;
@@ -119,9 +119,12 @@ function renderRevisionOperadorasRows(){
   tbody.innerHTML = rows.map(function(r){
     const md = revMetadata(r);
     const tratamientos = [md.tratamientos || [], md.tratamientos_otros || ''].flat().filter(Boolean).join(', ');
+    const nombre = `${r.nombre || r.usuario_nombre || ''} ${r.apellido || ''}`.trim() || 'Pedido sin nombre';
+    const sinFicha = !r.operadora_id;
     return `<tr>
       <td>
-        <span class="bold">${revEsc(r.nombre || '')} ${revEsc(r.apellido || '')}</span>
+        <span class="bold">${revEsc(nombre)}</span>
+        ${sinFicha ? '<span class="badge badge-red" style="margin-left:6px">Sin ficha vinculada</span>' : ''}
         <div class="docs-line">${revEsc(r.whatsapp || 'Sin WhatsApp')} · CI/DNI ${revEsc(md.documento || '—')}</div>
       </td>
       <td>
@@ -150,12 +153,15 @@ function openRevisionOperadora(usuarioId){
   revisionOpsActual = row;
   const md = revMetadata(row);
   const portal = row.portal_token ? window.location.origin + '/portal.html?token=' + row.portal_token : '';
-  document.getElementById('modalRevisionTitle').textContent = `Revisión: ${row.nombre || ''} ${row.apellido || ''}`.trim();
+  const nombre = `${row.nombre || row.usuario_nombre || ''} ${row.apellido || ''}`.trim() || 'Pedido sin nombre';
+  const sinFicha = !row.operadora_id;
+  document.getElementById('modalRevisionTitle').textContent = `Revisión: ${nombre}`;
   document.getElementById('modalRevisionBody').innerHTML = `
     <div class="revision-detail-grid">
       <div class="docs-detail-card">
         <div class="docs-detail-title">Datos principales</div>
-        ${ir('Nombre', revEsc((row.nombre || '') + ' ' + (row.apellido || '')))}
+        ${sinFicha ? '<div class="alert-banner danger" style="padding:8px 12px;margin-bottom:10px"><span class="ab-icon">⚠️</span><div><strong>Pedido sin ficha vinculada</strong><br>Este alta llegó incompleta. Se puede rechazar o eliminar el pedido.</div></div>' : ''}
+        ${ir('Nombre', revEsc(nombre))}
         ${ir('WhatsApp', revEsc(row.whatsapp || '—'))}
         ${ir('Cédula / DNI', revEsc(md.documento || '—'))}
         ${ir('Ciudad', revEsc(row.ciudad || '—'))}
@@ -188,11 +194,16 @@ function copyText(text){
 
 async function guardarRevisionOperadora(accion){
   if(!revisionOpsActual) return;
+  if(accion === 'aprobar' && !revisionOpsActual.operadora_id){
+    showToast('⚠️ No se puede aprobar: este pedido no tiene ficha de operadora vinculada','warn');
+    return;
+  }
   const labels = {
     aprobar:'aprobar este registro',
     observar:'guardar esta observación',
     rechazar:'rechazar este registro',
-    pedir_documentos:'pedir documentos a esta operadora'
+    pedir_documentos:'pedir documentos a esta operadora',
+    eliminar:'eliminar este pedido vacío'
   };
   if(!confirm('¿Confirmás ' + labels[accion] + '?')) return;
   const obs = gv('revisionObs').trim();
