@@ -143,7 +143,6 @@ function htmlFicha(t, envios, incs, pagos) {
         </div>
       </div>
       <div class="ficha-rows">
-        <div class="ficha-row"><span class="fr-label">Teléfono</span><span class="fr-val">${t.telefono || '—'}</span></div>
         <div class="ficha-row"><span class="fr-label">WhatsApp</span><span class="fr-val">${t.whatsapp || '—'}</span></div>
         <div class="ficha-row"><span class="fr-label">Dirección</span><span class="fr-val">${t.direccion || '—'}</span></div>
         <div class="ficha-row"><span class="fr-label">Departamentos</span>
@@ -478,71 +477,89 @@ function abrirFormTransportista(t) {
   modal.id = 'modal-form-transportista';
   modal.className = 'modal-overlay open';
   modal.innerHTML = `
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:760px">
       <div class="modal-header">
         <span class="modal-title">${esEdicion ? 'Editar' : 'Nuevo'} transportista</span>
         <button onclick="document.getElementById('modal-form-transportista').remove()" class="btn-close">✕</button>
       </div>
       <form onsubmit="guardarTransportista(event, ${t?.id || 'null'})">
-        <label class="field-label">Tipo *</label>
-        <select id="f-tipo" required>
-          <option value="empresa" ${t?.tipo==='empresa'?'selected':''}>Empresa</option>
-          <option value="persona_fisica" ${t?.tipo==='persona_fisica'?'selected':''}>Persona física</option>
-        </select>
-
-        <label class="field-label">Nombre *</label>
-        <input type="text" id="f-nombre" required value="${t?.nombre||''}" placeholder="Ej: DAC, El Norteño, Sintia">
-
-        <label class="field-label">Teléfono</label>
-        <input type="text" id="f-telefono" value="${t?.telefono||''}" placeholder="09X XXX XXX">
-
-        <label class="field-label">WhatsApp</label>
-        <input type="text" id="f-whatsapp" value="${t?.whatsapp||''}" placeholder="09X XXX XXX">
-
-        <label class="field-label">Dirección</label>
-        <input type="text" id="f-direccion" value="${t?.direccion||''}" placeholder="Ciudad, departamento">
-
-        <label class="field-label">Ciclo de pago</label>
-        <select id="f-ciclo">
-          <option value="mensual" ${t?.ciclo_pago==='mensual'?'selected':''}>Mensual</option>
-          <option value="semanal" ${t?.ciclo_pago==='semanal'?'selected':''}>Semanal</option>
-        </select>
-
-        <label class="field-label">Departamentos que cubre</label>
-        <div class="deps-grid" id="deps-grid">
-          ${DEPTOS.map(d => `
-            <label class="dep-check">
-              <input type="checkbox" value="${d}" ${deps.includes(d)?'checked':''}>
-              ${d}
-            </label>`).join('')}
-        </div>
-
-        <div class="tarifa-grid" style="margin-top:14px">
-          <div>
-            <label class="field-label">Envío chica ($)</label>
-            <input type="number" id="f-env-chica" value="${t?.tarifa_envio_chica||0}" min="0">
-          </div>
-          <div>
-            <label class="field-label">Envío grande ($)</label>
-            <input type="number" id="f-env-grande" value="${t?.tarifa_envio_grande||0}" min="0">
-          </div>
-          <div>
-            <label class="field-label">Puesta a punto máquina chica ($)</label>
-            <input type="number" id="f-limp-chica" value="${t?.tarifa_limpieza_chica||0}" min="0">
-          </div>
-          <div>
-            <label class="field-label">Puesta a punto máquina grande ($)</label>
-            <input type="number" id="f-limp-grande" value="${t?.tarifa_limpieza_grande||0}" min="0">
+        <div class="ficha-card" style="margin-bottom:14px">
+          <div class="section-label">Datos principales</div>
+          <div class="form-grid">
+            <div>
+              <label class="field-label">Tipo *</label>
+              <select id="f-tipo" required>
+                <option value="empresa" ${t?.tipo==='empresa'?'selected':''}>Empresa</option>
+                <option value="persona_fisica" ${t?.tipo==='persona_fisica'?'selected':''}>Persona física</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Nombre *</label>
+              <input type="text" id="f-nombre" required value="${t?.nombre||''}" placeholder="Ej: DAC, El Norteño, Sintia">
+            </div>
           </div>
         </div>
 
-        <label class="dep-check" style="margin-top:12px">
-          <input type="checkbox" id="f-sin-rastreo" ${t?.sin_rastreo_siempre?'checked':''}>
-          Este transportista nunca provee número de rastreo
-        </label>
+        <div class="ficha-card" style="margin-bottom:14px">
+          <div class="section-label">Contacto y ubicación</div>
+          <div class="form-grid">
+            <div>
+              <label class="field-label">WhatsApp</label>
+              <input type="text" id="f-whatsapp" value="${t?.whatsapp||''}" placeholder="09X XXX XXX">
+            </div>
+            <div>
+              <label class="field-label">Ciclo de pago</label>
+              <select id="f-ciclo">
+                <option value="mensual" ${t?.ciclo_pago==='mensual'?'selected':''}>Mensual</option>
+                <option value="semanal" ${t?.ciclo_pago==='semanal'?'selected':''}>Semanal</option>
+              </select>
+            </div>
+          </div>
+          <label class="field-label" style="margin-top:12px">Dirección</label>
+          <textarea id="f-direccion" style="min-height:96px" placeholder="Dirección completa, ciudad, referencia de retiro/entrega">${t?.direccion||''}</textarea>
+        </div>
 
-        <label class="field-label" style="margin-top:12px">Notas</label>
-        <textarea id="f-notas" placeholder="Observaciones generales">${t?.notas||''}</textarea>
+        <div class="ficha-card" style="margin-bottom:14px">
+          <div class="section-label">Cobertura</div>
+          <div class="deps-grid" id="deps-grid">
+            ${DEPTOS.map(d => `
+              <label class="dep-check">
+                <input type="checkbox" value="${d}" ${deps.includes(d)?'checked':''}>
+                ${d}
+              </label>`).join('')}
+          </div>
+        </div>
+
+        <div class="ficha-card" style="margin-bottom:14px">
+          <div class="section-label">Tarifas</div>
+          <div class="tarifa-grid">
+            <div>
+              <label class="field-label">Envío chica ($)</label>
+              <input type="number" id="f-env-chica" value="${t?.tarifa_envio_chica||0}" min="0">
+            </div>
+            <div>
+              <label class="field-label">Envío grande ($)</label>
+              <input type="number" id="f-env-grande" value="${t?.tarifa_envio_grande||0}" min="0">
+            </div>
+            <div>
+              <label class="field-label">Puesta a punto máquina chica ($)</label>
+              <input type="number" id="f-limp-chica" value="${t?.tarifa_limpieza_chica||0}" min="0">
+            </div>
+            <div>
+              <label class="field-label">Puesta a punto máquina grande ($)</label>
+              <input type="number" id="f-limp-grande" value="${t?.tarifa_limpieza_grande||0}" min="0">
+            </div>
+          </div>
+          <label class="dep-check" style="margin-top:12px">
+            <input type="checkbox" id="f-sin-rastreo" ${t?.sin_rastreo_siempre?'checked':''}>
+            Este transportista nunca provee número de rastreo
+          </label>
+        </div>
+
+        <div class="ficha-card" style="margin-bottom:14px">
+          <div class="section-label">Notas internas</div>
+          <textarea id="f-notas" placeholder="Observaciones generales">${t?.notas||''}</textarea>
+        </div>
 
         <div style="display:flex;gap:8px;margin-top:16px">
           <button type="submit" class="btn-primary" style="flex:1">
@@ -562,7 +579,7 @@ async function guardarTransportista(e, id) {
   const body = {
     tipo:                   document.getElementById('f-tipo').value,
     nombre:                 document.getElementById('f-nombre').value.trim(),
-    telefono:               document.getElementById('f-telefono').value.trim(),
+    telefono:               '',
     whatsapp:               document.getElementById('f-whatsapp').value.trim(),
     direccion:              document.getElementById('f-direccion').value.trim(),
     ciclo_pago:             document.getElementById('f-ciclo').value,
