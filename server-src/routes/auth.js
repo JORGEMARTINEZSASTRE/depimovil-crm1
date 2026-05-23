@@ -611,27 +611,31 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
         await client.query('DELETE FROM usuarios WHERE id = $1 AND rol = $2', [usuarioId, 'operadora']);
         await client.query(
           'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
-          ['REVISION_ELIMINAR_HUERFANA', 'usuario', usuarioId, obs || 'Pedido de alta sin ficha de operadora eliminado', req.user.id, req.ip]
+          ['REV_HUERF_DEL', 'usuario', usuarioId, obs || 'Pedido de alta sin ficha de operadora eliminado', req.user.id, req.ip]
         );
         await client.query('COMMIT');
         return res.json({ ok: true, estado: 'eliminada' });
       }
+      const nuevoEstadoHuerfano = accion === 'rechazar'
+        ? 'rechazada'
+        : (accion === 'observar' ? 'observada' : 'documentos_solicitados');
+      const nuevoStatusHuerfano = accion === 'rechazar' ? 'suspendido' : row.status;
       await client.query(
         `UPDATE usuarios
          SET requiere_revision_admin = $1,
              revision_admin_estado = $2,
              revision_admin_obs = $3,
-             status = CASE WHEN $2 = 'rechazada' THEN 'suspendido' ELSE status END,
+             status = $4,
              updated_at = NOW()
-         WHERE id = $4`,
-        [accion !== 'rechazar', accion === 'rechazar' ? 'rechazada' : (accion === 'observar' ? 'observada' : 'documentos_solicitados'), obs || 'Pedido sin ficha de operadora vinculada', usuarioId]
+         WHERE id = $5`,
+        [accion !== 'rechazar', nuevoEstadoHuerfano, obs || 'Pedido sin ficha de operadora vinculada', nuevoStatusHuerfano, usuarioId]
       );
       await client.query(
         'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
-        [`REVISION_${accion.toUpperCase()}_HUERFANA`, 'usuario', usuarioId, obs || 'Pedido de alta sin ficha de operadora vinculada', req.user.id, req.ip]
+        ['REV_HUERFANA', 'usuario', usuarioId, `${accion}: ${obs || 'Pedido de alta sin ficha de operadora vinculada'}`, req.user.id, req.ip]
       );
       await client.query('COMMIT');
-      return res.json({ ok: true, estado: accion === 'rechazar' ? 'rechazada' : (accion === 'observar' ? 'observada' : 'documentos_solicitados') });
+      return res.json({ ok: true, estado: nuevoEstadoHuerfano });
     }
 
     const estadoMap = {
