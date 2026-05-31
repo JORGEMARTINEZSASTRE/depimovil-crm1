@@ -448,7 +448,7 @@ async function continuarFlujo(phone, input, textoOriginal, session, op) {
       const habCats = habs.map(h => h.equipo_categoria);
       const catMap = {
         'Soprano Ice': 'soprano_ice', 'Láser Depilación': 'laser_diodo',
-        'Láser Diodo': 'laser_diodo', 'IPL': 'ipl', 'HIFU': 'hifu'
+        'Láser Diodo': 'laser_diodo', 'HIFU': 'hifu'
       };
 
       // Filtrar equipos por habilitación (si aplica)
