@@ -2,12 +2,127 @@
    OPERADORAS
 ══════════════════════════════════ */
 let opFilter={search:'',status:''};
+
+// ── Métricas por operadora ──
+function _calcMetricasOp(opId){
+  const pagos    = DB.get('pagos')||[];
+  const reservas = DB.get('reservas')||[];
+  const hoy      = today();
+
+  const opReservas = reservas.filter(r=>r.operadoraId===opId);
+  const opPagos    = pagos.filter(p=>p.operadoraId===opId);
+
+  // Ingresos cobrados (UYU)
+  const cobrado = opPagos
+    .filter(p=>p.estado==='validado'&&p.moneda==='UYU')
+    .reduce((s,p)=>s+(p.montoTotal||0),0);
+
+  // Saldo pendiente
+  const pendiente = opPagos
+    .filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)&&p.moneda==='UYU')
+    .reduce((s,p)=>s+(p.saldoPendiente||p.montoTotal||0),0);
+
+  // Tiene deuda vencida
+  const tieneDeuda = opPagos.some(p=>p.estado==='deuda_vencida');
+
+  // Última reserva
+  const fechasRes = opReservas
+    .map(r=>r.fechaFin||r.fechaJornada||r.fechaInicio||'')
+    .filter(Boolean).sort();
+  const ultimaReserva = fechasRes.length ? fechasRes[fechasRes.length-1] : null;
+
+  // Días sin reservar
+  const diasInactiva = ultimaReserva ? daysDiff(ultimaReserva, hoy) : null;
+
+  // Reservas activas
+  const ACTIVOS = ['solicitud_recibida','confirmada','en_curso','en_transito','entregada'];
+  const reservasActivas = opReservas.filter(r=>ACTIVOS.includes(r.estado)).length;
+
+  return {
+    cobrado, pendiente, tieneDeuda,
+    totalReservas: opReservas.length,
+    reservasActivas,
+    ultimaReserva,
+    diasInactiva
+  };
+}
+
+function _nivelActividadOp(diasInactiva, totalReservas){
+  if(totalReservas===0)         return {txt:'Sin reservas', color:'var(--text3)', icon:'⚪'};
+  if(diasInactiva===null)       return {txt:'Sin datos',    color:'var(--text3)', icon:'⚪'};
+  if(diasInactiva<=30)          return {txt:'Activa',       color:'var(--green)', icon:'🟢'};
+  if(diasInactiva<=60)          return {txt:'Tibia',        color:'var(--yellow)',icon:'🟡'};
+  if(diasInactiva<=90)          return {txt:'Inactiva',     color:'var(--accent)',icon:'🟠'};
+  return                               {txt:'Perdida',      color:'var(--red)',   icon:'🔴'};
+}
+
+function _renderOpRanking(){
+  const el = document.getElementById('opRankingPanel');
+  if(!el) return;
+  const puedeVer = typeof canView==='function' && canView('pagos');
+  if(!puedeVer){ el.innerHTML=''; return; }
+
+  const ops = DB.get('operadoras')||[];
+  const activas = ops.filter(o=>o.estado==='activa');
+  if(!activas.length){ el.innerHTML=''; return; }
+
+  const data = activas
+    .map(o=>({...o, ..._calcMetricasOp(o.id)}))
+    .sort((a,b)=>b.cobrado - a.cobrado);
+
+  const maxCobrado = Math.max(...data.map(d=>d.cobrado), 1);
+
+  // Top 5 + resumen de inactivas
+  const top5     = data.slice(0,5);
+  const tibiasN  = data.filter(d=>d.diasInactiva!==null&&d.diasInactiva>30&&d.diasInactiva<=60).length;
+  const inactivN = data.filter(d=>d.diasInactiva!==null&&d.diasInactiva>60).length;
+
+  el.innerHTML=`
+  <div class="dash-card op-ranking-card" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0">👑 Ranking de Operadoras — Top rentabilidad</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${tibiasN>0?`<span class="op-rank-badge" style="background:rgba(224,192,92,0.12);color:var(--yellow)">🟡 ${tibiasN} tibia${tibiasN>1?'s':''}</span>`:''}
+        ${inactivN>0?`<span class="op-rank-badge" style="background:rgba(224,92,107,0.1);color:var(--red)">🔴 ${inactivN} inactiva${inactivN>1?'s':''}</span>`:''}
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Basado en pagos cobrados (UYU) · Solo operadoras activas</div>
+
+    ${top5.map((o,i)=>{
+      const barW = Math.round((o.cobrado/maxCobrado)*100);
+      const niv  = _nivelActividadOp(o.diasInactiva, o.totalReservas);
+      const dias = o.diasInactiva!==null ? `${o.diasInactiva}d sin reservar` : 'Sin reservas';
+      return `
+      <div class="op-rank-row" onclick="showOpFicha(${o.id})">
+        <div class="op-rank-pos">${i+1}</div>
+        <div class="op-rank-avatar">${o.nombre.charAt(0)}${o.apellido.charAt(0)}</div>
+        <div class="op-rank-info">
+          <div class="op-rank-name">${o.nombre} ${o.apellido}${o.gabinete?` <span style="color:var(--text3);font-size:11px">· ${o.gabinete}</span>`:''}</div>
+          <div class="op-rank-bar-wrap">
+            <div class="op-rank-bar" style="width:${barW}%;background:${niv.color}"></div>
+          </div>
+        </div>
+        <div class="op-rank-stats">
+          <div style="font-weight:700;color:var(--green)">${o.cobrado>0?_fmtMonto(o.cobrado):'$0'}</div>
+          <div style="font-size:11px;color:var(--text3)">${o.totalReservas} reserva${o.totalReservas!==1?'s':''}</div>
+        </div>
+        <div class="op-rank-nivel" style="color:${niv.color}">
+          ${niv.icon} <span style="font-size:11px">${o.cobrado>0?dias:niv.txt}</span>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="text-align:right;margin-top:12px">
+      <button class="action-btn" onclick="navigate('reportes')">Ver reportes completos →</button>
+    </div>
+  </div>`;
+}
 function badgeOp(e){
   const m={activa:'badge-green',prospecto:'badge-blue',inactiva:'badge-gray',suspendida:'badge-red'};
   const l={activa:'Activa',prospecto:'Prospecto',inactiva:'Inactiva',suspendida:'Suspendida'};
   return `<span class="badge ${m[e]||'badge-gray'}">${l[e]||e}</span>`;
 }
 function renderOperadoras(){
+  _renderOpRanking();
   const ops=(DB.get('operadoras')||[]).filter(o=>{
     const q=opFilter.search.toLowerCase();
     const ms=!q||(o.nombre+' '+o.apellido+' '+o.gabinete+' '+o.ciudad).toLowerCase().includes(q);
@@ -154,6 +269,20 @@ function showOpFicha(id){
           return `<div class="dash-list-item"><div><div class="name">${maq?maq.nombre:'—'}</div><div class="sub">${fmtDate(r.fechaInicio)} → ${fmtDate(r.fechaFin)}</div></div><div style="display:flex;gap:6px;align-items:center">${badgeRes(r.estado)}<button class="action-btn" onclick="showResFicha(${r.id})">Ver</button></div></div>`;
         }).join(''):`<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin reservas registradas.</div>`}
       </div>
+      ${(()=>{
+        if(!(typeof canView==='function'&&canView('pagos'))) return '';
+        const m=_calcMetricasOp(o.id);
+        const niv=_nivelActividadOp(m.diasInactiva,m.totalReservas);
+        return `<div class="info-card">
+          <h4>📊 Actividad & Rentabilidad</h4>
+          ${ir('Ingresos cobrados',`<strong style="color:var(--green)">${m.cobrado>0?_fmtMonto(m.cobrado):'$0 UYU'}</strong>`)}
+          ${ir('Saldo pendiente',`<strong style="color:${m.pendiente>0?'var(--yellow)':'var(--text2)'}">${m.pendiente>0?_fmtMonto(m.pendiente):'$0'}</strong>`)}
+          ${ir('Total reservas',`${m.totalReservas} reservas · ${m.reservasActivas} activa${m.reservasActivas!==1?'s':''}`)}
+          ${ir('Última reserva',m.ultimaReserva?fmtDate(m.ultimaReserva):'Sin reservas')}
+          ${ir('Estado actividad',`<span style="color:${niv.color};font-weight:700">${niv.icon} ${niv.txt}${m.diasInactiva!==null?' ('+m.diasInactiva+'d)':''}</span>`)}
+          ${m.tieneDeuda?`<div class="alert-banner danger" style="margin-top:8px;padding:8px 12px"><span class="ab-icon">🚨</span><strong>Deuda vencida</strong> — Regularizar urgente.</div>`:''}
+        </div>`;
+      })()}
       <div class="info-card full">
         <h4>📝 Observaciones Internas</h4>
         <div class="obs-text">${o.obs||'Sin observaciones.'}</div>
