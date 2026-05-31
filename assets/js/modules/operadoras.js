@@ -126,7 +126,12 @@ function renderOperadoras(){
   const ops=(DB.get('operadoras')||[]).filter(o=>{
     const q=opFilter.search.toLowerCase();
     const ms=!q||(o.nombre+' '+o.apellido+' '+o.gabinete+' '+o.ciudad).toLowerCase().includes(q);
-    return ms&&(!opFilter.status||o.estado===opFilter.status);
+    const estadoOk=!opFilter.status||o.estado===opFilter.status;
+    if(opFilter._inactivas){
+      const m=_calcMetricasOp(o.id);
+      return estadoOk&&ms&&m.diasInactiva!==null&&m.diasInactiva>30;
+    }
+    return ms&&estadoOk;
   });
   const tbody=document.getElementById('opTableBody');
   if(!ops.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">👩‍💼</div><h3>Sin resultados</h3><p>No hay operadoras que coincidan.</p></div></td></tr>`;return;}
@@ -140,7 +145,14 @@ function renderOperadoras(){
     </td></tr>`).join('');
 }
 function filterOperadoras(v){opFilter.search=v;renderOperadoras();}
-function filterOpStatus(v){opFilter.status=v;renderOperadoras();}
+function filterOpStatus(v){opFilter.status=v;opFilter._inactivas=false;renderOperadoras();}
+function filtrarOpInactivas(){
+  opFilter.status='activa';
+  opFilter._inactivas=true;
+  document.querySelector('#view-operadoras .filter-select').value='activa';
+  renderOperadoras();
+  showToast('🟡 Mostrando operadoras sin reservas hace +30 días');
+}
 function registroOperadoraLink(){
   return 'https://crm.depimovil.live/alta-operadoras.html';
 }

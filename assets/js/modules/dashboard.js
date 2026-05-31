@@ -121,6 +121,18 @@ function renderDashboard(){
   if(proxVencer.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⏰</span><div><strong>${proxVencer.length} reserva${proxVencer.length>1?'s':''}</strong> vence${proxVencer.length>1?'n':''} en ≤5 días. <button class="action-btn" style="margin-left:8px" onclick="navigate('reservas')">Ver →</button></div></div>`;
   if(mantProx.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⚙️</span><div><strong>${mantProx.length} máquina${mantProx.length>1?'s':''} con mantenimiento próximo</strong> (≤7 días). <button class="action-btn" style="margin-left:8px" onclick="navigate('maquinas')">Ver →</button></div></div>`;
   if(envTransito.length) alertsHTML+=`<div class="alert-banner info"><span class="ab-icon">🚚</span><div><strong>${envTransito.length} envío${envTransito.length>1?'s':''} en tránsito</strong> — Pendientes de confirmación de entrega. <button class="action-btn" style="margin-left:8px" onclick="navigate('envios')">Ver →</button></div></div>`;
+
+  // ── Alertas operadoras inactivas ──
+  if(typeof _calcMetricasOp === 'function'){
+    const opsActivas = ops.filter(o=>o.estado==='activa');
+    const perdidas   = opsActivas.filter(o=>{ const m=_calcMetricasOp(o.id); return m.diasInactiva!==null&&m.diasInactiva>90; });
+    const inactivas  = opsActivas.filter(o=>{ const m=_calcMetricasOp(o.id); return m.diasInactiva!==null&&m.diasInactiva>60&&m.diasInactiva<=90; });
+    const tibias     = opsActivas.filter(o=>{ const m=_calcMetricasOp(o.id); return m.diasInactiva!==null&&m.diasInactiva>30&&m.diasInactiva<=60; });
+    if(perdidas.length)  alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🔴</span><div><strong>${perdidas.length} operadora${perdidas.length>1?'s':''} perdida${perdidas.length>1?'s':''}</strong> — Sin reservas hace más de 90 días. <button class="action-btn" style="margin-left:8px" onclick="navigate('operadoras')">Reactivar →</button></div></div>`;
+    if(inactivas.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">🟠</span><div><strong>${inactivas.length} operadora${inactivas.length>1?'s':''} inactiva${inactivas.length>1?'s':''}</strong> — Sin reservas entre 60 y 90 días. <button class="action-btn" style="margin-left:8px" onclick="navigate('operadoras')">Ver →</button></div></div>`;
+    if(tibias.length)    alertsHTML+=`<div class="alert-banner info"><span class="ab-icon">🟡</span><div><strong>${tibias.length} operadora${tibias.length>1?'s':''} tibia${tibias.length>1?'s':''}</strong> — Sin reservas entre 30 y 60 días. Buen momento para contactar. <button class="action-btn" style="margin-left:8px" onclick="navigate('operadoras')">Ver →</button></div></div>`;
+  }
+
   document.getElementById('dashAlerts').innerHTML=alertsHTML;
 
   const statsData=[
@@ -205,6 +217,32 @@ function renderDashboard(){
       })()}
       <div style="text-align:right;margin-top:12px">
         <button class="action-btn" onclick="navigate('whatsapp')">Ver centro →</button></div>
+    </div>
+    <div class="dash-card">
+      <h3>👩‍💼 Operadoras — Atención requerida</h3>
+      ${(()=>{
+        if(typeof _calcMetricasOp !== 'function') return '<div class="dash-list-item"><div class="name" style="color:var(--text2)">—</div></div>';
+        const opsActivas = ops.filter(o=>o.estado==='activa');
+        const necesitan  = opsActivas
+          .map(o=>({...o,..._calcMetricasOp(o.id)}))
+          .filter(o=>o.diasInactiva!==null&&o.diasInactiva>30)
+          .sort((a,b)=>b.diasInactiva-a.diasInactiva)
+          .slice(0,5);
+        if(!necesitan.length) return `<div class="dash-list-item"><div class="name" style="color:var(--green)">✅ Todas activas — Ninguna inactiva</div></div>`;
+        return necesitan.map(o=>{
+          const niv=_nivelActividadOp(o.diasInactiva,o.totalReservas);
+          return `<div class="dash-list-item">
+            <div>
+              <div class="name">${o.nombre} ${o.apellido}</div>
+              <div class="sub">${o.gabinete||o.ciudad||'—'} · ${o.diasInactiva}d sin reservar</div>
+            </div>
+            <span style="color:${niv.color};font-weight:700;font-size:12px">${niv.icon} ${niv.txt}</span>
+          </div>`;
+        }).join('');
+      })()}
+      <div style="text-align:right;margin-top:12px">
+        <button class="action-btn" onclick="navigate('operadoras')">Ver todas →</button>
+      </div>
     </div>
     <div class="dash-card">
       <h3>🎯 Leads — Pipeline</h3>
