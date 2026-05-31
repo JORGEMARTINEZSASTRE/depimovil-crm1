@@ -1,12 +1,108 @@
 /* ══════════════════════════════════
    DASHBOARD
 ══════════════════════════════════ */
+
+// ── Helpers financieros ──
+function _mesPrefix(offset=0){
+  const d=new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth()+offset);
+  return d.toISOString().slice(0,7); // 'YYYY-MM'
+}
+
+function _fmtMonto(n,moneda='UYU'){
+  if(n>=1000000) return (n/1000000).toFixed(1)+'M '+moneda;
+  if(n>=1000)    return (n/1000).toFixed(1)+'k '+moneda;
+  return n.toLocaleString()+' '+moneda;
+}
+
+function _tendencia(actual,anterior){
+  if(!anterior) return {txt:'Primer mes',color:'var(--text3)',icon:'—'};
+  const pct=Math.round(((actual-anterior)/anterior)*100);
+  if(pct>0)  return {txt:`+${pct}% vs mes ant.`,color:'var(--green)',icon:'▲'};
+  if(pct<0)  return {txt:`${pct}% vs mes ant.`,color:'var(--red)',icon:'▼'};
+  return {txt:'igual que mes ant.',color:'var(--text3)',icon:'→'};
+}
+
+function _renderFinKpis(pagos, movsCaja, puedeVer){
+  const el=document.getElementById('finKpisGrid');
+  if(!el) return;
+  if(!puedeVer){ el.innerHTML=''; return; }
+
+  const mesCurrent=_mesPrefix(0);
+  const mesAnterior=_mesPrefix(-1);
+
+  // Ingresos cobrados (pagos validados) — solo UYU por simplicidad
+  const cobradosMes     = pagos.filter(p=>p.estado==='validado'&&(p.fechaPago||'').startsWith(mesCurrent));
+  const cobradosMesAnt  = pagos.filter(p=>p.estado==='validado'&&(p.fechaPago||'').startsWith(mesAnterior));
+  const ingMes    = cobradosMes.reduce((s,p)=>s+(p.moneda==='UYU'?p.montoTotal||0:0),0);
+  const ingMesAnt = cobradosMesAnt.reduce((s,p)=>s+(p.moneda==='UYU'?p.montoTotal||0:0),0);
+  const tendIng   = _tendencia(ingMes, ingMesAnt);
+
+  // Pendiente de cobro total
+  const pendTotal = pagos
+    .filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)&&p.moneda==='UYU')
+    .reduce((s,p)=>s+(p.saldoPendiente||p.montoTotal||0),0);
+
+  // Deuda vencida en $
+  const deudaMonto = pagos
+    .filter(p=>p.estado==='deuda_vencida'&&p.moneda==='UYU')
+    .reduce((s,p)=>s+(p.saldoPendiente||p.montoTotal||0),0);
+
+  // Ingresos vs Egresos de caja del mes
+  const movsMes = (movsCaja||[]).filter(m=>(m.fecha||'').startsWith(mesCurrent));
+  const cajIngreso = movsMes.filter(m=>m.tipo==='ingreso'&&m.moneda==='UYU').reduce((s,m)=>s+(m.monto||0),0);
+  const cajEgreso  = movsMes.filter(m=>m.tipo==='egreso' &&m.moneda==='UYU').reduce((s,m)=>s+(m.monto||0),0);
+  const balance    = cajIngreso - cajEgreso;
+  const balColor   = balance>=0?'var(--green)':'var(--red)';
+
+  // Nombre del mes
+  const [yy,mm]=mesCurrent.split('-');
+  const nombreMes=new Date(+yy,+mm-1,1).toLocaleString('es',{month:'long',year:'numeric'});
+
+  el.innerHTML=`
+  <div class="dash-card fin-kpi-card" style="grid-column:1/-1;margin-bottom:0">
+    <div class="fin-kpi-header">
+      <h3 style="margin:0">💰 Resumen Financiero — <span style="color:var(--accent);text-transform:capitalize">${nombreMes}</span></h3>
+      <button class="action-btn" onclick="navigate('pagos')">Ver pagos →</button>
+    </div>
+    <div class="fin-kpi-grid">
+      <div class="fin-kpi-item">
+        <div class="fin-kpi-label">Cobrado este mes</div>
+        <div class="fin-kpi-value" style="color:var(--green)">${_fmtMonto(ingMes)}</div>
+        <div class="fin-kpi-trend" style="color:${tendIng.color}">${tendIng.icon} ${tendIng.txt}</div>
+      </div>
+      <div class="fin-kpi-item">
+        <div class="fin-kpi-label">Mes anterior</div>
+        <div class="fin-kpi-value" style="color:var(--text2)">${_fmtMonto(ingMesAnt)}</div>
+        <div class="fin-kpi-trend" style="color:var(--text3)">${cobradosMesAnt.length} pago${cobradosMesAnt.length!==1?'s':''}</div>
+      </div>
+      <div class="fin-kpi-item">
+        <div class="fin-kpi-label">Pendiente de cobro</div>
+        <div class="fin-kpi-value" style="color:var(--yellow)">${_fmtMonto(pendTotal)}</div>
+        <div class="fin-kpi-trend" style="color:var(--text3)">${pagos.filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)).length} pago${pagos.filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)).length!==1?'s':''}</div>
+      </div>
+      <div class="fin-kpi-item">
+        <div class="fin-kpi-label">Deuda vencida</div>
+        <div class="fin-kpi-value" style="color:${deudaMonto>0?'var(--red)':'var(--green)'}">${deudaMonto>0?_fmtMonto(deudaMonto):'$0'}</div>
+        <div class="fin-kpi-trend" style="color:var(--text3)">${pagos.filter(p=>p.estado==='deuda_vencida').length} operadora${pagos.filter(p=>p.estado==='deuda_vencida').length!==1?'s':''}</div>
+      </div>
+      <div class="fin-kpi-item fin-kpi-balance">
+        <div class="fin-kpi-label">Balance caja (mes)</div>
+        <div class="fin-kpi-value" style="color:${balColor}">${balance>=0?'+':''}${_fmtMonto(balance)}</div>
+        <div class="fin-kpi-trend" style="color:var(--text3)">▲ ${_fmtMonto(cajIngreso)} · ▼ ${_fmtMonto(cajEgreso)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderDashboard(){
   const ops=DB.get('operadoras')||[];
   const maqs=DB.get('maquinas')||[];
   const reservas=DB.get('reservas')||[];
   const pagos=DB.get('pagos')||[];
   const envios=DB.get('envios')||[];
+  const movsCaja=DB.get('caja_movimientos')||[];
   const hoy=today();
 
   // ── Alertas ──
@@ -42,6 +138,9 @@ function renderDashboard(){
       <p>${s.label}</p>
       ${s.trend?`<div class="trend" style="color:${s.color};opacity:.7">${s.trend}</div>`:''}
     </div>`).join('');
+
+  // ── KPIs Financieros ──
+  _renderFinKpis(pagos, movsCaja, puedeVerPagos);
 
   const recRes=reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado)).slice().sort((a,b)=>{
     const fa=a.fechaJornada||a.fechaInicio||''; const fb=b.fechaJornada||b.fechaInicio||'';

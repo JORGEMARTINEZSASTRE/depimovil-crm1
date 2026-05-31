@@ -142,6 +142,18 @@ input,select,textarea{font-family:inherit}
 .dashboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
 .dash-card h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* ── KPIs Financieros ── */
+#finKpisGrid{margin-bottom:20px}
+.fin-kpi-card{border-color:rgba(212,169,106,0.25)!important;background:linear-gradient(135deg,rgba(212,169,106,0.04) 0%,transparent 60%),var(--surface)!important}
+.fin-kpi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.fin-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}
+.fin-kpi-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;transition:border-color .2s}
+.fin-kpi-item:hover{border-color:var(--accent)}
+.fin-kpi-balance{border-color:rgba(212,169,106,0.3)}
+.fin-kpi-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.fin-kpi-value{font-size:22px;font-weight:700;line-height:1.1;margin-bottom:4px}
+.fin-kpi-trend{font-size:11px;font-weight:600;opacity:.85}
 .dash-list-item{display:flex;align-items:center;justify-content:space-between;
   padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .dash-list-item:last-child{border-bottom:none}
