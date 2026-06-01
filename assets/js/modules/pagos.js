@@ -45,7 +45,10 @@ function reservaPuedeConfirmarse(reservaId){
 let pagoFilter = {search:'', estado:''};
 
 function renderPagos(){
-  const pagos = DB.get('pagos')||[];
+  const todosPagos = DB.get('pagos')||[];
+  const pagos = isOperadoraUser()
+    ? todosPagos.filter(p=>parseInt(p.operadoraId)===parseInt(currentUser?.operadora_id))
+    : todosPagos;
   const hoy = today();
 
   // Alertas

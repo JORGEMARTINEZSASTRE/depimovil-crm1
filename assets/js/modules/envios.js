@@ -41,7 +41,10 @@ async function syncEnviosDesdeServidor(){
 }
 
 function renderEnvios(){
-  const envios=DB.get('envios')||[];
+  const todosEnvios=DB.get('envios')||[];
+  const envios=isOperadoraUser()
+    ? todosEnvios.filter(e=>parseInt(e.operadoraId)===parseInt(currentUser?.operadora_id))
+    : todosEnvios;
   const hoy=today();
 
   // Alertas

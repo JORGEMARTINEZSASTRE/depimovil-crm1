@@ -131,7 +131,10 @@ function renderReservasOperadoraPanel(reservas){
 }
 
 function renderReservas(){
-  const reservas=DB.get('reservas')||[]; const hoy=today();
+  const todasReservas=DB.get('reservas')||[]; const hoy=today();
+  const reservas=isOperadoraUser()
+    ? todasReservas.filter(r=>parseInt(r.operadoraId)===parseInt(currentUser?.operadora_id))
+    : todasReservas;
   const alertas=getAlertas();
   if(typeof renderReservasAutomationSummary==='function')renderReservasAutomationSummary();
   let alertsHTML='';
