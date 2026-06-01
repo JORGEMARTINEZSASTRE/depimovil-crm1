@@ -74,7 +74,22 @@ async function auth(req, res, next) {
     if (!rows.length) {
       return res.status(401).json({ error: 'Usuario inactivo o no encontrado' });
     }
-    req.user = rows[0];
+    const user = rows[0];
+    // Si es operadora, verificar que la operadora siga existiendo y activa
+    if (user.rol === 'operadora' && user.operadora_id) {
+      const { rows: opRows } = await pool.query(
+        `SELECT id, estado FROM operadoras WHERE id = $1`,
+        [user.operadora_id]
+      );
+      if (!opRows.length) {
+        // Operadora eliminada — bloquear acceso
+        return res.status(401).json({ error: 'Cuenta deshabilitada. Contactá a administración.' });
+      }
+      if (['inactiva', 'suspendida', 'eliminada'].includes(opRows[0].estado)) {
+        return res.status(401).json({ error: 'Cuenta deshabilitada. Contactá a administración.' });
+      }
+    }
+    req.user = user;
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {

@@ -49,8 +49,8 @@ const VIEW_PERMISSIONS={
   administrador:['*'],
   operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','materiales'],
   comercial:['dashboard','whatsapp','leads','lead-ficha','embudo'],
-  operadora_habilitada:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
-  operadora:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operadora_habilitada:['dashboard','reservas','reserva-ficha','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operadora:['dashboard','maquinas','maquina-ficha','materiales'],
   operadora_limitada:['dashboard','materiales'],
   transportista:['dashboard','maquinas','maquina-ficha','envios','envio-ficha','transportistas'],
 };
