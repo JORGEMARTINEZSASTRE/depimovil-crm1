@@ -213,24 +213,20 @@ function openCierreCajaModal(){
 
 async function saveCierreCaja(){
   const c=calcularCierreCaja();
-  const cierres=DB.get('caja_cierres')||[];
   const data={
-    id:cierres.reduce((m,x)=>Math.max(m,x.id||0),0)+1,
-    codigo:`CC-${String(cierres.reduce((m,x)=>Math.max(m,x.id||0),0)+1).padStart(5,'0')}`,
     periodo:gv('cierreCajaPeriodo')||'diario',fechaDesde:c.desde,fechaHasta:c.hasta,cuentaId:c.cuentaId,moneda:c.moneda,
-    saldoSistema:c.saldo,saldoContado:c.contado,diferencia:c.diferencia,movimientos:c.movs.length,obs:gv('cierreCajaObs').trim(),creadoEn:new Date().toISOString()
+    saldoSistema:c.saldo,saldoContado:c.contado,diferencia:c.diferencia,movimientos:c.movs.length,obs:gv('cierreCajaObs').trim()
   };
   try{
     const saved=await api('/api/finanzas/caja/cierres',{method:'POST',body:JSON.stringify(data)});
-    Object.assign(data,saved||{});
     await recargarFinanzas();
+    auditLog('CREATE','caja_cierres',saved?.id||'nuevo',`${saved?.codigo||''} ${data.periodo} ${data.moneda}`);
+    closeModal('modalCierreCaja');
+    showToast('✅ Cierre de caja guardado');
+    renderCaja();
   }catch(e){
-    DB.set('caja_cierres',[...cierres,data]);
+    showToast('❌ Error al guardar cierre: '+e.message,'error');
   }
-  auditLog('CREATE','caja_cierres',data.id,`${data.codigo} ${data.periodo} ${data.moneda}`);
-  closeModal('modalCierreCaja');
-  showToast('✅ Cierre de caja guardado');
-  renderCaja();
 }
 
 function onCajaTipoChange(){
@@ -277,27 +273,23 @@ async function saveCajaMovimiento(){
   const prev=id?movs.find(m=>m.id===parseInt(id)):null;
   if(prev&&prev.estado==='confirmado'){showToast('⚠️ Un movimiento confirmado se corrige con ajuste, no se edita','warn');return;}
   const data={
-    id:prev?.id||((movs.reduce((m,x)=>Math.max(m,x.id||0),0))+1),
-    codigo:prev?.codigo||`CJ-${String((movs.reduce((m,x)=>Math.max(m,x.id||0),0))+1).padStart(5,'0')}`,
     tipo:gv('cajaTipo'),estado:gv('cajaEstado'),fecha:gv('cajaFecha')||today(),
     cuentaId:parseInt(gv('cajaCuenta')),categoria:gv('cajaCategoria'),moneda:gv('cajaMoneda'),monto,
     comprobante:gv('cajaComprobante').trim(),operadoraId:parseInt(gv('cajaOperadora'))||null,
     reservaId:parseInt(gv('cajaReserva'))||null,maquinaId:parseInt(gv('cajaMaquina'))||null,
     relacionado:gv('cajaRelacionado').trim(),concepto:gv('cajaConcepto').trim()||cajaCategoriaLabel(gv('cajaCategoria')),
     obs,origen:prev?.origen||'manual',usuario:currentUser?.email||currentUser?.nombre||'sistema',
-    ts:prev?.ts||new Date().toISOString(),updatedAt:new Date().toISOString()
   };
   try{
-    const saved=await guardarCajaMovimientoApi(data,prev);
-    if(saved) data.id=saved.id;
+    await guardarCajaMovimientoApi(data,prev);
     await recargarFinanzas();
+    auditLog(prev?'UPDATE':'CREATE','caja_movimientos',prev?.id||'nuevo',`${data.tipo} ${data.monto} ${data.moneda}`);
+    closeModal('modalCaja');
+    showToast(prev?'✅ Movimiento actualizado':'✅ Movimiento registrado');
+    renderCaja();
   }catch(e){
-    DB.set('caja_movimientos',prev?movs.map(m=>m.id===prev.id?data:m):[...movs,data]);
+    showToast('❌ Error al guardar: '+e.message,'error');
   }
-  auditLog(prev?'UPDATE':'CREATE','caja_movimientos',data.id,`${data.codigo} ${data.tipo} ${data.monto} ${data.moneda}`);
-  closeModal('modalCaja');
-  showToast(prev?'✅ Movimiento actualizado':'✅ Movimiento registrado');
-  renderCaja();
 }
 
 async function confirmarCajaMovimiento(id){
@@ -338,12 +330,7 @@ function totalCajaPagoPorBase(pagoId,base){
 
 function crearCajaMovimientoPago(pago,tipo,categoria,monto,concepto,opts={}){
   if(!pago||!pago.id||monto<=0)return false;
-  ensureCajaData();
-  const movs=DB.get('caja_movimientos')||[];
-  const nextId=movs.reduce((m,x)=>Math.max(m,x.id||0),0)+1;
   const data={
-    id:nextId,
-    codigo:`CJ-${String(nextId).padStart(5,'0')}`,
     tipo,
     estado:'confirmado',
     fecha:pago.fechaPago||today(),
@@ -362,17 +349,12 @@ function crearCajaMovimientoPago(pago,tipo,categoria,monto,concepto,opts={}){
     pagoId:pago.id,
     categoriaBase:opts.categoriaBase||categoria,
     usuario:'sistema',
-    ts:new Date().toISOString(),
-    updatedAt:new Date().toISOString()
   };
-  DB.set('caja_movimientos',[...movs,data]);
   if(typeof api==='function'){
-    api('/api/finanzas/caja/movimientos',{method:'POST',body:JSON.stringify(data)}).then(saved=>{
-      if(saved&&typeof recargarFinanzas==='function')return recargarFinanzas();
-      return null;
-    }).catch(()=>{});
+    api('/api/finanzas/caja/movimientos',{method:'POST',body:JSON.stringify(data)}).then(()=>{
+      if(typeof recargarFinanzas==='function') recargarFinanzas().then(()=>updateCajaBadge());
+    }).catch(e=>console.error('crearCajaMovimientoPago error:',e));
   }
-  auditLog('CREATE','caja_movimientos',data.id,`${data.codigo} generado desde ${pago.codigo||'pago'}: ${data.monto} ${data.moneda}`);
   return true;
 }
 
