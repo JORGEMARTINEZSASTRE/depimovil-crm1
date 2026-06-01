@@ -753,9 +753,205 @@ function updateReservasBadge(){
 
 /* Calendario */
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let calMachineFilter='';
+let calLayerFilter='todas';
+let calIncidenciasCache={key:'',rows:[]};
 
-function renderCalendario(){
+function calDateKey(d){return d.toISOString().split('T')[0];}
+function calAddDays(dateStr,days){
+  const d=new Date((dateStr||today())+'T12:00:00');
+  d.setDate(d.getDate()+days);
+  return calDateKey(d);
+}
+function calEachDay(start,end,cb){
+  if(!start)return;
+  let cur=new Date(start+'T12:00:00');
+  const limit=new Date((end||start)+'T12:00:00');
+  let guard=0;
+  while(cur<=limit&&guard<370){
+    cb(calDateKey(cur));
+    cur.setDate(cur.getDate()+1);
+    guard++;
+  }
+}
+function calReservaInicio(r){return r.tipo==='jornada'?(r.fechaJornada||r.fechaInicio):r.fechaInicio;}
+function calReservaFin(r){return r.tipo==='jornada'?(r.fechaJornada||r.fechaFin||r.fechaInicio):r.fechaFin||r.fechaInicio||r.fechaJornada;}
+function calMonthRange(){
+  const desde=`${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
+  const hasta=calDateKey(new Date(calYear,calMonth+1,0,12));
+  return {desde,hasta};
+}
+function calOverlapsMonth(start,end){
+  const {desde,hasta}=calMonthRange();
+  return start&&start<=hasta&&(end||start)>=desde;
+}
+function calMaqName(id){
+  const m=getMaq(parseInt(id));
+  return m?`${m.codigo||''} ${m.nombre||''}`.trim():'Sin máquina';
+}
+function calEventAction(ev){
+  if(ev.kind==='reserva'||ev.reservaId)return `showResFicha(${ev.reservaId})`;
+  if(ev.kind==='mantenimiento'&&ev.maquinaId)return `showMaqFicha(${ev.maquinaId})`;
+  if(ev.kind==='incidencia'&&ev.maquinaId)return `showMaqFicha(${ev.maquinaId})`;
+  if(ev.maquinaId)return `showMaqFicha(${ev.maquinaId})`;
+  return '';
+}
+function calEventClass(ev){
+  if(ev.kind==='reserva')return ev.estado||'solicitud_recibida';
+  return `cal-type-${ev.kind}`;
+}
+function calEventLabel(ev){
+  if(ev.kind==='reserva')return ev.short||ev.codigo||'Reserva';
+  if(ev.kind==='bloqueo')return ev.short||'Bloqueo';
+  if(ev.kind==='mantenimiento')return ev.short||'Mant.';
+  if(ev.kind==='puesta_punto')return ev.short||'Puesta a punto';
+  if(ev.kind==='incidencia')return ev.short||'Incidencia';
+  if(ev.kind==='no_operativa')return ev.short||'No operativa';
+  return ev.title||'Evento';
+}
+function calEventOrder(ev){
+  return {incidencia:0,no_operativa:1,mantenimiento:2,puesta_punto:3,reserva:4,bloqueo:5}[ev.kind]??9;
+}
+async function cargarCalendarioIncidencias(){
+  if(typeof api!=='function')return [];
+  const maqs=DB.get('maquinas')||[];
+  const key=maqs.map(m=>m.id).join(',')+'|'+calYear+'-'+calMonth;
+  if(calIncidenciasCache.key===key)return calIncidenciasCache.rows;
+  const settled=await Promise.allSettled(maqs.map(m=>api('/api/maquinas/'+m.id+'/incidencias').then(rows=>(rows||[]).map(i=>({...i,maquinaId:m.id})))));
+  const rows=[];
+  settled.forEach(r=>{if(r.status==='fulfilled')rows.push(...r.value);});
+  calIncidenciasCache={key,rows};
+  return rows;
+}
+function buildCalendarioEventos(incidencias){
   const reservas=DB.get('reservas')||[];
+  const maqs=DB.get('maquinas')||[];
+  const mantenimientos=DB.get('mantenimientos')||[];
+  const {desde,hasta}=calMonthRange();
+  const eventos=[];
+  const addEvent=ev=>{
+    if(!ev.start)return;
+    ev.end=ev.end||ev.start;
+    if(!calOverlapsMonth(ev.start,ev.end))return;
+    if(calMachineFilter&&String(ev.maquinaId||'')!==String(calMachineFilter))return;
+    if(calLayerFilter!=='todas'&&ev.kind!==calLayerFilter)return;
+    eventos.push(ev);
+  };
+  reservas.forEach(r=>{
+    const start=calReservaInicio(r), end=calReservaFin(r);
+    if(!start||['cancelada','rechazada'].includes(r.estado))return;
+    const op=getOp(r.operadoraId);
+    addEvent({
+      kind:'reserva',start,end,maquinaId:r.maquinaId,reservaId:r.id,estado:r.estado,codigo:r.codigo,
+      title:`${r.codigo||'Reserva'} · ${op?op.nombre+' '+op.apellido:'Sin operadora'} · ${calMaqName(r.maquinaId)}`,
+      sub:`${fmtDate(start)}${end&&end!==start?' → '+fmtDate(end):''}`,
+      short:op?op.nombre:r.codigo
+    });
+    const rango=calcularRangoBloqueo(start,end,r.deptLogistica||'');
+    if(r.bloqueLogistico&&rango.bloqueDesde&&rango.bloqueHasta){
+      addEvent({
+        kind:'bloqueo',start:rango.bloqueDesde,end:rango.bloqueHasta,maquinaId:r.maquinaId,reservaId:r.id,
+        title:`Bloqueo logístico · ${r.codigo||'Reserva'} · ${calMaqName(r.maquinaId)}`,
+        sub:`${r.deptLogistica||'Sin depto.'} · ${fmtDate(rango.bloqueDesde)} → ${fmtDate(rango.bloqueHasta)}`,
+        short:'Logística'
+      });
+    }
+  });
+  mantenimientos.forEach(m=>{
+    if(!m.proximoVencimiento)return;
+    const estado=typeof getMantEstado==='function'?getMantEstado(m):m.estado;
+    if(!['vencido','próximo'].includes(estado))return;
+    addEvent({
+      kind:'mantenimiento',start:m.proximoVencimiento,end:m.proximoVencimiento,maquinaId:m.maquinaId,
+      title:`Mantenimiento ${estado} · ${calMaqName(m.maquinaId)}`,
+      sub:`${typeof mantTipoLabel==='function'?mantTipoLabel(m.tipo):m.tipo} · ${fmtDate(m.proximoVencimiento)}`,
+      short:estado==='vencido'?'Mant. vencido':'Mant. próximo'
+    });
+  });
+  maqs.forEach(m=>{
+    if(m.puestaPuntoEstado==='pendiente'){
+      addEvent({
+        kind:'puesta_punto',start:m.puestaPuntoAsignadaEn?normalizeDateInput(m.puestaPuntoAsignadaEn):desde,end:hasta,maquinaId:m.id,
+        title:`Puesta a punto pendiente · ${calMaqName(m.id)}`,
+        sub:`${maquinaGestionDias(m.puestaPuntoAsignadaEn)} día${maquinaGestionDias(m.puestaPuntoAsignadaEn)!==1?'s':''} en gestión`,
+        short:'Puesta a punto'
+      });
+    }
+    if(['mantenimiento','fuera_servicio','en_viaje'].includes(m.estado)||m.tecnicoEstado==='en_tecnico'){
+      addEvent({
+        kind:'no_operativa',start:normalizeDateInput(m.tecnicoSalidaEn||m.updatedAt||m.ultMant)||desde,end:hasta,maquinaId:m.id,
+        title:`${badgeTxt(m.estado)} · ${calMaqName(m.id)}`,
+        sub:m.tecnicoEstado==='en_tecnico'?`En técnico${m.tecnicoNombre?' · '+m.tecnicoNombre:''}`:'No disponible para reservas',
+        short:m.tecnicoEstado==='en_tecnico'?'En técnico':badgeTxt(m.estado)
+      });
+    }
+  });
+  (incidencias||[]).filter(i=>['abierta','en_revision'].includes(i.estado)).forEach(i=>{
+    const start=normalizeDateInput(i.created_at)||desde;
+    addEvent({
+      kind:'incidencia',start,end:hasta,maquinaId:i.maquinaId||i.maquina_id,reservaId:i.reserva_id,
+      title:`Incidencia ${i.gravedad||''} · ${calMaqName(i.maquinaId||i.maquina_id)}`,
+      sub:`${typeof incidenciaTipoLabel==='function'?incidenciaTipoLabel(i.tipo):i.tipo} · ${i.descripcion||''}`,
+      short:i.bloquea_reservas?'Incidencia bloquea':'Incidencia'
+    });
+  });
+  return eventos.sort((a,b)=>calEventOrder(a)-calEventOrder(b)||String(a.start).localeCompare(String(b.start)));
+}
+function renderCalendarioStats(eventos){
+  const reservas=eventos.filter(e=>e.kind==='reserva').length;
+  const bloqueos=eventos.filter(e=>e.kind==='bloqueo').length;
+  const tecnicos=eventos.filter(e=>['mantenimiento','puesta_punto','incidencia','no_operativa'].includes(e.kind)).length;
+  const criticos=eventos.filter(e=>e.kind==='incidencia'||e.kind==='no_operativa').length;
+  return `<div class="calendar-summary">
+    <button type="button" class="calendar-stat" onclick="setCalLayer('reserva')"><span>Reservas</span><strong>${reservas}</strong></button>
+    <button type="button" class="calendar-stat" onclick="setCalLayer('bloqueo')"><span>Bloqueos logísticos</span><strong>${bloqueos}</strong></button>
+    <button type="button" class="calendar-stat warn" onclick="setCalLayer('mantenimiento')"><span>Mantenimiento</span><strong>${eventos.filter(e=>e.kind==='mantenimiento').length}</strong></button>
+    <button type="button" class="calendar-stat danger" onclick="setCalLayer('incidencia')"><span>Incidencias</span><strong>${criticos}</strong></button>
+    <button type="button" class="calendar-stat" onclick="setCalLayer('todas')"><span>Total capas</span><strong>${eventos.length}</strong></button>
+  </div>`;
+}
+function renderCalendarioAgenda(eventos){
+  const visibles=eventos.filter(e=>e.end>=calMonthRange().desde&&e.start<=calMonthRange().hasta).slice(0,18);
+  if(!visibles.length)return `<div class="calendar-agenda"><h4>Agenda por máquina</h4><div class="machine-ops-empty">Sin eventos para este filtro.</div></div>`;
+  return `<div class="calendar-agenda">
+    <h4>Agenda por máquina</h4>
+    ${visibles.map(e=>{
+      const action=calEventAction(e);
+      return `<button type="button" class="calendar-agenda-row ${e.kind}" ${action?`onclick="${action}"`:''}>
+        <span class="calendar-agenda-dot"></span>
+        <span class="calendar-agenda-body">
+          <strong>${escapeHTML(e.title||'Evento')}</strong>
+          <small>${escapeHTML(e.sub||'')} · ${escapeHTML(calMaqName(e.maquinaId))}</small>
+        </span>
+        <span class="calendar-agenda-date">${fmtDate(e.start)}${e.end&&e.end!==e.start?' → '+fmtDate(e.end):''}</span>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+function calendarioFiltrosHTML(){
+  const maqs=DB.get('maquinas')||[];
+  return `<div class="calendar-toolbar">
+    <div class="calendar-filter">
+      <label>Máquina</label>
+      <select onchange="setCalMachine(this.value)" value="${escapeAttr(calMachineFilter)}">
+        <option value="">Todas</option>
+        ${maqs.map(m=>`<option value="${m.id}" ${String(calMachineFilter)===String(m.id)?'selected':''}>${escapeHTML(m.codigo||'')} — ${escapeHTML(m.nombre||'')}</option>`).join('')}
+      </select>
+    </div>
+    <div class="calendar-filter">
+      <label>Capa</label>
+      <select onchange="setCalLayer(this.value)">
+        ${[
+          ['todas','Todas las capas'],['reserva','Reservas'],['bloqueo','Bloqueos logísticos'],['mantenimiento','Mantenimientos'],['puesta_punto','Puesta a punto'],['incidencia','Incidencias'],['no_operativa','No operativas']
+        ].map(([v,l])=>`<option value="${v}" ${calLayerFilter===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+}
+
+async function renderCalendario(){
+  const incidencias=await cargarCalendarioIncidencias();
+  const eventos=buildCalendarioEventos(incidencias);
   const hoy=today();
   const firstDay=new Date(calYear,calMonth,1);
   const lastDay=new Date(calYear,calMonth+1,0);
@@ -764,36 +960,31 @@ function renderCalendario(){
   const mesNombre=firstDay.toLocaleDateString('es-UY',{month:'long',year:'numeric'});
 
   const dateMap={};
-  reservas.forEach(r=>{
-    const start=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
-    const end=r.tipo==='jornada'?r.fechaJornada:r.fechaFin;
-    if(!start)return;
-    let cur=new Date(start+'T12:00:00');
-    const endD=new Date((end||start)+'T12:00:00');
-    while(cur<=endD){
-      const key=cur.toISOString().split('T')[0];
+  eventos.forEach(ev=>{
+    calEachDay(ev.start,ev.end,key=>{
+      if(key<calMonthRange().desde||key>calMonthRange().hasta)return;
       if(!dateMap[key])dateMap[key]=[];
-      dateMap[key].push(r);
-      cur.setDate(cur.getDate()+1);
-    }
+      dateMap[key].push(ev);
+    });
   });
 
-  const legendHTML=Object.entries(RES_ESTADOS).map(([k,v])=>
-    `<div class="cal-legend-item"><div class="cal-legend-dot cal-event ${k}"></div>${v.label}</div>`
-  ).join('');
+  const legendHTML=[
+    ['reserva','Reservas'],['bloqueo','Bloqueo logístico'],['mantenimiento','Mantenimiento'],['puesta_punto','Puesta a punto'],['incidencia','Incidencia abierta'],['no_operativa','No operativa']
+  ].map(([k,l])=>`<div class="cal-legend-item"><div class="cal-legend-dot cal-event cal-type-${k}"></div>${l}</div>`).join('');
 
   let cells='';
   for(let i=0;i<startDow;i++) cells+=`<div class="cal-day other-month"><div class="cal-day-num"></div></div>`;
   for(let d=1;d<=totalDays;d++){
     const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday=dateStr===hoy;
-    const dayRes=dateMap[dateStr]||[];
-    const evHTML=dayRes.slice(0,3).map(r=>{
-      const op=getOp(r.operadoraId);
-      return `<div class="cal-event ${r.estado}" onclick="showResFicha(${r.id})" title="${r.codigo} — ${op?op.nombre+' '+op.apellido:''}">${op?op.nombre:r.codigo}</div>`;
+    const dayEvents=(dateMap[dateStr]||[]).sort((a,b)=>calEventOrder(a)-calEventOrder(b));
+    const evHTML=dayEvents.slice(0,4).map(ev=>{
+      const action=calEventAction(ev);
+      return `<div class="cal-event ${calEventClass(ev)}" ${action?`onclick="${action}"`:''} title="${escapeAttr(ev.title||'')}">${escapeHTML(calEventLabel(ev))}</div>`;
     }).join('');
-    const more=dayRes.length>3?`<div style="font-size:10px;color:var(--text3);padding:1px 4px">+${dayRes.length-3} más</div>`:'';
-    cells+=`<div class="cal-day${isToday?' today':''}${dayRes.length?' has-events':''}">
+    const more=dayEvents.length>4?`<div style="font-size:10px;color:var(--text3);padding:1px 4px">+${dayEvents.length-4} más</div>`:'';
+    const critical=dayEvents.some(e=>['incidencia','no_operativa'].includes(e.kind));
+    cells+=`<div class="cal-day${isToday?' today':''}${dayEvents.length?' has-events':''}${critical?' has-critical':''}">
       <div class="cal-day-num">${d}</div>${evHTML}${more}</div>`;
   }
   const used=startDow+totalDays;
@@ -801,26 +992,39 @@ function renderCalendario(){
   for(let i=0;i<remain;i++) cells+=`<div class="cal-day other-month"><div class="cal-day-num"></div></div>`;
 
   document.getElementById('calWrap').innerHTML=`
-    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <button class="btn-add" onclick="openResModal()">+ Nueva Reserva</button>
-      <button class="btn-secondary" onclick="navigate('reservas')" style="font-size:13px">☰ Ver Listado</button>
+    <div class="calendar-head-panel">
+      <div>
+        <h2>Calendario operativo</h2>
+        <p>Reservas, bloqueos logísticos, mantenimiento e incidencias por máquina.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn-add" onclick="openResModal()">+ Nueva Reserva</button>
+        <button class="btn-secondary" onclick="navigate('reservas')" style="font-size:13px">☰ Ver Listado</button>
+      </div>
     </div>
-    <div class="cal-wrap">
-      <div class="cal-header">
-        <button class="cal-nav-btn" onclick="calPrev()">‹</button>
-        <h3>${mesNombre.charAt(0).toUpperCase()+mesNombre.slice(1)}</h3>
-        <div style="display:flex;gap:8px">
-          <button class="cal-nav-btn" onclick="calHoy()">Hoy</button>
-          <button class="cal-nav-btn" onclick="calNext()">›</button>
+    ${renderCalendarioStats(eventos)}
+    ${calendarioFiltrosHTML()}
+    <div class="calendar-layout">
+      <div class="cal-wrap">
+        <div class="cal-header">
+          <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+          <h3>${mesNombre.charAt(0).toUpperCase()+mesNombre.slice(1)}</h3>
+          <div style="display:flex;gap:8px">
+            <button class="cal-nav-btn" onclick="calHoy()">Hoy</button>
+            <button class="cal-nav-btn" onclick="calNext()">›</button>
+          </div>
         </div>
+        <div class="cal-grid">
+          ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+          ${cells}
+        </div>
+        <div class="cal-legend">${legendHTML}</div>
       </div>
-      <div class="cal-grid">
-        ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
-        ${cells}
-      </div>
-      <div class="cal-legend">${legendHTML}</div>
+      ${renderCalendarioAgenda(eventos)}
     </div>`;
 }
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendario();}
 function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendario();}
 function calHoy(){calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCalendario();}
+function setCalMachine(v){calMachineFilter=v;renderCalendario();}
+function setCalLayer(v){calLayerFilter=v||'todas';renderCalendario();}

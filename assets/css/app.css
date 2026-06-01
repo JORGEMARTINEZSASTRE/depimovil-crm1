@@ -657,6 +657,21 @@ td .bold{color:var(--text);font-weight:500}
 }
 
 /* CALENDAR */
+.calendar-head-panel{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.calendar-head-panel h2{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px}
+.calendar-head-panel p{font-size:13px;color:var(--text2)}
+.calendar-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.calendar-stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:left;color:var(--text);cursor:pointer}
+.calendar-stat:hover{border-color:var(--accent)}
+.calendar-stat span{display:block;font-size:11px;color:var(--text3);font-weight:800;text-transform:uppercase;line-height:1.25}
+.calendar-stat strong{display:block;font-size:24px;margin-top:4px}
+.calendar-stat.warn strong{color:var(--yellow)}
+.calendar-stat.danger strong{color:var(--red)}
+.calendar-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.calendar-filter{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.calendar-filter label{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--text3)}
+.calendar-filter select{min-width:190px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:7px 10px;font-size:13px}
+.calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
 .cal-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;
   border-bottom:1px solid var(--border);}
@@ -669,6 +684,7 @@ td .bold{color:var(--text);font-weight:500}
   text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);}
 .cal-day{min-height:80px;padding:6px;border-right:1px solid var(--border);
   border-bottom:1px solid var(--border);position:relative;transition:background .15s;}
+.cal-day.has-critical{box-shadow:inset 3px 0 0 rgba(224,92,107,.65)}
 .cal-day:nth-child(7n){border-right:none}
 .cal-day:hover{background:rgba(255,255,255,0.02)}
 .cal-day.other-month .cal-day-num{color:var(--text3);opacity:.4}
@@ -687,10 +703,34 @@ td .bold{color:var(--text);font-weight:500}
 .cal-event.rechazada{background:rgba(224,92,107,0.15);color:var(--red)}
 .cal-event.cancelada{background:rgba(224,92,107,0.08);color:rgba(224,92,107,.5)}
 .cal-event.reprogramada{background:rgba(var(--rose-rgb),0.2);color:var(--rose)}
+.cal-event.cal-type-reserva{background:rgba(92,143,224,0.2);color:var(--blue)}
+.cal-event.cal-type-bloqueo{background:rgba(224,192,92,0.15);color:var(--yellow);border:1px dashed rgba(224,192,92,.35)}
+.cal-event.cal-type-mantenimiento{background:rgba(155,127,232,0.18);color:var(--purple)}
+.cal-event.cal-type-puesta_punto{background:rgba(var(--accent-rgb),0.18);color:var(--accent)}
+.cal-event.cal-type-incidencia{background:rgba(224,92,107,0.18);color:var(--red)}
+.cal-event.cal-type-no_operativa{background:rgba(136,146,170,0.16);color:var(--text2)}
 .cal-legend{display:flex;flex-wrap:wrap;gap:10px;padding:14px 20px;border-top:1px solid var(--border);}
 .cal-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
 .cal-legend-dot{width:10px;height:10px;border-radius:3px}
+.calendar-agenda{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:sticky;top:88px}
+.calendar-agenda h4{font-size:12px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+.calendar-agenda-row{width:100%;display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:flex-start;background:transparent;border:0;border-bottom:1px solid var(--border);padding:10px 0;color:var(--text);text-align:left}
+.calendar-agenda-row:last-child{border-bottom:0}
+.calendar-agenda-row:hover strong{color:var(--accent)}
+.calendar-agenda-dot{width:9px;height:9px;border-radius:50%;background:var(--blue);margin-top:5px}
+.calendar-agenda-row.bloqueo .calendar-agenda-dot{background:var(--yellow)}
+.calendar-agenda-row.mantenimiento .calendar-agenda-dot{background:var(--purple)}
+.calendar-agenda-row.puesta_punto .calendar-agenda-dot{background:var(--accent)}
+.calendar-agenda-row.incidencia .calendar-agenda-dot,.calendar-agenda-row.no_operativa .calendar-agenda-dot{background:var(--red)}
+.calendar-agenda-body{min-width:0}
+.calendar-agenda-body strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calendar-agenda-body small{display:block;font-size:11px;color:var(--text2);line-height:1.35;margin-top:3px}
+.calendar-agenda-date{font-size:11px;color:var(--text3);white-space:nowrap;margin-top:2px}
 @media(max-width:640px){
+  .calendar-layout{grid-template-columns:1fr}
+  .calendar-agenda{position:static}
+  .calendar-filter{width:100%;align-items:flex-start;flex-direction:column}
+  .calendar-filter select{width:100%;min-width:0}
   .cal-day{min-height:48px;padding:4px 2px;}
   .cal-event{display:none}
   .cal-day.has-events::after{content:'•';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);color:var(--accent);font-size:14px}
