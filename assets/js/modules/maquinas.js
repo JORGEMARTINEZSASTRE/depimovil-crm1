@@ -3,6 +3,19 @@
 ══════════════════════════════════ */
 let maqFilter={search:'',status:''};
 
+function _previewMaqFoto(url){
+  const preview=document.getElementById('maqFotoPreview');
+  const img=document.getElementById('maqFotoImg');
+  if(!preview||!img)return;
+  if(url){preview.style.display='block';img.src=url;}
+  else{preview.style.display='none';img.src='';}
+}
+
+// Listener para preview en tiempo real
+document.addEventListener('input',function(e){
+  if(e.target&&e.target.id==='maqFotoUrl') _previewMaqFoto(e.target.value.trim());
+});
+
 // ── ROI por máquina ──
 function _calcRoiMaquina(maqId){
   const pagos      = DB.get('pagos')||[];
@@ -101,7 +114,7 @@ function renderMaquinas(){
   if(!maqs.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">⚙️</div><h3>Sin resultados</h3></div></td></tr>`;return;}
   tbody.innerHTML=maqs.map(m=>`<tr>
     <td><span style="font-family:monospace;color:var(--accent);font-size:12px">${m.codigo}</span></td>
-    <td><span class="bold">${m.nombre}</span></td><td>${m.categoria}</td>
+    <td style="display:flex;align-items:center;gap:8px">${m.fotoUrl?`<img src="${m.fotoUrl}" style="width:32px;height:32px;border-radius:6px;object-fit:cover" onerror="this.style.display='none'">`:'<span style="font-size:20px">⚙️</span>'}<span class="bold">${m.nombre}</span></td><td>${m.categoria}</td>
     <td>${m.ubicacion}</td><td>${badgeMaq(m.estado)}</td><td>${fmtDate(m.ultMant)}</td>
     <td style="white-space:nowrap">
       <button class="action-btn" onclick="showMaqFicha(${m.id})">Ver</button>
@@ -117,7 +130,7 @@ function showMaqFicha(id){
   document.getElementById('fichaMaqContent').innerHTML=`
     <div class="ficha-header">
       <div class="ficha-header-left">
-        <div class="ficha-avatar maq">⚙️</div>
+        <div class="ficha-avatar maq" style="overflow:hidden">${m.fotoUrl?`<img src="${m.fotoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.innerHTML='⚙️'">`:"⚙️"}</div>
         <div class="ficha-title"><h2>${m.nombre}</h2><p style="font-family:monospace;color:var(--accent)">${m.codigo}</p></div>
       </div>
       <div class="ficha-actions">
@@ -173,9 +186,11 @@ function openMaqModal(id){
     sv('maqMarca',m.marca);sv('maqModelo',m.modelo);sv('maqSerie',m.serie);
     sv('maqDeptBase',m.deptBase);sv('maqUbicacion',m.ubicacion);sv('maqEstado',m.estado);
     sv('maqUltMant',m.ultMant);sv('maqProxMant',m.proxMant==='—'?'':m.proxMant);sv('maqObs',m.obs);
+    sv('maqFotoUrl',m.fotoUrl||'');_previewMaqFoto(m.fotoUrl||'');
   } else {
     const maqs=DB.get('maquinas')||[];const nextN=maqs.length+1;
-    ['maqId','maqNombre','maqMarca','maqModelo','maqSerie','maqUbicacion','maqObs'].forEach(f=>sv(f,''));
+    ['maqId','maqNombre','maqMarca','maqModelo','maqSerie','maqUbicacion','maqObs','maqFotoUrl'].forEach(f=>sv(f,''));
+    _previewMaqFoto('');
     sv('maqCodigo','OP-'+String(nextN).padStart(3,'0'));sv('maqDeptBase','Uruguay');
     sv('maqCategoria','Láser Depilación');sv('maqEstado','disponible');sv('maqUltMant',today());sv('maqProxMant','');
   }
@@ -188,6 +203,7 @@ async function saveMaquina(){
     ubicacion:gv('maqUbicacion').trim(),estado:gv('maqEstado'),
     serial_num:gv('maqSerie').trim(),
     ult_mant:gv('maqUltMant')||null,prox_mant:gv('maqProxMant')||null,
+    foto_url:gv('maqFotoUrl').trim()||null,
     obs:gv('maqObs').trim()};
   if(!payload.codigo||!payload.nombre){showToast('⚠️ Código y nombre son obligatorios','warn');return;}
   try{
@@ -201,7 +217,9 @@ async function saveMaquina(){
     const maqs=await api('/api/maquinas');
     DB.set('maquinas',maqs.map(m=>({id:m.id,codigo:m.codigo,nombre:m.nombre,
       categoria:m.categoria||'',ubicacion:m.ubicacion||'',estado:m.estado||'disponible',
-      serial:m.serial_num||'',obs:m.obs||''})));
+      serial:m.serial_num||'',marca:m.marca||'',modelo:m.modelo||'',deptBase:m.dept_base||'',
+      ultMant:m.ult_mant||'',proxMant:m.prox_mant||'',
+      fotoUrl:m.foto_url||'',obs:m.obs||''})));
     closeModal('modalMaq');renderMaquinas();
   }catch(e){showToast('❌ Error: '+e.message,'error');}
 }
@@ -212,7 +230,9 @@ async function deleteMaquina(id){
     const maqs=await api('/api/maquinas');
     DB.set('maquinas',maqs.map(m=>({id:m.id,codigo:m.codigo,nombre:m.nombre,
       categoria:m.categoria||'',ubicacion:m.ubicacion||'',estado:m.estado||'disponible',
-      serial:m.serial_num||'',obs:m.obs||''})));
+      serial:m.serial_num||'',marca:m.marca||'',modelo:m.modelo||'',deptBase:m.dept_base||'',
+      ultMant:m.ult_mant||'',proxMant:m.prox_mant||'',
+      fotoUrl:m.foto_url||'',obs:m.obs||''})));
     showToast('\ud83d\uddd1 M\u00e1quina eliminada');navigate('maquinas');
   }catch(e){showToast('\u274c Error: '+e.message,'error');}
 }

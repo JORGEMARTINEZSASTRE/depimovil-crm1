@@ -24,11 +24,22 @@ async function ensureTable(client) {
       ult_mant     DATE,
       prox_mant    DATE,
       obs          TEXT,
+      foto_url     TEXT,
       created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
       updated_at   TIMESTAMP    NOT NULL DEFAULT NOW()
     )
   `);
+  // Migración: agregar foto_url si no existe
+  await client.query(`
+    ALTER TABLE maquinas ADD COLUMN IF NOT EXISTS foto_url TEXT
+  `);
 }
+
+// Inicializar tabla al cargar
+(async () => {
+  const client = await pool.connect();
+  try { await ensureTable(client); } catch(e) { console.error('ensureTable maquinas:', e.message); } finally { client.release(); }
+})();
 
 // ─────────────────────────────────────────────
 // GET /api/maquinas — listar todas
@@ -39,7 +50,7 @@ router.get('/', auth, async (req, res) => {
     const { rows } = await pool.query(`
       SELECT id, codigo, nombre, categoria, ubicacion, estado,
              serial_num, marca, modelo, dept_base,
-             ult_mant, prox_mant, obs, created_at, updated_at
+             ult_mant, prox_mant, obs, foto_url, created_at, updated_at
       FROM maquinas
       ORDER BY codigo
     `);
@@ -74,7 +85,7 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const {
     codigo, nombre, categoria, ubicacion, estado,
-    serial_num, marca, modelo, dept_base, ult_mant, prox_mant, obs
+    serial_num, marca, modelo, dept_base, ult_mant, prox_mant, obs, foto_url
   } = req.body;
 
   if (!codigo || !nombre) {
@@ -83,15 +94,15 @@ router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res
 
   try {
     const { rows } = await pool.query(`
-      INSERT INTO maquinas (codigo, nombre, categoria, ubicacion, estado, serial_num, marca, modelo, dept_base, ult_mant, prox_mant, obs)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      INSERT INTO maquinas (codigo, nombre, categoria, ubicacion, estado, serial_num, marca, modelo, dept_base, ult_mant, prox_mant, obs, foto_url)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
       RETURNING *
     `, [
       codigo.trim(), nombre.trim(), categoria || 'Láser Depilación',
       ubicacion || null, estado || 'disponible',
       serial_num || null, marca || null, modelo || null,
       dept_base || 'Uruguay',
-      ult_mant || null, prox_mant || null, obs || null
+      ult_mant || null, prox_mant || null, obs || null, foto_url || null
     ]);
 
     await pool.query(
@@ -116,7 +127,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res
 router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const {
     codigo, nombre, categoria, ubicacion, estado,
-    serial_num, marca, modelo, dept_base, ult_mant, prox_mant, obs
+    serial_num, marca, modelo, dept_base, ult_mant, prox_mant, obs, foto_url
   } = req.body;
 
   if (!codigo || !nombre) {
@@ -128,15 +139,15 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
       UPDATE maquinas SET
         codigo=$1, nombre=$2, categoria=$3, ubicacion=$4, estado=$5,
         serial_num=$6, marca=$7, modelo=$8, dept_base=$9,
-        ult_mant=$10, prox_mant=$11, obs=$12, updated_at=NOW()
-      WHERE id=$13
+        ult_mant=$10, prox_mant=$11, obs=$12, foto_url=$13, updated_at=NOW()
+      WHERE id=$14
       RETURNING *
     `, [
       codigo.trim(), nombre.trim(), categoria || 'Láser Depilación',
       ubicacion || null, estado || 'disponible',
       serial_num || null, marca || null, modelo || null,
       dept_base || 'Uruguay',
-      ult_mant || null, prox_mant || null, obs || null,
+      ult_mant || null, prox_mant || null, obs || null, foto_url || null,
       req.params.id
     ]);
     if (!rows.length) return res.status(404).json({ error: 'Máquina no encontrada' });

@@ -205,7 +205,9 @@ async function loadAllData(){
     DB.set('operadoras',ops.map(mapOperadora));
     DB.set('maquinas',maqs.map(m=>({id:m.id,codigo:m.codigo,nombre:m.nombre,
       categoria:m.categoria||'',ubicacion:m.ubicacion||'',estado:m.estado||'disponible',
-      serial:m.serial_num||'',obs:m.obs||''})));
+      serial:m.serial_num||'',marca:m.marca||'',modelo:m.modelo||'',deptBase:m.dept_base||'',
+      ultMant:m.ult_mant||'',proxMant:m.prox_mant||'',
+      fotoUrl:m.foto_url||'',obs:m.obs||''})));
     DB.set('reservas',reservas.map(mapReserva));
     DB.set('pagos',pagos.map(p=>({id:p.id,codigo:p.codigo,reservaId:p.reserva_id,
       operadoraId:p.operadora_id,tipo:p.tipo,estado:p.estado,
