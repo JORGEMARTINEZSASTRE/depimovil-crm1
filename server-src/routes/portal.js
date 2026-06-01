@@ -323,6 +323,15 @@ router.get('/:token', async (req, res) => {
       [op.id]
     ).catch(() => ({ rows: [] }));
 
+    // Máquinas disponibles para mostrar al operadora
+    const { rows: maquinasDisp } = await pool.query(`
+      SELECT id, nombre, categoria, dept_base, foto_url
+      FROM maquinas
+      WHERE estado = 'disponible'
+      ORDER BY nombre
+      LIMIT 12
+    `).catch(() => ({ rows: [] }));
+
     res.json({
       operadora: {
         id: op.id,
@@ -341,6 +350,7 @@ router.get('/:token', async (req, res) => {
       cedula: docs.filter(d => ['cedula', 'cedula_dorso'].includes(d.tipo)),
       reservas_activas: reservas,
       contratos,
+      maquinas_disponibles: maquinasDisp,
     });
   } catch (err) {
     console.error('GET /api/portal/:token error:', err);

@@ -484,6 +484,30 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
     ]);
     if (!rows.length) return res.status(404).json({ error: 'Operadora no encontrada' });
 
+    // Si se aprobó (estado -> activa) y antes no lo era, enviar link de acceso al portal
+    const opActualizada = rows[0];
+    if (estado === 'activa') {
+      try {
+        const { rows: prevRows } = await pool.query('SELECT estado, portal_token FROM operadoras WHERE id=$1', [req.params.id]);
+        const client2 = await pool.connect();
+        try {
+          await client2.query('BEGIN');
+          const token = await ensurePortalToken(client2, opActualizada.id, opActualizada.portal_token);
+          await client2.query('COMMIT');
+          const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${token}`;
+          const telefono = opActualizada.whatsapp || opActualizada.telefono;
+          if (telefono) {
+            const mensaje = `¡Hola ${opActualizada.nombre}! 🎉 Tu cuenta en DepiMóvil fue aprobada.\n\nYa podés ingresar a tu portal personal desde este link (guardalo):\n${portalUrl}\n\nDentro vas a poder ver tus máquinas, reservas y firmar contratos. ¡Bienvenida!`;
+            await sendOrQueueOperadoraMessage({ operadoraId: opActualizada.id, telefono, mensaje, tipo: 'bienvenida_portal' }).catch(() => {});
+          }
+        } catch(e) {
+          await client2.query('ROLLBACK').catch(() => {});
+        } finally {
+          client2.release();
+        }
+      } catch(e) { /* no bloquear si falla el envío */ }
+    }
+
     await pool.query(
       `INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle)
        VALUES ($1,$2,$3,$4,$5,$6)`,

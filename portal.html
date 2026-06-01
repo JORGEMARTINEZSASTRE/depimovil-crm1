@@ -64,6 +64,11 @@ a{color:var(--accent);text-decoration:none}
 .status-ok{background:rgba(82,196,138,0.12);color:var(--green)}
 .status-pending{background:rgba(224,192,92,0.12);color:var(--yellow)}
 .status-missing{background:rgba(224,92,107,0.1);color:var(--red)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.ok{background:rgba(82,196,138,0.15);color:var(--green)}
+.badge.warn{background:rgba(224,192,92,0.15);color:var(--yellow)}
+.badge.info{background:rgba(99,179,237,0.15);color:#63b3ed}
+.badge.muted{background:var(--surface2);color:var(--text2)}
 
 /* Upload area */
 .upload-area{border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;
@@ -172,6 +177,7 @@ a{color:var(--accent);text-decoration:none}
 
     <div id="guidePanel"></div>
     <div id="reservasPanel"></div>
+    <div id="maquinasDisponiblesPanel"></div>
 
     <!-- CÉDULA -->
     <div class="card" id="cedulaCard">
@@ -280,6 +286,7 @@ function render() {
   document.getElementById('opName').textContent = `${DATA.operadora.nombre} ${DATA.operadora.apellido}`;
   renderGuide();
   renderReservasPanel();
+  renderMaquinasDisponibles();
   renderCedula();
   renderContratos();
   if (window.location.hash === '#contratos') {
@@ -291,8 +298,12 @@ function render() {
 // GUÍA
 // ══════════════════════════════════
 function docsCedulaCompletos() {
-  const cedulaDocs = Array.isArray(DATA.cedula) ? DATA.cedula : (DATA.cedula ? [DATA.cedula] : []);
-  return !!(cedulaDocs.find(d => d && d.tipo === 'cedula') && cedulaDocs.find(d => d && d.tipo === 'cedula_dorso'));
+  const raw = DATA.cedula;
+  if (!raw) return false;
+  const cedulaDocs = Array.isArray(raw) ? raw : [raw];
+  const frente = cedulaDocs.find(d => d && (d.tipo === 'cedula' || d.tipo === 'frente'));
+  const dorso  = cedulaDocs.find(d => d && (d.tipo === 'cedula_dorso' || d.tipo === 'dorso'));
+  return !!(frente && dorso);
 }
 
 function contratosPendientes() {
@@ -337,36 +348,90 @@ function renderReservasPanel() {
   const reservas = DATA.reservas_activas || [];
   const contratos = DATA.contratos || [];
   const box = document.getElementById('reservasPanel');
-  if (!reservas.length) {
-    box.innerHTML = `<div class="card"><h3>📅 Mis reservas y máquinas</h3><div class="empty-note">Todavía no tenés reservas activas en este portal.</div></div>`;
-    return;
-  }
-  box.innerHTML = `<div class="card">
-    <h3>📅 Mis reservas y máquinas</h3>
-    <p class="desc">Solo lectura. Los precios, estados y disponibilidad los administra DepiMóvil.</p>
-    ${reservas.map(r => {
-      const firmado = contratos.some(c => parseInt(c.maquina_id, 10) === parseInt(r.maquina_id, 10) && isContratoFirmado(c));
-      const foto = fileUrl(r.maquina_foto_url || '');
-      return `<div class="reservation-card">
-        <div class="reservation-thumb">${foto ? `<img src="${escapeHTML(foto)}" alt="${escapeHTML(r.maquina_nombre || 'Máquina')}">` : '⚙️'}</div>
-        <div class="reservation-body">
-          <h4>${escapeHTML(r.maquina_nombre || 'Máquina')} ${r.maquina_codigo ? '(' + escapeHTML(r.maquina_codigo) + ')' : ''}</h4>
-          <p>Reserva ${escapeHTML(r.codigo || '')} · ${fmtDate(reservaFecha(r))}${r.dept_logistica ? ' · ' + escapeHTML(r.dept_logistica) : ''}</p>
-          <div class="reservation-meta">
-            <span class="mini-pill">${escapeHTML(estadoReservaLabel(r.estado))}</span>
-            ${r.tipo ? `<span class="mini-pill">${escapeHTML(r.tipo)}</span>` : ''}
-            ${r.monto ? `<span class="mini-pill">${Number(r.monto).toLocaleString()} ${escapeHTML(r.moneda || 'UYU')}</span>` : ''}
-            <span class="mini-pill">${firmado ? 'Contrato firmado' : 'Contrato pendiente'}</span>
-          </div>
+
+  // Separar en curso (activas/confirmadas) y futuras/disponibles
+  const enCurso = reservas.filter(r => ['activa','confirmada','en_curso'].includes(r.estado));
+  const futuras  = reservas.filter(r => !['activa','confirmada','en_curso'].includes(r.estado));
+
+  function maqCard(r, badge) {
+    const firmado = contratos.some(c => parseInt(c.maquina_id,10)===parseInt(r.maquina_id,10) && isContratoFirmado(c));
+    const foto = fileUrl(r.maquina_foto_url || '');
+    const estado = estadoReservaLabel(r.estado);
+    return `<div class="reservation-card">
+      <div class="reservation-thumb">${foto?`<img src="${escapeHTML(foto)}" alt="${escapeHTML(r.maquina_nombre||'Máquina')}">`:'⚙️'}</div>
+      <div class="reservation-body">
+        <h4>${escapeHTML(r.maquina_nombre||'Máquina')}</h4>
+        <p>${fmtDate(reservaFecha(r))}${r.dept_logistica?' · '+escapeHTML(r.dept_logistica):''}</p>
+        <div class="reservation-meta">
+          <span class="badge ${badge}">${estado}</span>
+          ${firmado
+            ? '<span class="badge ok">✅ Contrato firmado</span>'
+            : `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="openContrato(${parseInt(r.maquina_id,10)||0})">✍️ Firmar contrato</button>`}
         </div>
-      </div>`;
-    }).join('')}
-  </div>`;
+      </div>
+    </div>`;
+  }
+
+  let html = '';
+
+  if (enCurso.length) {
+    html += `<div class="card" style="border-left:3px solid var(--accent)">
+      <h3>⚡ Mi Máquina en Curso</h3>
+      ${enCurso.map(r => maqCard(r,'warn')).join('')}
+    </div>`;
+  }
+
+  if (futuras.length) {
+    html += `<div class="card">
+      <h3>📅 Mis Reservas Futuras</h3>
+      ${futuras.map(r => maqCard(r,'info')).join('')}
+    </div>`;
+  }
+
+  if (!reservas.length) {
+    html = `<div class="card">
+      <h3>📅 Mis Máquinas</h3>
+      <div class="empty-note">Todavía no tenés reservas activas. Cuando administración asigne una máquina, aparece acá.</div>
+    </div>`;
+  }
+
+  box.innerHTML = html;
 }
 
 // ══════════════════════════════════
-// CÉDULA
+// MÁQUINAS DISPONIBLES PARA ALQUILAR
 // ══════════════════════════════════
+function renderMaquinasDisponibles() {
+  const box = document.getElementById('maquinasDisponiblesPanel');
+  if (!box) return;
+  const maquinas = DATA.maquinas_disponibles || [];
+  if (!maquinas.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="card">
+    <h3>🛒 Máquinas Disponibles para Alquilar</h3>
+    <p class="desc" style="margin-bottom:14px">Estas máquinas están libres. Contactá a administración para reservar.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+      ${maquinas.map(m => {
+        const foto = fileUrl(m.foto_url || '');
+        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center">
+          <div style="width:64px;height:64px;border-radius:10px;background:var(--surface);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:28px">
+            ${foto?`<img src="${escapeHTML(foto)}" style="width:100%;height:100%;object-fit:cover">`:'⚙️'}
+          </div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">${escapeHTML(m.nombre||'Máquina')}</div>
+          <div style="font-size:11px;color:var(--text2)">${escapeHTML(m.categoria||'')}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${escapeHTML(m.dept_base||'')}</div>
+          <span class="badge ok" style="margin-top:8px;display:inline-block">Disponible</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:16px;text-align:center">
+      <a href="https://wa.me/59899921164?text=Hola%20DepiMóvil%2C%20me%20interesa%20reservar%20una%20máquina"
+         target="_blank" class="btn btn-primary" style="display:inline-block;text-decoration:none">
+        💬 Consultar por WhatsApp
+      </a>
+    </div>
+  </div>`;
+}
+
 function renderCedula() {
   const statusEl = document.getElementById('cedulaStatus');
   const bodyEl = document.getElementById('cedulaBody');
@@ -495,9 +560,13 @@ async function confirmCedula() {
       throw new Error(e.error);
     }
     const res = await r.json();
-    DATA.cedula = Array.isArray(res.documentos) && res.documentos.length
-      ? res.documentos
-      : [{ tipo: 'cedula', created_at: new Date().toISOString(), archivo_url: res.archivo_url }, { tipo: 'cedula_dorso', created_at: new Date().toISOString(), archivo_url: res.archivo_url }];
+    if (Array.isArray(res.documentos) && res.documentos.length >= 2) {
+      DATA.cedula = res.documentos;
+    } else {
+      // Refrescar desde servidor para obtener datos correctos
+      const r2 = await fetch(`${API}/${TOKEN}`);
+      if (r2.ok) { const d2 = await r2.json(); DATA.cedula = d2.cedula || []; }
+    }
     _pendingFiles = { frente: null, dorso: null };
     renderGuide();
     renderCedula();
