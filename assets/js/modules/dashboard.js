@@ -263,7 +263,98 @@ function renderDailyPanel(items){
   </div>`;
 }
 
+function renderDashboardOperadora(){
+  const todasMaqs = DB.get('maquinas')||[];
+  const op = (DB.get('operadoras')||[]).find(o=>parseInt(o.id)===parseInt(currentUser?.operadora_id));
+  const misReservas = (DB.get('reservas')||[]).filter(r=>parseInt(r.operadoraId)===parseInt(currentUser?.operadora_id));
+  const hoy = today();
+
+  // Ciudades de la operadora
+  const ciudades = [];
+  if(op){
+    if(op.ciudad) ciudades.push(op.ciudad);
+    const dirs = Array.isArray(op.direccionesEntrega)?op.direccionesEntrega:(op.direcciones_entrega?JSON.parse(op.direcciones_entrega||'[]'):[]);
+    dirs.forEach(d=>{ if(d.ciudad&&!ciudades.includes(d.ciudad)) ciudades.push(d.ciudad); if(d.localidad&&!ciudades.includes(d.localidad)) ciudades.push(d.localidad); });
+  }
+
+  // Máquinas disponibles en sus ciudades
+  const maqsDisp = todasMaqs.filter(m=>{
+    if(m.estado!=='disponible') return false;
+    if(!ciudades.length) return true;
+    const maqLoc = (m.ubicacion||m.ciudad||m.deptBase||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    return ciudades.some(c=>maqLoc.includes(c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));
+  });
+
+  // Reservas activas propias
+  const resActivas = misReservas.filter(r=>['confirmada','activa','en_curso','solicitud_recibida','pendiente_aprobacion'].includes(r.estado));
+  const resFuturas = misReservas.filter(r=>['confirmada','activa'].includes(r.estado)&&r.fechaFin&&r.fechaFin>=hoy).sort((a,b)=>(a.fechaInicio||'').localeCompare(b.fechaInicio||''));
+
+  // HTML del dashboard operadora
+  const nombre = currentUser?.nombre?.split(' ')[0] || 'Operadora';
+  const ciudadesLabel = ciudades.length ? ciudades.join(' · ') : 'Sin ciudad registrada';
+
+  document.getElementById('dashAlerts').innerHTML='';
+  document.getElementById('statsGrid').innerHTML='';
+
+  document.getElementById('dashboardGrid').innerHTML=`
+    <div style="grid-column:1/-1;background:linear-gradient(135deg,var(--accent) 0%,#7b5ea7 100%);border-radius:16px;padding:28px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:22px;font-weight:800;margin-bottom:4px">¡Hola, ${escapeHTML(nombre)}! 👋</div>
+        <div style="opacity:.85;font-size:14px">📍 ${escapeHTML(ciudadesLabel)}</div>
+        <div style="opacity:.75;font-size:13px;margin-top:4px">${resActivas.length} reserva${resActivas.length!==1?'s':''} activa${resActivas.length!==1?'s':''}</div>
+      </div>
+      <button onclick="openResModal()" style="background:#fff;color:var(--accent);border:none;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.15)">
+        🛒 Reservar Equipo Ahora
+      </button>
+    </div>
+
+    <div class="dash-card" style="grid-column:1/-1">
+      <h3>⚙️ Máquinas Disponibles en tu Ciudad</h3>
+      ${ciudades.length===0?`<div style="color:var(--text2);font-size:13px">Completá tu ciudad en tu perfil para ver las máquinas disponibles cerca tuyo.</div>`:
+        maqsDisp.length===0?`<div style="color:var(--text2);font-size:13px">No hay máquinas disponibles en ${escapeHTML(ciudadesLabel)} por el momento. Te avisaremos cuando haya una.</div>`:
+        `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:4px">
+          ${maqsDisp.map(m=>{
+            const foto = m.fotoUrl||m.foto_url||'';
+            return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer" onclick="openResModal(null,${m.id})">
+              <div style="width:68px;height:68px;border-radius:10px;background:var(--surface);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:30px">
+                ${foto?`<img src="${escapeAttr(foto)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='⚙️'">`:'⚙️'}
+              </div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:3px">${escapeHTML(m.nombre)}</div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${escapeHTML(m.categoria||'')}</div>
+              <div style="background:var(--accent);color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
+                + Reservar
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`
+      }
+    </div>
+
+    ${resFuturas.length?`<div class="dash-card" style="grid-column:1/-1">
+      <h3>📅 Mis Reservas Activas</h3>
+      ${resFuturas.map(r=>{
+        const maq=getMaq(r.maquinaId);
+        const foto=maq?.fotoUrl||maq?.foto_url||'';
+        const fecha=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
+        return `<div class="dash-list-item" style="cursor:pointer" onclick="showResFicha(${r.id})">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:40px;height:40px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+              ${foto?`<img src="${escapeAttr(foto)}" style="width:100%;height:100%;object-fit:cover">`:'⚙️'}
+            </div>
+            <div>
+              <div class="name">${maq?escapeHTML(maq.nombre):'Máquina'}</div>
+              <div class="sub">${escapeHTML(r.codigo)} · ${fmtDate(fecha)}${r.deptLogistica?' · '+escapeHTML(r.deptLogistica):''}</div>
+            </div>
+          </div>
+          ${badgeRes(r.estado)}
+        </div>`;
+      }).join('')}
+    </div>`:''}
+  `;
+}
+
 function renderDashboard(){
+  if(isOperadoraUser()){ renderDashboardOperadora(); return; }
   const ops=DB.get('operadoras')||[];
   const maqs=DB.get('maquinas')||[];
   const reservas=DB.get('reservas')||[];

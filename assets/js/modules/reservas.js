@@ -414,7 +414,7 @@ function openResModalForOperadora(opId){
   onResSelectionChange();
 }
 
-function openResModal(id){
+function openResModal(id, preselMaquinaId){
   if(id&&isOperadoraUser()){
     showToast('⚠️ Para cambiar una reserva escribinos por WhatsApp','warn');
     return;
@@ -467,6 +467,7 @@ function openResModal(id){
   }
   filterMaquinasReservaByOperadora();
   if(selectedMaquinaId)sv('resMaquinaId',selectedMaquinaId);
+  if(preselMaquinaId)sv('resMaquinaId',preselMaquinaId);
   onResTipoChange();
   openModal('modalRes');
 }
