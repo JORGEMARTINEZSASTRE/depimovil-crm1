@@ -67,7 +67,7 @@ async function api(path,opts={}){
     ? `https://crm.depimovil.live${path}`
     : path;
   const res=await fetch(apiPath,{...opts,headers});
-  if(res.status===401){doLogout();throw new Error('Sesión expirada');}
+  if(res.status===401){doLogout();const e=new Error('Sesión expirada');e.status=401;throw e;}
   if(!res.ok){
     const err=await res.json().catch(()=>({error:'Error '+res.status}));
     throw new Error(err.error||'Error en la solicitud');

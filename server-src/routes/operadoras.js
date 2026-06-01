@@ -567,6 +567,12 @@ router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
       'DELETE FROM operadoras WHERE id=$1 RETURNING id, nombre, apellido',
       [id]
     );
+
+    // Desactivar todos los usuarios asociados a esta operadora
+    await client.query(
+      `UPDATE usuarios SET status='inactivo', operadora_id=NULL, updated_at=NOW() WHERE operadora_id=$1`,
+      [id]
+    ).catch(() => {});
     await client.query(
       `INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle)
        VALUES ($1,$2,$3,$4,$5,$6)`,

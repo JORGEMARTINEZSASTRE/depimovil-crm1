@@ -207,4 +207,10 @@ function startApp(){
   if(typeof updateRevisionOperadorasBadge==='function') updateRevisionOperadorasBadge();
   if(typeof applyRoleUI==='function') applyRoleUI();
   navigate((typeof canView==='function'&&canView('dashboard'))?'dashboard':'envios');
+  // Chequeo periódico de sesión (cada 2 minutos)
+  if(window._sessionCheckInterval) clearInterval(window._sessionCheckInterval);
+  window._sessionCheckInterval=setInterval(async()=>{
+    try{ await api('/api/auth/me'); }
+    catch(e){ if(e?.status===401||String(e).includes('401')){ clearInterval(window._sessionCheckInterval); logout(); } }
+  }, 2*60*1000);
 }
