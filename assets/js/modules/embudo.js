@@ -4,27 +4,31 @@
 function renderEmbudo(){
   const leads = DB.get('leads')||[];
   const total  = leads.length;
-  const activos= leads.filter(l=>!['ganado','perdido'].includes(l.estado)).length;
-  const ganados= leads.filter(l=>l.estado==='ganado').length;
+  const activos= leads.filter(l=>!['ganado','perdido','cliente_activa'].includes(l.estado)).length;
+  const ganados= leads.filter(l=>['ganado','cliente_activa','reserva_confirmada'].includes(l.estado)).length;
   const tasa   = total ? Math.round((ganados/total)*100) : 0;
 
-  const reactivar= leads.filter(l=>l.estado==='reactivar_luego').length;
+  const reactivar= leads.filter(l=>['reactivar_luego','cliente_inactiva','recuperacion'].includes(l.estado)).length;
+  const calientes= leads.filter(l=>Number(l.whatsappScore||0)>=45 || ['pendiente_sena','reserva_confirmada'].includes(l.estado)).length;
   const convertidos= leads.filter(l=>l.operadoraId).length;
 
   document.getElementById('embudoStats').innerHTML = [
     {val:total,      lbl:'Total Leads',       color:'var(--text)'},
     {val:activos,    lbl:'En Pipeline',        color:'var(--blue)'},
     {val:ganados,    lbl:'Ganados',            color:'var(--green)'},
+    {val:calientes,  lbl:'Calientes',          color:'var(--accent)'},
     {val:convertidos,lbl:'Convertidos',        color:'var(--accent)'},
     {val:leads.filter(l=>l.estado==='perdido').length, lbl:'Perdidos', color:'var(--red)'},
     {val:reactivar,  lbl:'A Reactivar',        color:'var(--text2)'},
     {val:tasa+'%',   lbl:'Tasa Conversión',    color:'var(--purple)'},
   ].map(s=>`<div class="embudo-stat"><div class="es-val" style="color:${s.color}">${s.val}</div><div class="es-lbl">${s.lbl}</div></div>`).join('');
 
-  const COLS_ORDER = ['nuevo','contactado','interesado','presupuesto_enviado','seguimiento','ganado','perdido','reactivar_luego'];
+  const COLS_ORDER = ['nuevo','contactado','interesado','calificado','presupuesto_enviado','pendiente_respuesta','pendiente_sena','reserva_confirmada','cliente_activa','recuperacion','perdido'];
   const colColors  = {nuevo:'var(--text3)',contactado:'var(--blue)',interesado:'var(--accent)',
-    presupuesto_enviado:'var(--purple)',seguimiento:'var(--yellow)',ganado:'var(--green)',
-    perdido:'var(--red)',reactivar_luego:'var(--rose)'};
+    calificado:'var(--accent)',presupuesto_enviado:'var(--purple)',pendiente_respuesta:'var(--yellow)',
+    pendiente_sena:'var(--purple)',reserva_confirmada:'var(--green)',cliente_activa:'var(--green)',
+    cliente_inactiva:'var(--rose)',recuperacion:'var(--rose)',seguimiento:'var(--yellow)',
+    ganado:'var(--green)',perdido:'var(--red)',reactivar_luego:'var(--rose)'};
 
   const board = document.getElementById('kanbanBoard');
   board.innerHTML = COLS_ORDER.map(estado=>{
@@ -44,7 +48,8 @@ function renderEmbudo(){
           return `<div class="kanban-card" onclick="showLeadFicha(${l.id})">
             <div class="kc-name">${l.nombre} ${l.apellido}</div>
             <div class="kc-sub">${l.gabinete||l.ciudad||'—'}</div>
-            <div class="kc-tech">${l.tecnologia||l.fuente||'—'}</div>
+            <div class="kc-tech">${l.tecnologia||l.intencionWhatsapp||l.fuente||'—'}</div>
+            ${l.whatsappScore?`<div class="kc-date">🔥 Score ${Number(l.whatsappScore)||0}</div>`:''}
             ${l.fechaUpdate?`<div class="kc-date">📅 ${fmtDate(l.fechaUpdate)}</div>`:''}
             ${qcHtml}
           </div>`;

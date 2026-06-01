@@ -37,6 +37,26 @@ a{color:var(--accent);text-decoration:none}
   padding:24px;margin-bottom:20px;transition:border-color .2s}
 .card h3{font-size:16px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px}
 .card .desc{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5}
+.guide-hero{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px}
+.guide-hero h2{font-size:18px;margin-bottom:6px}
+.guide-hero p{font-size:13px;color:var(--text2);line-height:1.5}
+.guide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.guide-step{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.guide-step strong{display:block;font-size:18px;margin-bottom:3px}
+.guide-step span{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+.guide-step small{display:block;font-size:12px;color:var(--text2);margin-top:4px;line-height:1.35}
+.guide-step.ok strong{color:var(--green)}.guide-step.warn strong{color:var(--yellow)}.guide-step.missing strong{color:var(--red)}
+.quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.portal-section-title{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 10px;font-weight:700}
+.reservation-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center}
+.reservation-thumb{width:74px;height:74px;border-radius:10px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex:0 0 auto;overflow:hidden;color:var(--text3);font-size:24px}
+.reservation-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.reservation-body{min-width:0;flex:1}
+.reservation-body h4{font-size:14px;margin-bottom:3px}
+.reservation-body p{font-size:12px;color:var(--text2);line-height:1.45}
+.reservation-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.mini-pill{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;padding:3px 8px;font-size:11px;color:var(--text2);background:rgba(255,255,255,.02)}
+.empty-note{font-size:13px;color:var(--text3);padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px}
 
 /* Status badges */
 .status{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;
@@ -86,7 +106,16 @@ a{color:var(--accent);text-decoration:none}
 
 .check-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;cursor:pointer}
 .check-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
-.check-row label{font-size:13px;color:var(--text2);cursor:pointer}
+.check-row span{font-size:13px;color:var(--text2);cursor:pointer}
+.signature-panel{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin:14px 0}
+.signature-preview{min-height:72px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;background:rgba(255,255,255,.02);margin-top:10px}
+.signature-preview img{max-width:100%;max-height:88px}
+.signature-modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.signature-modal.open{display:flex}
+.signature-box{width:min(560px,100%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
+.signature-canvas-wrap{background:#fff;border-radius:10px;margin:12px 0;overflow:hidden;touch-action:none}
+#signatureCanvas{width:100%;height:210px;display:block;touch-action:none}
+.signature-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
 /* Loading */
 .loading{text-align:center;padding:60px 20px;color:var(--text3)}
@@ -111,7 +140,9 @@ a{color:var(--accent);text-decoration:none}
 .success-icon{width:48px;height:48px;background:rgba(82,196,138,0.12);border-radius:50%;
   display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px}
 @media(max-width:560px){
-  .upload-grid,.preview-row{grid-template-columns:1fr}
+  .upload-grid,.preview-row,.guide-grid{grid-template-columns:1fr}
+  .reservation-card{align-items:flex-start}
+  .reservation-thumb{width:58px;height:58px}
 }
 </style>
 </head>
@@ -139,6 +170,9 @@ a{color:var(--accent);text-decoration:none}
       <p>Hola, <span class="op-name" id="opName"></span></p>
     </div>
 
+    <div id="guidePanel"></div>
+    <div id="reservasPanel"></div>
+
     <!-- CÉDULA -->
     <div class="card" id="cedulaCard">
       <h3>🪪 Cédula de Identidad <span id="cedulaStatus"></span></h3>
@@ -156,6 +190,18 @@ a{color:var(--accent);text-decoration:none}
 </div>
 
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
+<div class="signature-modal" id="signatureModal">
+  <div class="signature-box">
+    <h3 style="font-size:16px;margin-bottom:4px">Dibujá tu firma</h3>
+    <p style="font-size:13px;color:var(--text2)">Firmá dentro del cuadro blanco con el dedo, mouse o lápiz.</p>
+    <div class="signature-canvas-wrap"><canvas id="signatureCanvas"></canvas></div>
+    <div class="signature-actions">
+      <button class="btn btn-secondary" onclick="clearSignatureCanvas()">Limpiar</button>
+      <button class="btn btn-secondary" onclick="closeSignatureDialog()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSignatureCanvas()">Usar esta firma</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════
@@ -164,6 +210,49 @@ a{color:var(--accent);text-decoration:none}
 const API = '/api/portal';
 const TOKEN = new URLSearchParams(window.location.search).get('token');
 let DATA = null;
+let FIRMA_DATA_URL = '';
+let signatureDrawing = false;
+let signatureHasStroke = false;
+
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function isContratoFirmado(contrato) {
+  return !!contrato && (contrato.estado === 'firmado' || !!contrato.firmado_en);
+}
+
+function contratoFechaFirma(contrato) {
+  if (!contrato?.firmado_en) return '';
+  const fecha = new Date(contrato.firmado_en);
+  return Number.isNaN(fecha.getTime()) ? '' : fecha.toLocaleDateString('es-UY');
+}
+function fmtDate(value) {
+  if (!value) return 'Sin fecha';
+  const d = new Date(String(value).slice(0, 10) + 'T12:00:00');
+  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString('es-UY');
+}
+function reservaFecha(r) {
+  return r?.tipo === 'jornada' ? (r.fecha_jornada || r.fecha_inicio) : r?.fecha_inicio;
+}
+function estadoReservaLabel(estado) {
+  return {
+    solicitud_recibida: 'Solicitud recibida',
+    pendiente_aprobacion: 'Pendiente de aprobación',
+    aprobada: 'Aprobada',
+    confirmada: 'Confirmada',
+    rechazada: 'Rechazada',
+    cancelada: 'Cancelada',
+    reprogramada: 'Reprogramada'
+  }[estado] || estado || 'Sin estado';
+}
+function fileUrl(url) {
+  if (!url) return '';
+  return /^https?:\/\//.test(url) ? url : url;
+}
+function scrollToPortalCard(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 // ══════════════════════════════════
 // INIT
@@ -189,8 +278,90 @@ function render() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('portalContent').style.display = '';
   document.getElementById('opName').textContent = `${DATA.operadora.nombre} ${DATA.operadora.apellido}`;
+  renderGuide();
+  renderReservasPanel();
   renderCedula();
   renderContratos();
+  if (window.location.hash === '#contratos') {
+    setTimeout(() => document.getElementById('contratosCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }
+}
+
+// ══════════════════════════════════
+// GUÍA
+// ══════════════════════════════════
+function docsCedulaCompletos() {
+  const cedulaDocs = Array.isArray(DATA.cedula) ? DATA.cedula : (DATA.cedula ? [DATA.cedula] : []);
+  return !!(cedulaDocs.find(d => d && d.tipo === 'cedula') && cedulaDocs.find(d => d && d.tipo === 'cedula_dorso'));
+}
+
+function contratosPendientes() {
+  const reservas = DATA.reservas_activas || [];
+  const contratos = DATA.contratos || [];
+  const marcoFirmado = contratos.some(c => !c.maquina_id && isContratoFirmado(c));
+  if (!reservas.length) return marcoFirmado ? 0 : 1;
+  return reservas.filter(r => !contratos.some(c => parseInt(c.maquina_id, 10) === parseInt(r.maquina_id, 10) && isContratoFirmado(c))).length;
+}
+
+function renderGuide() {
+  const cedulaOk = docsCedulaCompletos();
+  const pendientesContrato = contratosPendientes();
+  const reservas = DATA.reservas_activas || [];
+  const listas = cedulaOk && pendientesContrato === 0;
+  document.getElementById('guidePanel').innerHTML = `
+    <div class="guide-hero">
+      <h2>${listas ? 'Todo listo para operar' : 'Te faltan estos pasos'}</h2>
+      <p>${listas ? 'Tu documentación principal está completa. Acá podés consultar tus reservas y contratos firmados.' : 'Completá la documentación y las firmas pendientes para que administración pueda habilitar o confirmar tus reservas.'}</p>
+      <div class="guide-grid">
+        <div class="guide-step ${cedulaOk ? 'ok' : 'missing'}">
+          <span>Cédula</span><strong>${cedulaOk ? 'OK' : 'Pendiente'}</strong>
+          <small>${cedulaOk ? 'Frente y dorso cargados' : 'Subí frente y dorso'}</small>
+        </div>
+        <div class="guide-step ${pendientesContrato ? 'missing' : 'ok'}">
+          <span>Contratos</span><strong>${pendientesContrato ? pendientesContrato : 'OK'}</strong>
+          <small>${pendientesContrato ? 'Firma pendiente' : 'Firmas completas'}</small>
+        </div>
+        <div class="guide-step ${reservas.length ? 'warn' : ''}">
+          <span>Reservas</span><strong>${reservas.length}</strong>
+          <small>${reservas.length ? 'Activas o en revisión' : 'Sin reservas activas'}</small>
+        </div>
+      </div>
+      <div class="quick-actions">
+        ${!cedulaOk ? '<button class="btn btn-primary" onclick="scrollToPortalCard(\'cedulaCard\')">Subir cédula</button>' : ''}
+        ${pendientesContrato ? '<button class="btn btn-primary" onclick="scrollToPortalCard(\'contratosCard\')">Firmar contratos</button>' : ''}
+      </div>
+    </div>`;
+}
+
+function renderReservasPanel() {
+  const reservas = DATA.reservas_activas || [];
+  const contratos = DATA.contratos || [];
+  const box = document.getElementById('reservasPanel');
+  if (!reservas.length) {
+    box.innerHTML = `<div class="card"><h3>📅 Mis reservas y máquinas</h3><div class="empty-note">Todavía no tenés reservas activas en este portal.</div></div>`;
+    return;
+  }
+  box.innerHTML = `<div class="card">
+    <h3>📅 Mis reservas y máquinas</h3>
+    <p class="desc">Solo lectura. Los precios, estados y disponibilidad los administra DepiMóvil.</p>
+    ${reservas.map(r => {
+      const firmado = contratos.some(c => parseInt(c.maquina_id, 10) === parseInt(r.maquina_id, 10) && isContratoFirmado(c));
+      const foto = fileUrl(r.maquina_foto_url || '');
+      return `<div class="reservation-card">
+        <div class="reservation-thumb">${foto ? `<img src="${escapeHTML(foto)}" alt="${escapeHTML(r.maquina_nombre || 'Máquina')}">` : '⚙️'}</div>
+        <div class="reservation-body">
+          <h4>${escapeHTML(r.maquina_nombre || 'Máquina')} ${r.maquina_codigo ? '(' + escapeHTML(r.maquina_codigo) + ')' : ''}</h4>
+          <p>Reserva ${escapeHTML(r.codigo || '')} · ${fmtDate(reservaFecha(r))}${r.dept_logistica ? ' · ' + escapeHTML(r.dept_logistica) : ''}</p>
+          <div class="reservation-meta">
+            <span class="mini-pill">${escapeHTML(estadoReservaLabel(r.estado))}</span>
+            ${r.tipo ? `<span class="mini-pill">${escapeHTML(r.tipo)}</span>` : ''}
+            ${r.monto ? `<span class="mini-pill">${Number(r.monto).toLocaleString()} ${escapeHTML(r.moneda || 'UYU')}</span>` : ''}
+            <span class="mini-pill">${firmado ? 'Contrato firmado' : 'Contrato pendiente'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 // ══════════════════════════════════
@@ -199,15 +370,20 @@ function render() {
 function renderCedula() {
   const statusEl = document.getElementById('cedulaStatus');
   const bodyEl = document.getElementById('cedulaBody');
+  const cedulaDocs = Array.isArray(DATA.cedula) ? DATA.cedula : (DATA.cedula ? [DATA.cedula] : []);
+  const frenteDoc = cedulaDocs.find(d => d && d.tipo === 'cedula') || null;
+  const dorsoDoc = cedulaDocs.find(d => d && d.tipo === 'cedula_dorso') || null;
+  const cedulaCompleta = !!(frenteDoc && dorsoDoc);
+  const fechaSubida = (frenteDoc || dorsoDoc || {}).created_at || new Date().toISOString();
 
-  if (DATA.cedula) {
+  if (cedulaCompleta) {
     statusEl.innerHTML = '<span class="status status-ok">✓ Subida</span>';
     bodyEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <div class="success-icon">✅</div>
         <div>
           <div style="font-weight:600;margin-bottom:4px">Cédula cargada correctamente</div>
-          <div style="font-size:12px;color:var(--text3)">Subida el ${new Date(DATA.cedula.created_at).toLocaleDateString('es-UY')}</div>
+          <div style="font-size:12px;color:var(--text3)">Subida el ${new Date(fechaSubida).toLocaleDateString('es-UY')}</div>
         </div>
       </div>
       <div style="margin-top:16px">
@@ -221,14 +397,14 @@ function renderCedula() {
           <div class="icon">📸</div>
           <div class="upload-title">Frente</div>
           <p>Foto del frente</p>
-          <small>JPG, PNG, PDF o WebP · Máximo 10 MB</small>
+          <small>JPG, PNG, PDF o WebP · Las fotos se optimizan automáticamente</small>
           <input type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="uploadCedula('frente', this.files[0])"/>
         </div>
         <div class="upload-area" id="cedulaUploadDorso" ondragover="event.preventDefault();this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')" ondrop="handleDrop(event,'dorso')">
           <div class="icon">📸</div>
           <div class="upload-title">Dorso</div>
           <p>Foto del dorso</p>
-          <small>JPG, PNG, PDF o WebP · Máximo 10 MB</small>
+          <small>JPG, PNG, PDF o WebP · Las fotos se optimizan automáticamente</small>
           <input type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="uploadCedula('dorso', this.files[0])"/>
         </div>
       </div>
@@ -243,6 +419,7 @@ function renderCedula() {
 }
 
 let _pendingFiles = { frente: null, dorso: null };
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 function handleDrop(e, lado) {
   e.preventDefault();
@@ -261,7 +438,7 @@ function previewCedula(lado, file) {
     };
     reader.readAsDataURL(file);
   } else {
-    preview.innerHTML = `<div style="margin-top:12px;font-size:13px;color:var(--text2)">📄 ${file.name}</div>`;
+    preview.innerHTML = `<div style="margin-top:12px;font-size:13px;color:var(--text2)">📄 ${escapeHTML(file.name)}</div>`;
   }
   document.getElementById('cedulaActions').style.display = (_pendingFiles.frente && _pendingFiles.dorso) ? '' : 'none';
 }
@@ -270,20 +447,59 @@ function uploadCedula(lado, file) {
   if (file) previewCedula(lado, file);
 }
 
+function canvasToBlob(canvas, type, quality) {
+  return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+}
+
+async function optimizeCedulaFile(file, lado) {
+  if (!file) return file;
+  if (file.type === 'application/pdf') {
+    if (file.size > MAX_PDF_BYTES) {
+      throw new Error(`El PDF del ${lado} supera 10 MB. Subí una foto o un PDF más liviano.`);
+    }
+    return file;
+  }
+  if (!file.type.startsWith('image/')) return file;
+
+  const bitmap = await createImageBitmap(file);
+  const maxSide = 1600;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  if (bitmap.close) bitmap.close();
+
+  const blob = await canvasToBlob(canvas, 'image/jpeg', 0.76);
+  if (!blob) return file;
+  if (blob.size >= file.size && file.size <= MAX_PDF_BYTES) return file;
+  return new File([blob], `${lado}-cedula.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+}
+
 async function confirmCedula() {
   if (!_pendingFiles.frente || !_pendingFiles.dorso) return;
   const btn = document.getElementById('btnConfirmCedula');
   btn.disabled = true; btn.textContent = 'Subiendo...';
   try {
+    btn.textContent = 'Optimizando fotos...';
+    const frenteFile = await optimizeCedulaFile(_pendingFiles.frente, 'frente');
+    const dorsoFile = await optimizeCedulaFile(_pendingFiles.dorso, 'dorso');
     const fd = new FormData();
-    fd.append('archivo', _pendingFiles.frente);
-    fd.append('frente', _pendingFiles.frente);
-    fd.append('dorso', _pendingFiles.dorso);
+    fd.append('frente', frenteFile);
+    fd.append('dorso', dorsoFile);
+    btn.textContent = 'Subiendo...';
     const r = await fetch(`${API}/${TOKEN}/cedula`, { method: 'POST', body: fd });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: 'No se pudo subir. Probá con fotos más livianas.' }));
+      throw new Error(e.error);
+    }
     const res = await r.json();
-    DATA.cedula = { created_at: new Date().toISOString(), archivo_url: res.archivo_url };
+    DATA.cedula = Array.isArray(res.documentos) && res.documentos.length
+      ? res.documentos
+      : [{ tipo: 'cedula', created_at: new Date().toISOString(), archivo_url: res.archivo_url }, { tipo: 'cedula_dorso', created_at: new Date().toISOString(), archivo_url: res.archivo_url }];
     _pendingFiles = { frente: null, dorso: null };
+    renderGuide();
     renderCedula();
     toast('✅ Cédula subida correctamente');
   } catch (e) {
@@ -294,6 +510,7 @@ async function confirmCedula() {
 
 function resetCedula() {
   DATA.cedula = null;
+  renderGuide();
   renderCedula();
 }
 
@@ -304,29 +521,53 @@ function renderContratos() {
   const body = document.getElementById('contratosBody');
   const reservas = DATA.reservas_activas || [];
   const contratos = DATA.contratos || [];
+  const contratoMarco = contratos.find(c => !c.maquina_id && isContratoFirmado(c));
 
   if (!reservas.length) {
-    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">No tenés máquinas reservadas actualmente.</div>';
+    body.innerHTML = `
+      <div class="contract-item">
+        <div class="ci-left">
+          <div class="ci-name">📋 Contrato marco de alquiler</div>
+          <div class="ci-sub">Firma requerida para completar el alta y futuros alquileres</div>
+        </div>
+        ${contratoMarco
+          ? `<span class="status status-ok">✓ Firmado ${contratoFechaFirma(contratoMarco)}</span>`
+          : `<button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="openContrato(0)">✍️ Firmar</button>`
+        }
+      </div>`;
     return;
   }
 
   body.innerHTML = reservas.map(r => {
-    const firmado = contratos.find(c => c.maquina_id === r.maquina_id);
+    const firmado = contratos.find(c => parseInt(c.maquina_id, 10) === parseInt(r.maquina_id, 10) && isContratoFirmado(c));
     return `
       <div class="contract-item">
         <div class="ci-left">
-          <div class="ci-name">⚙️ ${r.maquina_nombre || 'Máquina'} ${r.maquina_codigo ? '('+r.maquina_codigo+')' : ''}</div>
-          <div class="ci-sub">Reserva ${r.codigo}</div>
+          <div class="ci-name">⚙️ ${escapeHTML(r.maquina_nombre || 'Máquina')} ${r.maquina_codigo ? '('+escapeHTML(r.maquina_codigo)+')' : ''}</div>
+          <div class="ci-sub">Reserva ${escapeHTML(r.codigo)}</div>
         </div>
         ${firmado
-          ? `<span class="status status-ok">✓ Firmado ${new Date(firmado.firmado_en).toLocaleDateString('es-UY')}</span>`
-          : `<button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="openContrato(${r.maquina_id},'${r.maquina_nombre||'Máquina'}','${r.maquina_codigo||''}')">✍️ Firmar</button>`
+          ? `<span class="status status-ok">✓ Firmado ${contratoFechaFirma(firmado)}</span>`
+          : `<button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="openContrato(${parseInt(r.maquina_id,10)||0})">✍️ Firmar</button>`
         }
       </div>`;
   }).join('');
 }
 
-function openContrato(maqId, maqNombre, maqCodigo) {
+function openContrato(maqId) {
+  FIRMA_DATA_URL = '';
+  const reserva = (DATA.reservas_activas || []).find(r => parseInt(r.maquina_id, 10) === parseInt(maqId, 10)) || {};
+  const esMarco = !parseInt(maqId, 10);
+  const maqNombre = escapeHTML(esMarco ? 'Contrato marco de alquiler' : (reserva.maquina_nombre || 'Máquina'));
+  const maqCodigo = escapeHTML(reserva.maquina_codigo || '');
+  const op = DATA.operadora || {};
+  const opNombreCompleto = escapeHTML(`${op.nombre || ''} ${op.apellido || ''}`.trim() || '______________________________');
+  const opDocumento = escapeHTML(op.documento_identidad || '______________________');
+  const opCiudadDepto = escapeHTML([op.ciudad, op.departamento].filter(Boolean).join(' / ') || '______________________');
+  const opTelefono = escapeHTML(op.whatsapp || op.telefono || '______________________');
+  const opDirecciones = Array.isArray(op.direcciones_entrega) ? op.direcciones_entrega : [];
+  const opDirPrincipal = opDirecciones.find(d => d && d.principal) || opDirecciones[0] || {};
+  const opDomicilio = escapeHTML(opDirPrincipal.direccion || op.direccion_entrega || '______________________________________');
   const body = document.getElementById('contratosBody');
   body.innerHTML = `
     <div style="margin-bottom:16px">
@@ -334,41 +575,52 @@ function openContrato(maqId, maqNombre, maqCodigo) {
     </div>
     <h4 style="margin-bottom:12px;font-size:15px">📋 Contrato de Alquiler — ${maqNombre} ${maqCodigo ? '('+maqCodigo+')' : ''}</h4>
     <div class="contract-box" id="contractText">
-      <h4>CONTRATO DE ALQUILER DE EQUIPOS ESTÉTICOS</h4>
-      <p><strong>DepiMóvil</strong> — Alquiler de Equipos de Estética Profesional</p>
-      <p>Entre <strong>DepiMóvil</strong> (en adelante "la Empresa") y <strong>${DATA.operadora.nombre} ${DATA.operadora.apellido}</strong> (en adelante "la Operadora"), se celebra el presente contrato de alquiler del equipo <strong>${maqNombre} ${maqCodigo ? '('+maqCodigo+')' : ''}</strong>, sujeto a las siguientes condiciones:</p>
-      
-      <p><strong>1. OBJETO:</strong> La Empresa entrega en alquiler a la Operadora el equipo identificado arriba, en perfecto estado de funcionamiento, para uso exclusivo en tratamientos estéticos profesionales.</p>
-      
-      <p><strong>2. DURACIÓN:</strong> El presente contrato tendrá vigencia mientras la reserva asociada se encuentre activa, pudiendo ser renovado de mutuo acuerdo.</p>
-      
-      <p><strong>3. OBLIGACIONES DE LA OPERADORA:</strong></p>
-      <p>a) Utilizar el equipo exclusivamente para los fines previstos y según las instrucciones de uso.<br>
-      b) Mantener el equipo en buen estado de conservación.<br>
-      c) No subalquilar, prestar ni ceder el equipo a terceros.<br>
-      d) Abonar puntualmente el canon de alquiler pactado.<br>
-      e) Comunicar de inmediato cualquier desperfecto o anomalía del equipo.<br>
-      f) Devolver el equipo en las mismas condiciones en que fue recibido, salvo el desgaste normal por uso.</p>
-      
-      <p><strong>4. OBLIGACIONES DE LA EMPRESA:</strong></p>
-      <p>a) Entregar el equipo en perfecto estado de funcionamiento.<br>
-      b) Brindar soporte técnico y capacitación inicial.<br>
-      c) Realizar mantenimiento preventivo según cronograma.</p>
-      
-      <p><strong>5. RESPONSABILIDAD:</strong> La Operadora es responsable de cualquier daño al equipo causado por mal uso, negligencia o incumplimiento de las instrucciones. En caso de robo o pérdida, la Operadora deberá abonar el valor de reposición del equipo.</p>
-      
-      <p><strong>6. RESCISIÓN:</strong> Cualquiera de las partes podrá rescindir el contrato con un preaviso mínimo de 30 días. El incumplimiento de las obligaciones dará derecho a la Empresa a rescindir sin previo aviso.</p>
-      
-      <p><em>Este contrato se firma digitalmente y tiene plena validez legal.</em></p>
+      <h4>CONTRATO DE ALQUILER DE EQUIPOS ESTÉTICOS PROFESIONALES</h4>
+      <p><strong>DEPI MÓVIL URUGUAY</strong><br>Alquiler de Equipos de Estética Profesional<br><strong>Domicilio:</strong> Uruguay 1533, Salto, Uruguay</p>
+      <p>Comparecen, por una parte, <strong>DEPI MÓVIL URUGUAY</strong>, empresa dedicada al alquiler, soporte, capacitación y provisión de aparatología estética profesional, con domicilio comercial en calle <strong>Uruguay 1533, ciudad de Salto, República Oriental del Uruguay</strong>, en adelante denominada “la Empresa”.</p>
+      <p>Y por otra parte, la Sra./Sr./Centro Estético <strong>${opNombreCompleto}</strong>, C.I./RUT <strong>${opDocumento}</strong>, con domicilio en <strong>${opDomicilio}</strong>, ciudad/departamento <strong>${opCiudadDepto}</strong>, teléfono <strong>${opTelefono}</strong>, en adelante denominada “la Operadora”.</p>
+      <p>Ambas partes acuerdan celebrar el presente contrato, sujeto a las siguientes cláusulas:</p>
+      <p><strong>PRIMERA: OBJETO.</strong> La Empresa entrega en alquiler a la Operadora el equipo estético profesional identificado en la reserva, presupuesto, remito, constancia digital, mensaje de confirmación o documento correspondiente: <strong>${esMarco ? 'equipo estético profesional a reservar o alquilar en futuras operaciones' : `${maqNombre} ${maqCodigo ? '('+maqCodigo+')' : ''}`}</strong>. El equipo será destinado exclusivamente a tratamientos estéticos profesionales, respetando instrucciones técnicas, protocolos de seguridad, higiene, asepsia y buenas prácticas indicadas por DepiMóvil Uruguay.</p>
+      <p><strong>SEGUNDA: IDENTIFICACIÓN DEL EQUIPO.</strong> El equipo alquilado podrá identificarse mediante presupuesto aceptado, reserva confirmada por WhatsApp, correo electrónico, sistema interno, remito, constancia de entrega, fotografía, número de serie, código interno o descripción técnica. La falta de firma de un nuevo documento físico por cada alquiler no afectará la validez del presente contrato cuando exista confirmación escrita, digital, pago, recepción del equipo o cualquier acto que demuestre aceptación de la reserva.</p>
+      <p><strong>TERCERA: DURACIÓN.</strong> El contrato tendrá vigencia durante todo el período en que la reserva, jornada, semana, mes, renovación o alquiler se encuentre activo. Toda renovación, extensión o reiteración del alquiler quedará comprendida dentro de las condiciones del presente contrato.</p>
+      <p><strong>CUARTA: PRECIO Y FORMA DE PAGO.</strong> La Operadora se obliga a abonar el canon pactado para cada equipo, ciudad, período y modalidad de uso. La falta de pago en fecha podrá habilitar a la Empresa a suspender la entrega, cancelar la reserva, exigir la devolución inmediata del equipo o rechazar futuras reservas.</p>
+      <p><strong>QUINTA: ENTREGA DEL EQUIPO.</strong> La Empresa entregará el equipo en correcto estado de funcionamiento. Al recibirlo, la Operadora deberá verificar estado general, accesorios, cables, manípulos, cabezales, filtros, lentes, embalaje y demás elementos entregados. Si no realiza observaciones inmediatas, se entenderá que recibe el equipo en conformidad.</p>
+      <p><strong>SEXTA: MÁQUINAS VIAJERAS Y ENVÍOS AL INTERIOR.</strong> La Operadora deberá recibir y devolver el equipo en lugar, fecha y horario coordinados, colaborando con su correcto embalaje, manipulación y entrega, especialmente cuando el equipo deba continuar viaje hacia otra ciudad u otra operadora.</p>
+      <p><strong>SÉPTIMA: RESPONSABILIDAD DURANTE EL TRASLADO.</strong> Una vez recibido el equipo por la Operadora o persona autorizada en su nombre, la responsabilidad por su guarda, conservación, uso y devolución recaerá sobre la Operadora hasta su restitución efectiva a la Empresa o entrega al transporte acordado.</p>
+      <p><strong>OCTAVA: OBLIGACIONES DE LA OPERADORA.</strong> La Operadora se obliga a usar el equipo solo para tratamientos estéticos profesionales, respetar protocolos, mantenerlo en buen estado, no abrirlo ni intervenirlo, no subalquilarlo ni cederlo, no permitir su uso por personas no capacitadas, abonar puntualmente, comunicar fallas y responder por daños derivados de mal uso, negligencia, golpes, humedad, transporte inadecuado, uso por terceros o incumplimiento de protocolos.</p>
+      <p><strong>NOVENA: OBLIGACIONES DE LA EMPRESA.</strong> DepiMóvil Uruguay se obliga a entregar el equipo en condiciones adecuadas, brindar instrucciones generales, proporcionar soporte técnico dentro de los canales disponibles, realizar mantenimiento cuando corresponda y coordinar logística de envío, retiro o traslado cuando aplique.</p>
+      <p><strong>DÉCIMA: CAPACITACIÓN Y USO RESPONSABLE.</strong> La Operadora declara conocer que algunos equipos requieren capacitación previa, criterio técnico, experiencia profesional y cumplimiento estricto de protocolos. Si utiliza el equipo sin capacitación adecuada o permite uso por terceros no autorizados, asumirá plena responsabilidad.</p>
+      <p><strong>DÉCIMA PRIMERA: HIGIENE, ASEPSIA Y PACIENTES.</strong> La Operadora será responsable exclusiva de higiene, asepsia, desinfección, consentimiento informado, evaluación previa, contraindicaciones y seguimiento posterior. DepiMóvil Uruguay no será responsable por mala aplicación, falta de higiene, uso indebido de parámetros o incumplimiento de protocolos.</p>
+      <p><strong>DÉCIMA SEGUNDA: DAÑOS, ROTURAS, ROBO O PÉRDIDA.</strong> La Operadora será responsable por cualquier daño, rotura, faltante, pérdida, robo, hurto, extravío o deterioro del equipo y accesorios mientras se encuentren bajo su custodia. En caso de daño total o pérdida, deberá abonar el valor de reposición vigente.</p>
+      <p><strong>DÉCIMA TERCERA: DEVOLUCIÓN DEL EQUIPO.</strong> Finalizado el período de alquiler, la Operadora deberá devolver el equipo en fecha, horario, lugar y condiciones acordadas, con todos sus accesorios. La demora injustificada podrá generar cargos adicionales.</p>
+      <p><strong>DÉCIMA CUARTA: REITERACIÓN DE ALQUILERES.</strong> Cada nueva solicitud, reserva, renovación, extensión, reiteración de alquiler o aceptación de presupuesto realizada por la Operadora implicará la aceptación plena y actualizada del presente contrato. No será necesaria una nueva firma física por cada operación si existe confirmación por WhatsApp, correo, sistema interno, mensaje digital, pago, recepción del equipo u otro acto que demuestre aceptación.</p>
+      <p><strong>DÉCIMA QUINTA: CANCELACIONES Y CAMBIOS DE FECHA.</strong> Las cancelaciones, cambios de fecha o reprogramaciones deberán solicitarse con la mayor anticipación posible y estarán sujetas a disponibilidad de agenda, logística, transporte y reservas ya asumidas.</p>
+      <p><strong>DÉCIMA SEXTA: SOPORTE TÉCNICO Y PROHIBICIÓN DE INTERVENCIÓN.</strong> La Operadora deberá suspender el uso y comunicarse inmediatamente si detecta fallas, ruidos anormales, alarmas, pérdida de potencia, calentamiento excesivo o daño en componentes. Cualquier intervención no autorizada hará responsable a la Operadora.</p>
+      <p><strong>DÉCIMA SÉPTIMA: INCUMPLIMIENTO.</strong> El incumplimiento dará derecho a la Empresa a exigir devolución inmediata, suspender futuras reservas, reclamar pagos pendientes, reclamar daños o perjuicios, rescindir el contrato e iniciar acciones correspondientes.</p>
+      <p><strong>DÉCIMA OCTAVA: RESCISIÓN.</strong> Cualquiera de las partes podrá rescindir con preaviso mínimo de 30 días, siempre que no existan reservas activas, pagos pendientes, equipos en poder de la Operadora, daños reclamados o compromisos logísticos asumidos. La Empresa podrá rescindir de forma inmediata ante incumplimiento grave.</p>
+      <p><strong>DÉCIMA NOVENA: COMUNICACIONES VÁLIDAS.</strong> WhatsApp, correo electrónico, sistemas internos, documentos digitales, formularios de reserva, firma electrónica, firma digital o cualquier otro medio escrito aceptado serán medios válidos de comunicación y aceptación.</p>
+      <p><strong>VIGÉSIMA: FIRMA ELECTRÓNICA Y ACEPTACIÓN DIGITAL.</strong> Las partes reconocen la validez de la firma electrónica, firma digital, aceptación por WhatsApp, correo electrónico, formularios digitales, confirmación por mensaje, pago de seña, pago total o recepción del equipo como mecanismos válidos de aceptación.</p>
+      <p><strong>VIGÉSIMA PRIMERA: JURISDICCIÓN Y LEY APLICABLE.</strong> El presente contrato se regirá por las leyes de la República Oriental del Uruguay. Ante diferencias, las partes procurarán solución amistosa y, si no fuera posible, se someterán a los juzgados competentes.</p>
+      <p><strong>VIGÉSIMA SEGUNDA: ACEPTACIÓN FINAL.</strong> Leído el presente contrato, y en señal de conformidad, las partes lo aceptan en todos sus términos mediante firma física, electrónica, digital, aceptación por mensaje, confirmación de reserva, pago, recepción del equipo o cualquier otro medio fehaciente.</p>
     </div>
     
-    <div class="check-row" onclick="this.querySelector('input').checked=!this.querySelector('input').checked;checkCanSign()">
+    <label class="check-row" for="chkLeido">
       <input type="checkbox" id="chkLeido" onchange="checkCanSign()"/>
-      <label for="chkLeido">He leído y acepto los términos del contrato</label>
-    </div>
-    <div class="check-row" onclick="this.querySelector('input').checked=!this.querySelector('input').checked;checkCanSign()">
+      <span>He leído y acepto los términos del contrato</span>
+    </label>
+    <label class="check-row" for="chkResponsable">
       <input type="checkbox" id="chkResponsable" onchange="checkCanSign()"/>
-      <label for="chkResponsable">Acepto la responsabilidad sobre el equipo</label>
+      <span>Acepto la responsabilidad sobre el equipo</span>
+    </label>
+    <div class="signature-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700;font-size:13px">Firma de la operadora</div>
+          <div style="font-size:12px;color:var(--text2)">Dibujá tu firma para adjuntarla al contrato.</div>
+        </div>
+        <button class="btn btn-secondary" onclick="openSignatureDialog()" style="padding:8px 14px;font-size:13px">✍️ Dibujar firma</button>
+      </div>
+      <div class="signature-preview" id="signaturePreview">Firma pendiente</div>
     </div>
     
     <div style="text-align:center;margin-top:20px">
@@ -382,17 +634,102 @@ function checkCanSign() {
   const a = document.getElementById('chkLeido')?.checked;
   const b = document.getElementById('chkResponsable')?.checked;
   const btn = document.getElementById('btnFirmar');
-  if (btn) btn.disabled = !(a && b);
+  if (btn) btn.disabled = !(a && b && FIRMA_DATA_URL);
+}
+
+function setupSignatureCanvas() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (!canvas || canvas.dataset.ready) return;
+  canvas.dataset.ready = '1';
+  const ctx = canvas.getContext('2d');
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(rect.width * ratio));
+    canvas.height = Math.max(1, Math.round(rect.height * ratio));
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111827';
+  }
+  function pos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    signatureDrawing = true;
+    signatureHasStroke = true;
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!signatureDrawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(type => canvas.addEventListener(type, () => { signatureDrawing = false; }));
+  window.addEventListener('resize', resize);
+  resize();
+}
+
+function openSignatureDialog() {
+  document.getElementById('signatureModal').classList.add('open');
+  setupSignatureCanvas();
+  clearSignatureCanvas();
+}
+
+function closeSignatureDialog() {
+  document.getElementById('signatureModal').classList.remove('open');
+}
+
+function clearSignatureCanvas() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  signatureHasStroke = false;
+}
+
+function saveSignatureCanvas() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (!canvas || !signatureHasStroke) {
+    toast('⚠️ Dibujá la firma antes de guardar');
+    return;
+  }
+  FIRMA_DATA_URL = canvas.toDataURL('image/png');
+  const preview = document.getElementById('signaturePreview');
+  if (preview) preview.innerHTML = `<img src="${FIRMA_DATA_URL}" alt="Firma dibujada"/>`;
+  closeSignatureDialog();
+  checkCanSign();
 }
 
 async function firmarContrato(maqId) {
   const btn = document.getElementById('btnFirmar');
+  if (!btn) return;
   btn.disabled = true; btn.textContent = 'Firmando...';
   try {
-    const r = await fetch(`${API}/${TOKEN}/contrato/${maqId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const r = await fetch(`${API}/${TOKEN}/contrato/${maqId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firma_data_url: FIRMA_DATA_URL })
+    });
     if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
     const res = await r.json();
-    DATA.contratos.push({ maquina_id: maqId, firmado_en: res.firmado_en });
+    const maquinaId = parseInt(maqId, 10) || null;
+    const contratoFirmado = { id: res.contrato_id, maquina_id: maquinaId, estado: 'firmado', firmado_en: res.firmado_en };
+    DATA.contratos = (DATA.contratos || []).filter(c => {
+      const currentId = parseInt(c.maquina_id, 10) || null;
+      return currentId !== maquinaId;
+    });
+    DATA.contratos.push(contratoFirmado);
+    renderGuide();
+    renderReservasPanel();
     renderContratos();
     toast('✅ Contrato firmado correctamente');
   } catch (e) {

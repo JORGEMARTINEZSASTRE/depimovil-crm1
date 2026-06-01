@@ -2,15 +2,25 @@
    LEADS / CRM COMERCIAL
 ══════════════════════════════════ */
 const LEAD_ESTADOS = {
-  nuevo:               {label:'Nuevo',              icon:'🆕', cls:'lead-estado-nuevo',          orden:1},
-  contactado:          {label:'Contactado',         icon:'📞', cls:'lead-estado-contactado',      orden:2},
-  interesado:          {label:'Interesado',         icon:'👀', cls:'lead-estado-interesado',      orden:3},
-  presupuesto_enviado: {label:'Presupuesto Enviado',icon:'📄', cls:'lead-estado-presupuesto_enviado', orden:4},
-  seguimiento:         {label:'Seguimiento',        icon:'🔄', cls:'lead-estado-seguimiento',     orden:5},
-  ganado:              {label:'Ganado',             icon:'🏆', cls:'lead-estado-ganado',          orden:6},
-  perdido:             {label:'Perdido',            icon:'❌', cls:'lead-estado-perdido',         orden:7},
-  reactivar_luego:     {label:'Reactivar Luego',    icon:'🕐', cls:'lead-estado-reactivar_luego', orden:8},
+  nuevo:               {label:'Nuevo lead',          icon:'🆕', cls:'lead-estado-nuevo',          orden:1},
+  contactado:          {label:'Contactado',          icon:'📞', cls:'lead-estado-contactado',      orden:2},
+  interesado:          {label:'Interesado',          icon:'👀', cls:'lead-estado-interesado',      orden:3},
+  calificado:          {label:'Calificado',          icon:'⭐', cls:'lead-estado-interesado',      orden:4},
+  presupuesto_enviado: {label:'Presupuesto enviado', icon:'📄', cls:'lead-estado-presupuesto_enviado', orden:5},
+  pendiente_respuesta: {label:'Pendiente respuesta', icon:'⏳', cls:'lead-estado-seguimiento',     orden:6},
+  pendiente_sena:      {label:'Pendiente seña',      icon:'💳', cls:'lead-estado-presupuesto_enviado', orden:7},
+  reserva_confirmada:  {label:'Reserva confirmada',  icon:'🔒', cls:'lead-estado-ganado',          orden:8},
+  cliente_activa:      {label:'Cliente activa',      icon:'✅', cls:'lead-estado-ganado',          orden:9},
+  cliente_inactiva:    {label:'Cliente inactiva',    icon:'🧊', cls:'lead-estado-reactivar_luego', orden:10},
+  recuperacion:        {label:'Recuperación',        icon:'📣', cls:'lead-estado-reactivar_luego', orden:11},
+  seguimiento:         {label:'Seguimiento',         icon:'🔄', cls:'lead-estado-seguimiento',     orden:12},
+  ganado:              {label:'Ganado',              icon:'🏆', cls:'lead-estado-ganado',          orden:13},
+  perdido:             {label:'Perdido',             icon:'❌', cls:'lead-estado-perdido',         orden:14},
+  reactivar_luego:     {label:'Reactivar luego',     icon:'🕐', cls:'lead-estado-reactivar_luego', orden:15},
 };
+
+const LEAD_PIPELINE = ['nuevo','contactado','interesado','calificado','presupuesto_enviado','pendiente_respuesta','pendiente_sena','reserva_confirmada','cliente_activa','recuperacion'];
+const LEAD_ESTADOS_CERRADOS = ['ganado','perdido','cliente_activa'];
 
 const LEAD_FUENTES = {
   instagram:'Instagram 📸', facebook:'Facebook', whatsapp:'WhatsApp 💬',
@@ -25,6 +35,18 @@ function badgeLead(estado){
 }
 
 function getLead(id){return (DB.get('leads')||[]).find(l=>l.id===parseInt(id));}
+function mapLeadApi(l){
+  return {
+    id:l.id,nombre:l.nombre||'',apellido:l.apellido||'',gabinete:l.gabinete||'',
+    ciudad:l.ciudad||'',departamento:l.departamento||'',pais:l.pais||'Uruguay',
+    whatsapp:l.telefono||'',telefono:l.telefono||'',email:l.email||'',
+    fuente:l.canal||'',interes:l.interes||'',tecnologia:l.tecnologia||'',estado:l.estado||'nuevo',
+    temperatura:l.temperatura||'frio',obs:l.obs||'',proxAccion:l.prox_accion||'',proxFecha:l.prox_fecha||'',
+    fechaAlta:l.created_at?l.created_at.split('T')[0]:'',fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',
+    operadoraId:l.operadora_id||null,convertidoEn:l.convertido_en||null,convertidoPor:l.convertido_por||null,
+    whatsappScore:Number(l.whatsapp_score||0),ultimoContacto:l.ultimo_contacto||'',intencionWhatsapp:l.intencion_whatsapp||'',
+  };
+}
 
 /* ── Listado ── */
 let leadFilter = {search:'', estado:'', fuente:''};
@@ -34,7 +56,8 @@ function renderLeads(){
 
   // Alertas
   const nuevos = leads.filter(l=>l.estado==='nuevo');
-  const sinSeguimiento = leads.filter(l=>l.estado==='seguimiento');
+  const leadsCalientes = leads.filter(l=>Number(l.whatsappScore||0)>=45 || ['pendiente_sena','reserva_confirmada'].includes(l.estado));
+  const sinSeguimiento = leads.filter(l=>['seguimiento','pendiente_respuesta','presupuesto_enviado'].includes(l.estado));
   let alertsHTML='';
   const hoyDate = today();
   const proxVencidas = leads.filter(l=>l.proxFecha && l.proxFecha < hoyDate && !['ganado','perdido'].includes(l.estado));
@@ -43,6 +66,7 @@ function renderLeads(){
   if(proxHoy.length) alertsHTML += `<div class="alert-banner warn" style="margin-bottom:8px"><span class="ab-icon">🟡</span><strong>${proxHoy.length} lead${proxHoy.length>1?'s':''} con próxima acción hoy</strong> — Revisar agenda. <button class="action-btn" style="margin-left:8px" onclick="filterProxHoy()">Ver →</button></div>`;
   const paraReactivar = leads.filter(l=>l.estado==='reactivar_luego');
   if(paraReactivar.length) alertsHTML += `<div class="alert-banner info" style="margin-bottom:8px"><span class="ab-icon">🕐</span><strong>${paraReactivar.length} lead${paraReactivar.length>1?'s':''} para reactivar</strong> — Revisar y volver a contactar. <button class="action-btn" style="margin-left:8px" onclick="filterReactivar()">Ver →</button></div>`;
+  if(leadsCalientes.length) alertsHTML += `<div class="alert-banner warn" style="margin-bottom:8px"><span class="ab-icon">🔥</span><strong>${leadsCalientes.length} oportunidad${leadsCalientes.length>1?'es':''} caliente${leadsCalientes.length>1?'s':''}</strong> — Priorizar cierre comercial.</div>`;
   if(nuevos.length) alertsHTML += `<div class="alert-banner info" style="margin-bottom:8px"><span class="ab-icon">🆕</span><strong>${nuevos.length} lead${nuevos.length>1?'s':''} nuevo${nuevos.length>1?'s':''} sin contactar</strong> — Requieren primer contacto. <button class="action-btn" style="margin-left:8px" onclick="document.getElementById('filterLeadStatus').value='nuevo';filterLeadEstado('nuevo')">Filtrar →</button></div>`;
   if(sinSeguimiento.length) alertsHTML += `<div class="alert-banner info" style="margin-bottom:8px"><span class="ab-icon">🔄</span><strong>${sinSeguimiento.length} lead${sinSeguimiento.length>1?'s':''} en seguimiento</strong> — Revisar próxima acción.</div>`;
   document.getElementById('leadsAlerts').innerHTML = alertsHTML;
@@ -71,21 +95,22 @@ function renderLeads(){
   }
 
   tbody.innerHTML = filtered.map(l=>`<tr>
-    <td><span class="bold">${l.nombre} ${l.apellido}</span>${l.operadoraId?` <span title="Convertido a operadora" style="color:var(--green);font-size:12px">✓OP</span>`:''}</td>
-    <td>${l.gabinete||'—'}</td>
-    <td>${l.ciudad||'—'}</td>
-    <td>${l.whatsapp?`<a href="https://wa.me/${l.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">💬 ${l.whatsapp}</a>`:'—'}</td>
-    <td><span style="font-size:12px;color:var(--text2)">${LEAD_FUENTES[l.fuente]||l.fuente||'—'}</span></td>
+    <td><span class="bold">${escapeHTML(l.nombre)} ${escapeHTML(l.apellido)}</span>${l.operadoraId?` <span title="Convertido a operadora" style="color:var(--green);font-size:12px">✓OP</span>`:''}</td>
+    <td>${escapeHTML(l.gabinete||'—')}</td>
+    <td>${escapeHTML(l.ciudad||'—')}</td>
+    <td>${l.whatsapp?`<a href="https://wa.me/${l.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">💬 ${escapeHTML(l.whatsapp)}</a>`:'—'}</td>
+    <td><span style="font-size:12px;color:var(--text2)">${escapeHTML(LEAD_FUENTES[l.fuente]||l.fuente||'—')}</span></td>
     <td>${badgeLead(l.estado)}</td>
     <td>${(()=>{
-      if(!l.proxAccion && !l.proxFecha) return '<span style="color:var(--text3);font-size:12px">—</span>';
+      if(!l.proxAccion && !l.proxFecha && !l.whatsappScore) return '<span style="color:var(--text3);font-size:12px">—</span>';
       const hoy = today();
       const vencida = l.proxFecha && l.proxFecha < hoy;
       const esHoy   = l.proxFecha === hoy;
       const cls = vencida ? 'prox-chip vencida' : esHoy ? 'prox-chip hoy' : 'prox-chip proxima';
       const ico = vencida ? '🔴' : esHoy ? '🟡' : '🔵';
       return `<div><span class="${cls}">${ico} ${l.proxFecha ? fmtDate(l.proxFecha) : 'Sin fecha'}</span>
-        ${l.proxAccion ? `<div style="font-size:11px;color:var(--text2);margin-top:3px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${l.proxAccion}">${l.proxAccion}</div>` : ''}
+        ${l.proxAccion ? `<div style="font-size:11px;color:var(--text2);margin-top:3px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeAttr(l.proxAccion)}">${escapeHTML(l.proxAccion)}</div>` : ''}
+        ${l.whatsappScore ? `<div style="font-size:11px;color:var(--accent);margin-top:3px">Score WA: ${Number(l.whatsappScore)||0}</div>` : ''}
       </div>`;
     })()}</td>
     <td><span style="font-size:12px;color:var(--text3)">${fmtDate(l.fechaAlta)}</span></td>
@@ -128,9 +153,10 @@ function filterReactivar(){
 function showLeadFicha(id){
   const l = getLead(id); if(!l) return;
   const st = LEAD_ESTADOS[l.estado]||{};
+  const nombreCompleto = `${escapeHTML(l.nombre)} ${escapeHTML(l.apellido)}`;
 
   // Embudo visual — estado actual en el pipeline
-  const pipeline = ['nuevo','contactado','interesado','presupuesto_enviado','seguimiento','ganado'];
+  const pipeline = LEAD_PIPELINE;
   const curIdx = pipeline.indexOf(l.estado);
   const isLost = l.estado==='perdido';
   const isReact = l.estado==='reactivar_luego';
@@ -153,17 +179,17 @@ function showLeadFicha(id){
     <div class="ficha-header">
       <div class="ficha-header-left">
         <div class="ficha-avatar" style="background:linear-gradient(135deg,#5c6fd8,#3040a0)">
-          ${l.nombre.charAt(0)}${l.apellido.charAt(0)}
+          ${escapeHTML((l.nombre||'').charAt(0))}${escapeHTML((l.apellido||'').charAt(0))}
         </div>
         <div class="ficha-title">
-          <h2>${l.nombre} ${l.apellido}</h2>
-          <p>${l.gabinete||'Sin gabinete'} · ${l.ciudad||'Sin ciudad'}, ${l.departamento||''}</p>
+          <h2>${nombreCompleto}</h2>
+          <p>${escapeHTML(l.gabinete||'Sin gabinete')} · ${escapeHTML(l.ciudad||'Sin ciudad')}, ${escapeHTML(l.departamento||'')}</p>
         </div>
       </div>
       <div class="ficha-actions">
         ${badgeLead(l.estado)}
         ${canEditLead()?`<button class="btn-secondary" onclick="openLeadModal(${l.id})">✏️ Editar</button>`:''}
-        ${canEditLead()&&!l.operadoraId&&l.estado==='ganado'?`<button class="btn-convert" onclick="convertirLeadAOperadora(${l.id})">👩‍💼 Convertir a Operadora</button>`:''}
+        ${canEdit()&&!l.operadoraId&&l.estado==='ganado'?`<button class="btn-convert" onclick="convertirLeadAOperadora(${l.id})">👩‍💼 Convertir a Operadora</button>`:''}
         ${l.operadoraId?`<button class="btn-secondary" onclick="showOpFicha(${l.operadoraId})" style="color:var(--green);border-color:rgba(82,196,138,.3)">✓ Ver Operadora</button>`:''}
         ${isSuperAdmin()?`<button class="btn-danger" onclick="deleteLead(${l.id})">🗑</button>`:''}
       </div>
@@ -172,21 +198,25 @@ function showLeadFicha(id){
     <div class="ficha-grid">
       <div class="info-card">
         <h4>📋 Datos de Contacto</h4>
-        ${ir('Nombre completo',`${l.nombre} ${l.apellido}`)}
-        ${ir('Gabinete / Negocio',l.gabinete||'—')}
-        ${ir('WhatsApp',l.whatsapp?`<a href="https://wa.me/${l.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--green)">💬 ${l.whatsapp}</a>`:'—')}
-        ${ir('Teléfono',l.telefono||'—')}
-        ${ir('Email',l.email?`<a href="mailto:${l.email}" style="color:var(--blue)">${l.email}</a>`:'—')}
-        ${ir('Ciudad',l.ciudad||'—')}
-        ${ir('Departamento',l.departamento||'—')}
-        ${ir('País',l.pais||'—')}
+        ${ir('Nombre completo',nombreCompleto)}
+        ${ir('Gabinete / Negocio',escapeHTML(l.gabinete||'—'))}
+        ${ir('WhatsApp',l.whatsapp?`<a href="https://wa.me/${l.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--green)">💬 ${escapeHTML(l.whatsapp)}</a>`:'—')}
+        ${ir('Teléfono',escapeHTML(l.telefono||'—'))}
+        ${ir('Email',l.email?`<a href="mailto:${escapeAttr(l.email)}" style="color:var(--blue)">${escapeHTML(l.email)}</a>`:'—')}
+        ${ir('Ciudad',escapeHTML(l.ciudad||'—'))}
+        ${ir('Departamento',escapeHTML(l.departamento||'—'))}
+        ${ir('País',escapeHTML(l.pais||'—'))}
       </div>
       <div class="info-card">
         <h4>🎯 Información Comercial</h4>
         ${ir('Estado',badgeLead(l.estado))}
-        ${ir('Fuente',LEAD_FUENTES[l.fuente]||l.fuente||'—')}
-        ${ir('Interés principal',l.interes||'—')}
-        ${ir('Tecnología consultada',l.tecnologia||'—')}
+        ${ir('Fuente',escapeHTML(LEAD_FUENTES[l.fuente]||l.fuente||'—'))}
+        ${ir('Interés principal',escapeHTML(l.interes||'—'))}
+        ${ir('Tecnología consultada',escapeHTML(l.tecnologia||'—'))}
+        ${ir('Temperatura',escapeHTML(l.temperatura||'—'))}
+        ${ir('Score WhatsApp',escapeHTML(String(l.whatsappScore||0)))}
+        ${ir('Intención WhatsApp',escapeHTML(l.intencionWhatsapp||'—'))}
+        ${ir('Último contacto',l.ultimoContacto?fmtDate(String(l.ultimoContacto).split('T')[0]):'—')}
         ${ir('Fecha de alta',fmtDate(l.fechaAlta))}
         ${ir('Última actualización',fmtDate(l.fechaUpdate))}
         ${l.operadoraId?ir('Operadora vinculada',`<button class="action-btn" onclick="showOpFicha(${l.operadoraId})" style="color:var(--green)">Ver operadora →</button>`):''}
@@ -200,20 +230,20 @@ function showLeadFicha(id){
         const ico = vencida ? '🔴 Vencida' : esHoy ? '🟡 Hoy' : '🔵 Programada';
         return `<div class="${panelCls}">
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📌 Próxima Acción</div>
-          <div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:6px">${l.proxAccion||'—'}</div>
+          <div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:6px">${escapeHTML(l.proxAccion||'—')}</div>
           ${l.proxFecha ? `<div style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px">${ico} <strong>${fmtDate(l.proxFecha)}</strong></div>` : ''}
           ${canEditLead() ? `<div style="margin-top:10px"><button class="action-btn" onclick="openNotaModal(${l.id})" style="color:var(--accent);border-color:rgba(212,169,106,.3)">+ Registrar seguimiento</button></div>` : ''}
         </div>`;
       })()}
       <div class="info-card full">
         <h4>📝 Observaciones Comerciales</h4>
-        <div class="obs-text">${l.obs||'Sin observaciones.'}</div>
+        <div class="obs-text">${escapeHTML(l.obs||'Sin observaciones.')}</div>
       </div>
       ${l.operadoraId ? `<div class="info-card full conversion-box">
         <h4>✅ Lead Convertido en Operadora</h4>
         ${ir('Operadora',`<button class="action-btn" onclick="showOpFicha(${l.operadoraId})" style="color:var(--green)">👩‍💼 Ver ficha de operadora →</button>`)}
         ${l.convertidoEn ? ir('Convertido el', fmtDate(l.convertidoEn?.split('T')[0]||'')) : ''}
-        ${l.convertidoPor ? ir('Por', `<span style="font-size:12px;color:var(--text2)">${l.convertidoPor.split('@')[0]}</span>`) : ''}
+        ${l.convertidoPor ? ir('Por', `<span style="font-size:12px;color:var(--text2)">${escapeHTML(l.convertidoPor.split('@')[0])}</span>`) : ''}
       </div>` : ''}
       ${!l.operadoraId&&l.estado!=='perdido' ? `<div class="info-card full">
         <h4>🔄 Cambiar Estado</h4>
@@ -223,7 +253,7 @@ function showLeadFicha(id){
             .map(([k,v])=>`<button class="action-btn" onclick="cambiarEstadoLead(${l.id},'${k}')">${v.icon} ${v.label}</button>`)
             .join('') : '<span style="color:var(--text3);font-size:13px">Sin permisos.</span>'}
         </div>
-        ${l.estado==='ganado' ? `
+        ${l.estado==='ganado' && canEdit() ? `
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
             <button class="btn-add" style="font-size:13px" onclick="convertirLeadAOperadora(${l.id})">
               🚀 Convertir en Operadora
@@ -236,7 +266,7 @@ function showLeadFicha(id){
           <div class="reactivar-box" style="margin-top:12px">
             <h4>🔔 Programado para Reactivación</h4>
             ${l.proxFecha ? `<div style="font-size:13px;color:var(--text)">📅 Próximo contacto: <strong>${fmtDate(l.proxFecha)}</strong></div>` : ''}
-            ${l.proxAccion ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">${l.proxAccion}</div>` : ''}
+            ${l.proxAccion ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">${escapeHTML(l.proxAccion)}</div>` : ''}
             ${canEditLead() ? `<div style="margin-top:10px"><button class="action-btn" onclick="openNotaModal(${l.id})" style="color:var(--blue);border-color:rgba(92,143,224,.3)">+ Registrar recontacto</button></div>` : ''}
           </div>` : ''}
       </div>` : ''}
@@ -254,11 +284,11 @@ function showLeadFicha(id){
               <span class="sc-tipo sc-tipo-${n.tipo}">${tipoMap[n.tipo]||n.tipo}</span>
               <span class="nc-date">${fmtDate(n.fecha)} — ${n.ts.split('T')[1]?.slice(0,5)||''}</span>
             </div>
-            <div class="sc-nota">${n.texto}</div>
-            ${n.resultado ? `<div class="sc-resultado">✅ ${n.resultado}</div>` : ''}
-            ${(n.proxAccion||n.proxFecha) ? `<div class="sc-prox">📌 <strong>Próxima acción:</strong> ${n.proxAccion||'—'}${n.proxFecha ? ` · <strong>${fmtDate(n.proxFecha)}</strong>` : ''}</div>` : ''}
+            <div class="sc-nota">${escapeHTML(n.texto)}</div>
+            ${n.resultado ? `<div class="sc-resultado">✅ ${escapeHTML(n.resultado)}</div>` : ''}
+            ${(n.proxAccion||n.proxFecha) ? `<div class="sc-prox">📌 <strong>Próxima acción:</strong> ${escapeHTML(n.proxAccion||'—')}${n.proxFecha ? ` · <strong>${fmtDate(n.proxFecha)}</strong>` : ''}</div>` : ''}
             <div class="sc-meta">
-              <span>👤 ${n.usuario?.split('@')[0]||'—'}</span>
+              <span>👤 ${escapeHTML(n.usuario?.split('@')[0]||'—')}</span>
             </div>
           </div>`).join('');
         })()}
@@ -277,8 +307,8 @@ function showLeadFicha(id){
                   <span class="tc-title">${stP.label||h.estadoPrevio||'Creación'} → ${stN.label||h.estadoNuevo}</span>
                   <span class="tc-date">${fmtDate(h.ts?.split('T')[0]||'')} ${h.ts?.split('T')[1]?.slice(0,5)||''}</span>
                 </div>
-                ${h.motivo?`<div class="tc-body">${h.motivo}</div>`:''}
-                <div class="tc-body" style="font-size:11px;color:var(--text3)">${h.usuario?.split('@')[0]||''}</div>
+                ${h.motivo?`<div class="tc-body">${escapeHTML(h.motivo)}</div>`:''}
+                <div class="tc-body" style="font-size:11px;color:var(--text3)">${escapeHTML(h.usuario?.split('@')[0]||'')}</div>
               </div>
             </li>`;
           }).join('')}</ul>`;
@@ -327,7 +357,7 @@ function checkDuplicadoLead(){
   });
   if(matchOp){
     warn.style.display='flex';
-    msg.innerHTML=`Ya existe la operadora <strong>${matchOp.nombre} ${matchOp.apellido}</strong> con este contacto. Verificá si ya está activa antes de crear el lead.`;
+    msg.innerHTML=`Ya existe la operadora <strong>${escapeHTML(matchOp.nombre)} ${escapeHTML(matchOp.apellido)}</strong> con este contacto. Verificá si ya está activa antes de crear el lead.`;
     return;
   }
 
@@ -340,7 +370,7 @@ function checkDuplicadoLead(){
   });
   if(matchLead){
     warn.style.display='flex';
-    msg.innerHTML=`Ya existe el lead <strong>${matchLead.nombre} ${matchLead.apellido}</strong> con este contacto (estado: ${LEAD_ESTADOS[matchLead.estado]?.label||matchLead.estado}).`;
+    msg.innerHTML=`Ya existe el lead <strong>${escapeHTML(matchLead.nombre)} ${escapeHTML(matchLead.apellido)}</strong> con este contacto (estado: ${escapeHTML(LEAD_ESTADOS[matchLead.estado]?.label||matchLead.estado)}).`;
     return;
   }
   warn.style.display='none';
@@ -350,11 +380,12 @@ function checkDuplicadoLead(){
 async function saveLead(){
   const id=gv('leadId');
   const payload={
-    nombre:gv('leadNombre').trim(),telefono:gv('leadTelefono').trim(),
+    nombre:gv('leadNombre').trim(),apellido:gv('leadApellido').trim(),gabinete:gv('leadGabinete').trim(),
+    telefono:gv('leadWhatsapp').trim()||gv('leadTelefono').trim(),
     email:gv('leadEmail').trim(),ciudad:gv('leadCiudad').trim(),
-    departamento:gv('leadDepartamento').trim(),canal:gv('leadCanal'),
-    estado:gv('leadEstado'),temperatura:gv('leadTemperatura')||'frio',
-    obs:gv('leadObs').trim()};
+    departamento:gv('leadDepartamento').trim(),pais:gv('leadPais')||'Uruguay',
+    canal:gv('leadFuente'),estado:gv('leadEstado'),temperatura:gv('leadTemperatura')||'frio',
+    interes:gv('leadInteres').trim(),tecnologia:gv('leadTecnologia').trim(),obs:gv('leadObs').trim()};
   if(!payload.nombre){showToast('\u26a0\ufe0f Nombre es obligatorio','warn');return;}
   try{
     if(id){
@@ -365,66 +396,62 @@ async function saveLead(){
       showToast('\u2705 Lead creado');
     }
     const leads=await api('/api/leads');
-    DB.set('leads',leads.map(l=>({id:l.id,nombre:l.nombre,apellido:'',gabinete:'',
-      ciudad:l.ciudad||'',departamento:l.departamento||'',pais:'Uruguay',
-      whatsapp:l.telefono||'',telefono:l.telefono||'',email:l.email||'',
-      fuente:l.canal||'',interes:'',tecnologia:'',estado:l.estado||'nuevo',
-      obs:l.obs||'',fechaAlta:l.created_at?l.created_at.split('T')[0]:'',
-      fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',operadoraId:null})));
+    DB.set('leads',leads.map(mapLeadApi));
     closeModal('modalLead');renderLeads();updateLeadsBadge();
   }catch(e){showToast('\u274c Error: '+e.message,'error');}
 }
 
 /* ── Cambio rápido de estado ── */
-function cambiarEstadoLead(id, nuevoEstado){
+async function cambiarEstadoLead(id, nuevoEstado){
+  if(!canEditLead()){ showToast('⚠️ Sin permisos para cambiar estado','warn'); return; }
   const leads = DB.get('leads')||[];
   const idx = leads.findIndex(l=>l.id===id); if(idx<0) return;
   const prev = leads[idx].estado;
-  leads[idx].estado = nuevoEstado;
-  leads[idx].fechaUpdate = today();
-  DB.set('leads',leads);
-  auditLog('ESTADO','lead',id,`${LEAD_ESTADOS[prev]?.label||prev} → ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);
-  // Agregar al historial de estados
-  const hist=DB.get('leads_estado_historial')||[];
-  hist.push({id:Math.max(0,...hist.map(h=>h.id))+1,leadId:parseInt(id),estadoPrevio:prev,estadoNuevo:nuevoEstado,motivo:'Cambio manual',usuario:currentUser?.email||'—',ts:new Date().toISOString()});
-  DB.set('leads_estado_historial',hist);
-  showToast(`🔄 ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);
-  updateLeadsBadge();
-  showLeadFicha(id);
+  try{
+    const saved=await api(`/api/leads/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado:nuevoEstado,motivo:'Cambio manual desde ficha'})});
+    leads[idx]={...leads[idx],...mapLeadApi(saved)};
+    DB.set('leads',leads);
+    const hist=DB.get('leads_estado_historial')||[];
+    hist.push({id:Math.max(0,...hist.map(h=>h.id))+1,leadId:parseInt(id),estadoPrevio:prev,estadoNuevo:nuevoEstado,motivo:'Cambio manual',usuario:currentUser?.email||'—',ts:new Date().toISOString()});
+    DB.set('leads_estado_historial',hist);
+    showToast(`🔄 ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);
+    updateLeadsBadge();
+    showLeadFicha(id);
+  }catch(e){showToast('❌ '+e.message,'error');}
 }
 
 /* ── Cambio de estado desde el embudo (sin navegar a ficha) ── */
-function cambiarEstadoLeadDesdeEmbudo(id, nuevoEstado){
+async function cambiarEstadoLeadDesdeEmbudo(id, nuevoEstado){
   if(!nuevoEstado) return;
   if(!canEditLead()){ showToast('⚠️ Sin permisos para cambiar estado','warn'); return; }
   const leads = DB.get('leads')||[];
   const idx   = leads.findIndex(l=>l.id===id); if(idx<0) return;
   const prev  = leads[idx].estado;
   if(prev === nuevoEstado) return;
-  leads[idx].estado     = nuevoEstado;
-  leads[idx].fechaUpdate = today();
-  DB.set('leads', leads);
-  // Historial
-  const hist = DB.get('leads_estado_historial')||[];
-  hist.push({
-    id: Math.max(0,...hist.map(h=>h.id))+1,
-    leadId: parseInt(id),
-    estadoPrevio: prev,
-    estadoNuevo:  nuevoEstado,
-    motivo:       'Cambio desde embudo',
-    usuario:      currentUser?.email||'—',
-    ts:           new Date().toISOString(),
-  });
-  DB.set('leads_estado_historial', hist);
-  auditLog('ESTADO','lead',id,`${LEAD_ESTADOS[prev]?.label||prev} → ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado} (desde embudo)`);
-  showToast(`🔄 ${leads[idx].nombre} → ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);
-  updateLeadsBadge();
-  renderEmbudo();   // refresh kanban in place — no navigation
+  try{
+    const saved=await api(`/api/leads/${id}/estado`,{method:'PATCH',body:JSON.stringify({estado:nuevoEstado,motivo:'Cambio desde embudo'})});
+    leads[idx]={...leads[idx],...mapLeadApi(saved)};
+    DB.set('leads', leads);
+    const hist = DB.get('leads_estado_historial')||[];
+    hist.push({
+      id: Math.max(0,...hist.map(h=>h.id))+1,
+      leadId: parseInt(id),
+      estadoPrevio: prev,
+      estadoNuevo:  nuevoEstado,
+      motivo:       'Cambio desde embudo',
+      usuario:      currentUser?.email||'—',
+      ts:           new Date().toISOString(),
+    });
+    DB.set('leads_estado_historial', hist);
+    showToast(`🔄 ${leads[idx].nombre} → ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);
+    updateLeadsBadge();
+    renderEmbudo();
+  }catch(e){showToast('❌ '+e.message,'error');renderEmbudo();}
 }
 
 /* ── Conversión Lead → Operadora ── */
 function convertirLeadAOperadora(id){
-  if(!canEditLead()){ showToast('⚠️ Sin permisos para convertir leads','warn'); return; }
+  if(!canEdit()){ showToast('⚠️ Solo administración puede convertir leads en operadoras','warn'); return; }
   const l = getLead(id); if(!l) return;
   if(l.estado !== 'ganado'){
     showToast('⚠️ Solo se pueden convertir leads en estado Ganado','warn'); return;

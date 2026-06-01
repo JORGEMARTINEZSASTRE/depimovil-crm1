@@ -7,9 +7,14 @@
  */
 
 const jwt = require('jsonwebtoken');
+const pool = require('../utils/db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'depimovil-secret-change-in-production';
-const JWT_EXPIRES = process.env.JWT_EXPIRES || '7d';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'depimovil-dev-secret');
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '30d';
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET es obligatorio en producción');
+}
 
 /**
  * Genera un token JWT para un usuario.
@@ -47,7 +52,7 @@ function isOperadoraRole(rol) {
  * Middleware: verifica el token JWT del header Authorization.
  * Agrega req.user con los datos del payload.
  */
-function auth(req, res, next) {
+async function auth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
 
@@ -57,7 +62,19 @@ function auth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload;
+    if (!payload?.id) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    const { rows } = await pool.query(
+      `SELECT id, nombre, email, rol, operadora_id, transportista_id, whatsapp, status
+       FROM usuarios
+       WHERE id = $1 AND status = $2`,
+      [payload.id, 'activo']
+    );
+    if (!rows.length) {
+      return res.status(401).json({ error: 'Usuario inactivo o no encontrado' });
+    }
+    req.user = rows[0];
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {

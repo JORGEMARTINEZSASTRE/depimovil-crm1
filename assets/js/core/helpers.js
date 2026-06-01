@@ -2,6 +2,16 @@
    HELPERS
 ══════════════════════════════════ */
 function ir(label,value){return `<div class="info-row"><span class="label">${label}</span><span class="value">${value}</span></div>`;}
+function escapeHTML(value){
+  return String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(value){return escapeHTML(value);}
+function safeUrl(value){
+  const str=String(value||'').trim();
+  if(!str)return '';
+  if(/^https?:\/\//i.test(str)||str.startsWith('/'))return str.replace(/"/g,'%22');
+  return '';
+}
 function normalizeDateInput(d){
   if(!d||d==='—')return '';
   const str=String(d).trim();
@@ -37,16 +47,43 @@ const ROLE_LABELS={
 const VIEW_PERMISSIONS={
   superadmin:['*'],
   administrador:['*'],
-  operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','materiales'],
-  comercial:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','contratos','whatsapp','leads','lead-ficha','embudo'],
-  operadora_habilitada:['dashboard','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
-  operadora:['dashboard','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','materiales'],
+  comercial:['dashboard','whatsapp','leads','lead-ficha','embudo'],
+  operadora_habilitada:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
+  operadora:['dashboard','operadoras','operadora-ficha','reservas','reserva-ficha','calendario','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
   operadora_limitada:['dashboard','materiales'],
-  transportista:['dashboard','envios','envio-ficha','transportistas'],
+  transportista:['dashboard','maquinas','maquina-ficha','envios','envio-ficha','transportistas'],
 };
 function isAdminRole(rol){return ['superadmin','administrador'].includes(rol);}
 function isOpsRole(rol){return isAdminRole(rol)||rol==='operaciones';}
 function isOperadoraRole(rol){return ['operadora','operadora_habilitada','operadora_limitada'].includes(rol);}
+function isOperadoraUser(user=currentUser){return !!(user&&(isOperadoraRole(user.rol)||user.operadora_id));}
+function isTransportistaUser(user=currentUser){return !!(user&&(user.rol==='transportista'||user.transportista_id));}
+function normalizarLocalidad(v){
+  return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function localidadesOperadora(op){
+  if(!op)return[];
+  const vals=[op.ciudad,op.localidad];
+  const direcciones=Array.isArray(op.direccionesEntrega)?op.direccionesEntrega:[];
+  direcciones.forEach(d=>{
+    vals.push(d.localidad,d.ciudad,d.departamento);
+    const partes=String(d.direccion||'').split('|').map(x=>x.trim());
+    if(partes.length>1)vals.push(partes[1]);
+  });
+  return Array.from(new Set(vals.map(normalizarLocalidad).filter(Boolean)));
+}
+function localidadMaquina(m){
+  if(!m)return'';
+  return normalizarLocalidad(m.tipoOperativo==='base_ciudad' ? (m.ciudadBase||m.ubicacion) : (m.ciudad||m.ubicacion||m.ciudadBase));
+}
+function maquinaVisibleParaOperadora(m,op){
+  if(!isOperadoraUser())return true;
+  if(!m||m.tipoOperativo==='solo_venta')return false;
+  const permitidas=localidadesOperadora(op);
+  const maqLoc=localidadMaquina(m);
+  return !!(permitidas.length&&maqLoc&&permitidas.includes(maqLoc));
+}
 function currentOperadoraHabs(){
   if(!currentUser||!currentUser.operadora_id)return[];
   return (DB.get('habilitaciones')||[]).filter(h=>
@@ -55,12 +92,17 @@ function currentOperadoraHabs(){
 }
 function getAccessRole(user=currentUser){
   if(!user)return'';
-  if(user.rol==='operadora'){
+  if(isOperadoraUser(user)){
     return currentOperadoraHabs().length?'operadora_habilitada':'operadora_limitada';
   }
+  if(isTransportistaUser(user))return'transportista';
   return user.rol;
 }
-function getRoleLabel(user=currentUser){return ROLE_LABELS[getAccessRole(user)]||ROLE_LABELS[user?.rol]||user?.rol||'';}
+function getRoleLabel(user=currentUser){
+  if(isOperadoraUser(user))return 'Operadora';
+  if(isTransportistaUser(user))return 'Transportista';
+  return ROLE_LABELS[getAccessRole(user)]||ROLE_LABELS[user?.rol]||user?.rol||'';
+}
 function canView(view){
   const role=getAccessRole();
   const allowed=VIEW_PERMISSIONS[role]||[];
@@ -75,9 +117,14 @@ function applyRoleUI(){
     const visible=Array.from(group.querySelectorAll('.nav-item[data-view]')).some(btn=>btn.style.display!=='none');
     group.style.display=visible?'':'none';
   });
-  ['btnAddOp','btnAddMaq','btnAddRes','btnAddPago','btnAddEnvio','btnAddLead'].forEach(id=>{
+  ['btnAddOp','btnAddMaq','btnAddMant','btnAddRes','btnAddPago','btnAddEnvio','btnAddLead'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el)el.style.display=canEdit()?'':'none';
+    if(!el)return;
+    if(id==='btnAddRes'&&isOperadoraUser()){
+      el.style.display='';
+      return;
+    }
+    el.style.display=canEdit()?'':'none';
   });
   const roleEl=document.getElementById('userRole');
   const topEl=document.getElementById('topbarRole');

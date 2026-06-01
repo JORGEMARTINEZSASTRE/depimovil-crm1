@@ -30,12 +30,18 @@ function docsFileUrl(doc){
 
 function docsFileLink(doc, label){
   const url = docsFileUrl(doc);
-  return url ? `<a class="action-btn" href="${url}" target="_blank" rel="noopener">${label}</a>` : `<span class="badge badge-red">${label} pendiente</span>`;
+  return url ? `<a class="action-btn" href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHTML(label)}</a>` : `<span class="badge badge-red">${escapeHTML(label)} pendiente</span>`;
 }
 
 function getReservasActivasOp(opId){
   return (DB.get('reservas') || []).filter(function(r){
     return r.operadoraId === opId && ['confirmada','activa','aprobada','solicitud_recibida','pendiente_aprobacion'].includes(r.estado);
+  });
+}
+
+function maquinasSinFotoDocs(){
+  return (DB.get('maquinas') || []).filter(function(m){
+    return !m.fotoUrl && !m.foto_url;
   });
 }
 
@@ -55,9 +61,10 @@ async function buildDocumentosCache(){
     const cedulaFrente = docs.find(function(d){ return d.tipo === 'cedula'; });
     const cedulaDorso = docs.find(function(d){ return d.tipo === 'cedula_dorso'; });
     const contratosDocs = docs.filter(function(d){ return d.tipo === 'contrato'; });
+    const certificadosDocs = docs.filter(function(d){ return d.tipo === 'certificado'; });
     const reservas = getReservasActivasOp(op.id);
     const firmados = reservas.filter(function(r){
-      return contratosDocs.some(function(ct){ return ct.maquina_id === r.maquinaId; });
+      return contratosDocs.some(function(ct){ return parseInt(ct.maquina_id,10) === parseInt(r.maquinaId,10); });
     });
     return {
       op: op,
@@ -66,6 +73,7 @@ async function buildDocumentosCache(){
       cedulaDorso: cedulaDorso || null,
       reservas: reservas,
       contratosDocs: contratosDocs,
+      certificadosDocs: certificadosDocs,
       contratosFirmados: firmados.length,
       contratosPendientes: Math.max(0, reservas.length - firmados.length)
     };
@@ -90,11 +98,17 @@ function renderDocumentosResumen(){
   const cedulaCompleta = documentosCache.filter(function(r){ return r.cedulaFrente && r.cedulaDorso; }).length;
   const cedulaPendiente = documentosCache.filter(function(r){ return !r.cedulaFrente || !r.cedulaDorso; }).length;
   const contratosPend = documentosCache.reduce(function(sum,r){ return sum + r.contratosPendientes; }, 0);
+  const certificados = documentosCache.reduce(function(sum,r){ return sum + (r.certificadosDocs||[]).length; }, 0);
+  const maquinasSinFoto = maquinasSinFotoDocs().length;
   el.innerHTML = `
     <div class="docs-summary-card"><div class="label">Operadoras</div><div class="value">${total}</div></div>
     <div class="docs-summary-card"><div class="label">Cédulas completas</div><div class="value">${cedulaCompleta}</div></div>
     <div class="docs-summary-card"><div class="label">Cédulas pendientes</div><div class="value">${cedulaPendiente}</div></div>
-    <div class="docs-summary-card"><div class="label">Contratos pendientes</div><div class="value">${contratosPend}</div></div>`;
+    <div class="docs-summary-card"><div class="label">Contratos pendientes</div><div class="value">${contratosPend}</div></div>
+    <div class="docs-summary-card"><div class="label">Certificados</div><div class="value">${certificados}</div></div>
+    <button type="button" class="docs-summary-card docs-summary-action" onclick="navigate('maquinas')" title="Abrir máquinas">
+      <div class="label">Máquinas sin foto</div><div class="value">${maquinasSinFoto}</div>
+    </button>`;
 }
 
 function renderDocumentosRows(){
@@ -122,8 +136,8 @@ function renderDocumentosRows(){
     const portal = docsPortalUrl(op.portalToken);
     return `<tr>
       <td>
-        <span class="bold">${op.nombre} ${op.apellido || ''}</span>
-        <div class="docs-line">${op.gabinete || 'Sin gabinete'} · ${op.ciudad || 'Sin ciudad'}</div>
+        <span class="bold">${escapeHTML(op.nombre)} ${escapeHTML(op.apellido || '')}</span>
+        <div class="docs-line">${escapeHTML(op.gabinete || 'Sin gabinete')} · ${escapeHTML(op.ciudad || 'Sin ciudad')}</div>
       </td>
       <td>
         <div class="docs-doc-list">
@@ -142,7 +156,7 @@ function renderDocumentosRows(){
       <td style="white-space:nowrap">
         <button class="action-btn" onclick="openDocumentosModal(${op.id})">Ver documentos</button>
         <button class="action-btn" onclick="showOpFicha(${op.id})">Ver ficha</button>
-        ${portal ? `<a class="action-btn" href="${portal}" target="_blank" rel="noopener">Abrir portal</a>` : ''}
+        ${portal ? `<a class="action-btn" href="${escapeAttr(portal)}" target="_blank" rel="noopener">Abrir portal</a>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -165,26 +179,37 @@ function openDocumentosModal(opId){
   const portal = docsPortalUrl(op.portalToken);
   const body = document.getElementById('modalDocumentosBody');
   const contratosHTML = row.reservas.length ? row.reservas.map(function(r){
-    const firmado = row.contratosDocs.find(function(ct){ return ct.maquina_id === r.maquinaId; });
+    const firmado = row.contratosDocs.find(function(ct){ return parseInt(ct.maquina_id,10) === parseInt(r.maquinaId,10); });
     const maq = getMaq(r.maquinaId);
     return `<div class="docs-detail-row">
       <div>
-        <div class="bold">${maq ? maq.nombre : 'Máquina #' + r.maquinaId}</div>
-        <div class="docs-line">${r.codigo || 'Reserva'} · ${maq ? maq.codigo : ''}</div>
+        <div class="bold">${escapeHTML(maq ? maq.nombre : 'Máquina #' + r.maquinaId)}</div>
+        <div class="docs-line">${escapeHTML(r.codigo || 'Reserva')} · ${escapeHTML(maq ? maq.codigo : '')}</div>
       </div>
-      <div>${firmado ? `<span class="badge badge-green">Firmado</span><div class="docs-line">${fmtDate(firmado.firmado_en || firmado.created_at)}</div>` : '<span class="badge badge-yellow">Pendiente firma</span>'}</div>
+      <div>${firmado ? `<span class="badge badge-green">Firmado</span><div class="docs-line">${fmtDate(firmado.firmado_en || firmado.created_at)}</div><div style="margin-top:6px">${docsFileLink(firmado,'Ver contrato')}</div>` : '<span class="badge badge-yellow">Pendiente firma</span>'}</div>
     </div>`;
   }).join('') : '<div class="empty-state" style="padding:14px">Sin reservas activas con contrato.</div>';
+  const maquinasSinFoto = maquinasSinFotoDocs();
+  const certificadosHTML = row.certificadosDocs.length ? row.certificadosDocs.map(function(c){
+    const meta = c.metadata || {};
+    return `<div class="docs-detail-row">
+      <div>
+        <div class="bold">${escapeHTML(meta.categoria || 'Certificación DepiMóvil')}</div>
+        <div class="docs-line">${escapeHTML(meta.evaluacion_titulo || 'Evaluación técnica')} · ${fmtDate(c.created_at)}</div>
+      </div>
+      <div>${docsFileLink(c,'Ver certificado')}</div>
+    </div>`;
+  }).join('') : '<div class="empty-state" style="padding:14px">Sin certificados emitidos.</div>';
 
   body.innerHTML = `
     <div class="docs-detail-head">
       <div>
-        <h2>${op.nombre} ${op.apellido || ''}</h2>
-        <p>${op.gabinete || 'Sin gabinete'} · ${op.ciudad || 'Sin ciudad'}, ${op.departamento || ''}</p>
+        <h2>${escapeHTML(op.nombre)} ${escapeHTML(op.apellido || '')}</h2>
+        <p>${escapeHTML(op.gabinete || 'Sin gabinete')} · ${escapeHTML(op.ciudad || 'Sin ciudad')}, ${escapeHTML(op.departamento || '')}</p>
       </div>
       <div class="docs-doc-list">
         ${portal ? `<button class="action-btn" onclick="copyPortalLink('${op.portalToken}')">Copiar portal</button>` : '<span class="badge badge-gray">Sin portal</span>'}
-        ${portal ? `<a class="action-btn" href="${portal}" target="_blank" rel="noopener">Abrir portal</a>` : ''}
+        ${portal ? `<a class="action-btn" href="${escapeAttr(portal)}" target="_blank" rel="noopener">Abrir portal</a>` : ''}
       </div>
     </div>
     <div class="docs-detail-grid">
@@ -205,6 +230,16 @@ function openDocumentosModal(opId){
     <div class="docs-detail-card" style="margin-top:12px">
       <div class="docs-detail-title">Contratos por máquina</div>
       ${contratosHTML}
+    </div>
+    <div class="docs-detail-card" style="margin-top:12px">
+      <div class="docs-detail-title">Certificados de operadora</div>
+      ${certificadosHTML}
+    </div>
+    <div class="docs-detail-card" style="margin-top:12px">
+      <div class="docs-detail-title">Control de fotos de máquinas</div>
+      ${maquinasSinFoto.length
+        ? `<div class="docs-line">${maquinasSinFoto.length} máquina(s) sin foto visible en ficha.</div><div style="margin-top:8px"><button class="action-btn" onclick="closeModal('modalDocumentos');navigate('maquinas')">Corregir fotos</button></div>`
+        : '<span class="badge badge-green">Todas las máquinas tienen foto</span>'}
     </div>`;
   openModal('modalDocumentos');
 }

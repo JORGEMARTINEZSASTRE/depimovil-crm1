@@ -54,6 +54,7 @@ function calcularRangoBloqueo(fechaInicio, fechaFin, departamento){
 function checkDisponibilidad(maquinaId, fechaInicio, fechaFin, excluirResId, departamento){
   const maq=getMaq(maquinaId);
   if(!maq) return {ok:false,msg:'Máquina no encontrada.'};
+  if(maq.tipoOperativo==='solo_venta') return {ok:false,msg:`⛔ "${maq.nombre}" está marcada como solo venta y no se puede alquilar.`};
   if(maq.estado==='mantenimiento') return {ok:false,msg:`⚠️ "${maq.nombre}" está en mantenimiento.`};
   if(maq.estado==='fuera_servicio') return {ok:false,msg:`⛔ "${maq.nombre}" está fuera de servicio.`};
   if(!fechaInicio||!fechaFin) return {ok:true,msg:''};
@@ -98,6 +99,37 @@ function getAlertas(){
 /* Listado */
 let resFilter={search:'',estado:'',tipo:'',control:''};
 
+function renderReservasOperadoraPanel(reservas){
+  if(!isOperadoraUser())return '';
+  const activas=reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado));
+  const proximas=activas.slice().sort((a,b)=>(a.fechaJornada||a.fechaInicio||'').localeCompare(b.fechaJornada||b.fechaInicio||'')).slice(0,4);
+  return `<div class="table-container" style="margin-bottom:16px">
+    <div class="table-header">
+      <div>
+        <h3>📌 Mis reservas activas</h3>
+        <p style="font-size:13px;color:var(--text2);margin-top:4px">Tus solicitudes y reservas aprobadas aparecen acá primero.</p>
+      </div>
+      <button class="btn-add" onclick="openResModal()">+ Solicitar reserva</button>
+    </div>
+    ${activas.length?`
+      <div class="docs-summary-grid" style="margin-bottom:12px">
+        <div class="docs-summary-card"><div class="label">Activas</div><div class="value">${activas.length}</div></div>
+        <div class="docs-summary-card"><div class="label">Solicitudes</div><div class="value">${activas.filter(r=>r.estado==='solicitud_recibida').length}</div></div>
+        <div class="docs-summary-card"><div class="label">Confirmadas</div><div class="value">${activas.filter(r=>r.estado==='confirmada').length}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        ${proximas.map(r=>{
+          const maq=getMaq(r.maquinaId);
+          const fecha=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
+          return `<button class="dash-list-item" style="text-align:left;width:100%;cursor:pointer" onclick="showResFicha(${r.id})">
+            <div><div class="name">${escapeHTML(maq?maq.nombre:'Máquina')}</div><div class="sub">${escapeHTML(r.codigo)} · ${fmtDate(fecha)}</div></div>
+            ${badgeRes(r.estado)}
+          </button>`;
+        }).join('')}
+      </div>`:`<div class="empty-state" style="padding:22px"><div class="icon">📅</div><h3>Sin reservas activas</h3><p>Usá “Solicitar reserva” para pedir una máquina.</p></div>`}
+  </div>`;
+}
+
 function renderReservas(){
   const reservas=DB.get('reservas')||[]; const hoy=today();
   const alertas=getAlertas();
@@ -110,7 +142,7 @@ function renderReservas(){
     const bloqueadas=updateReservasAutomatizacionBadge();
     if(bloqueadas) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⛔</span><div><strong>${bloqueadas} reserva${bloqueadas>1?'s':''} bloqueada${bloqueadas>1?'s':''}</strong> — Revisá documentos, contrato, pagos o logística antes de confirmar.</div></div>`;
   }
-  document.getElementById('resAlerts').innerHTML=alertsHTML;
+  document.getElementById('resAlerts').innerHTML=renderReservasOperadoraPanel(reservas)+alertsHTML;
 
   const filtered=reservas.filter(r=>{
     const q=resFilter.search.toLowerCase();
@@ -124,7 +156,7 @@ function renderReservas(){
   });
 
   const tbody=document.getElementById('resTableBody');
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="10"><div class="empty-state"><div class="icon">📅</div><h3>Sin reservas</h3><p>No hay reservas que coincidan.</p></div></td></tr>`;return;}
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="10"><div class="empty-state"><div class="icon">📅</div><h3>Sin reservas</h3><p>No hay reservas que coincidan. ${isOperadoraUser()?'<button class="btn-add" onclick="openResModal()" style="margin-left:8px">+ Solicitar reserva</button>':''}</p></div></td></tr>`;return;}
 
   tbody.innerHTML=filtered.map(r=>{
     const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId);
@@ -268,6 +300,9 @@ function showResFicha(id){
             </div>`).join('');
         })()}
       </div>
+      ${renderReservaIncidenciasPlaceholder(r)}
+      <div class="info-card full">
+        <h4>🧾 Historial de estados</h4>
         ${hist.length
           ?`<ul class="timeline">${hist.map(h=>{const stH=RES_ESTADOS[h.estadoNuevo]||{};return `<li class="timeline-item">
             <div class="timeline-dot" style="background:var(--accent)">${stH.icon||'→'}</div>
@@ -282,39 +317,259 @@ function showResFicha(id){
           :`<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin cambios de estado registrados.</div>`}
       </div>
     </div>`;
+  cargarReservaIncidencias(r);
+}
+
+function renderReservaIncidenciasPlaceholder(r){
+  const puedeCrear=(canEdit()||currentUser?.rol==='transportista'||isOperadoraUser())&&r.maquinaId;
+  return `<div class="info-card full">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <h4>🚨 Incidencias técnicas de esta reserva</h4>
+      ${puedeCrear?`<button class="btn-secondary" onclick="openIncidenciaMaquinaModal(${r.maquinaId},${r.id})">Registrar incidencia</button>`:''}
+    </div>
+    <div id="resIncidenciasBox-${r.id}" class="machine-incident-box">
+      <div class="machine-ops-empty">Cargando incidencias...</div>
+    </div>
+  </div>`;
+}
+
+async function cargarReservaIncidencias(r){
+  const box=document.getElementById('resIncidenciasBox-'+r.id);
+  if(!box)return;
+  if(!r.maquinaId){
+    box.innerHTML='<div class="machine-ops-empty">Reserva sin máquina vinculada.</div>';
+    return;
+  }
+  try{
+    const rows=await api('/api/maquinas/'+r.maquinaId+'/incidencias');
+    const relacionadas=rows.filter(i=>parseInt(i.reserva_id)===parseInt(r.id));
+    if(!relacionadas.length){
+      box.innerHTML='<div class="machine-ops-empty">Sin incidencias registradas para esta reserva.</div>';
+      return;
+    }
+    box.innerHTML=relacionadas.map(i=>`<div class="machine-incident-row ${i.bloquea_reservas&&['abierta','en_revision'].includes(i.estado)?'blocking':''}">
+      <div class="machine-incident-head">
+        <div><strong>${escapeHTML(typeof incidenciaTipoLabel==='function'?incidenciaTipoLabel(i.tipo):i.tipo)}</strong> ${typeof incidenciaGravedadBadge==='function'?incidenciaGravedadBadge(i.gravedad):escapeHTML(i.gravedad)} ${typeof incidenciaEstadoBadge==='function'?incidenciaEstadoBadge(i.estado):escapeHTML(i.estado)} ${i.bloquea_reservas?'<span class="badge badge-red">Bloquea reservas</span>':''}</div>
+        <small>${fmtDate(i.created_at)}${i.reportado_por_email?' · '+escapeHTML(i.reportado_por_email):''}</small>
+      </div>
+      <div class="machine-incident-desc">${escapeHTML(i.descripcion||'')}</div>
+      <div class="machine-incident-meta">
+        ${i.evidencia_url?`<a href="${escapeAttr(i.evidencia_url)}" target="_blank" rel="noopener">Ver evidencia</a>`:''}
+      </div>
+      ${i.resolucion?`<div class="machine-incident-resolution">Resolución: ${escapeHTML(i.resolucion)}</div>`:''}
+      ${canEdit()&&['abierta','en_revision'].includes(i.estado)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="action-btn" onclick="actualizarIncidenciaMaquina(${r.maquinaId},${i.id},'en_revision')">Marcar en revisión</button>
+        <button class="action-btn" onclick="actualizarIncidenciaMaquina(${r.maquinaId},${i.id},'resuelta')">Cerrar resuelta</button>
+        <button class="action-btn" onclick="actualizarIncidenciaMaquina(${r.maquinaId},${i.id},'descartada')">Descartar</button>
+      </div>`:''}
+    </div>`).join('');
+  }catch(e){
+    box.innerHTML='<div class="machine-ops-empty">No se pudieron cargar las incidencias de esta reserva.</div>';
+  }
 }
 
 /* Modal nueva / editar */
+function reservaMaquinaOption(m, opId){
+  const ciudadOk=opId?validarCiudadReservaLocal(opId,m.id):{ok:true};
+  const disabled=(m.estado==='mantenimiento'||m.estado==='fuera_servicio'||m.tipoOperativo==='solo_venta'||!ciudadOk.ok)?'disabled style="color:var(--text3)"':'';
+  const lbl={disponible:'Disponible',reservada:'Reservada',mantenimiento:'⚠️ Mantenimiento',fuera_servicio:'⛔ Fuera servicio'}[m.estado]||m.estado;
+  const uso=m.tipoOperativo==='solo_venta'?' · Solo venta':m.tipoOperativo==='base_ciudad'?` · Base ${m.ciudadBase||m.ubicacion||''}`:'';
+  const motivo=!ciudadOk.ok?` · ${ciudadOk.msg}`:'';
+  return `<option value="${m.id}" ${disabled}>${m.codigo} — ${m.nombre} [${lbl}${uso}${motivo}]</option>`;
+}
+
+function filterMaquinasReservaByOperadora(){
+  const opId=parseInt(gv('resOperadoraId'))||0;
+  document.getElementById('resMaquinaId').innerHTML=
+    '<option value="">— Seleccionar máquina disponible —</option>'+
+    (DB.get('maquinas')||[]).map(m=>reservaMaquinaOption(m,opId)).join('');
+  onResSelectionChange();
+}
+
+function filterOperadorasReservaByDepto(){
+  const dept=gv('resDeptoFilter');
+  const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa'&&(!dept||o.departamento===dept));
+  document.getElementById('resOperadoraId').innerHTML=
+    '<option value="">— Seleccionar operadora activa —</option>'+
+    ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido} — ${o.ciudad} (${o.departamento})</option>`).join('');
+  filterMaquinasReservaByOperadora();
+}
+
+function openResModalForOperadora(opId){
+  const op=getOp(opId);
+  if(!op){showToast('⚠️ Operadora no encontrada','warn');return;}
+  if(isOperadoraUser()&&parseInt(currentUser?.operadora_id)!==parseInt(opId)){
+    showToast('⚠️ No podés reservar por otra operadora','warn');
+    return;
+  }
+  openResModal();
+  sv('resOperadoraId',opId);
+  if(op.departamento)sv('resDeptLogistica',op.departamento);
+  const montoEl=document.getElementById('resMonto');
+  if(montoEl)montoEl.dataset.autoPrecio='1';
+  filterMaquinasReservaByOperadora();
+  onResSelectionChange();
+}
+
 function openResModal(id){
+  if(id&&isOperadoraUser()){
+    showToast('⚠️ Para cambiar una reserva escribinos por WhatsApp','warn');
+    return;
+  }
   const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa');
   document.getElementById('resOperadoraId').innerHTML=
     '<option value="">— Seleccionar operadora activa —</option>'+
     ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido} — ${o.ciudad} (${o.departamento})</option>`).join('');
-  document.getElementById('resMaquinaId').innerHTML=
-    '<option value="">— Seleccionar máquina —</option>'+
-    (DB.get('maquinas')||[]).map(m=>{
-      const disabled=(m.estado==='mantenimiento'||m.estado==='fuera_servicio')?'disabled style="color:var(--text3)"':'';
-      const lbl={disponible:'Disponible',reservada:'Reservada',mantenimiento:'⚠️ Mantenimiento',fuera_servicio:'⛔ Fuera servicio'}[m.estado]||m.estado;
-      return `<option value="${m.id}" ${disabled}>${m.codigo} — ${m.nombre} [${lbl}]</option>`;
-    }).join('');
-  document.getElementById('modalResTitle').textContent=id?'Editar Reserva':'Nueva Reserva';
+  document.getElementById('resMaquinaId').innerHTML='<option value="">— Seleccionar máquina disponible —</option>';
+  document.getElementById('modalResTitle').textContent=id?'Editar Reserva':(isOperadoraUser()?'Solicitar Reserva':'Nueva Reserva');
   document.getElementById('resDisponibilidad').style.display='none';
+  const deptLogistica=document.getElementById('resDeptLogistica');
+  if(deptLogistica)deptLogistica.disabled=false;
+  const montoEl=document.getElementById('resMonto');
+  if(montoEl)montoEl.dataset.autoPrecio='';
+  if(montoEl){
+    montoEl.readOnly=!puedeEditarPrecioReserva();
+    montoEl.title=puedeEditarPrecioReserva()?'':'El precio lo define administración desde la ficha de la operadora';
+  }
+  const monedaEl=document.getElementById('resMoneda');
+  if(monedaEl)monedaEl.disabled=!puedeEditarPrecioReserva();
+  const precioHint=document.getElementById('resPrecioHint');
+  if(precioHint)precioHint.textContent='';
+  const opField=document.getElementById('resOperadoraField');
+  const estadoField=document.getElementById('resEstadoField');
+  if(opField)opField.style.display=isOperadoraUser()?'none':'';
+  if(estadoField)estadoField.style.display=isOperadoraUser()?'none':'';
+  let selectedMaquinaId='';
   if(id){
     const r=(DB.get('reservas')||[]).find(x=>x.id===id); if(!r)return;
+    selectedMaquinaId=r.maquinaId;
     sv('resId',r.id); sv('resOperadoraId',r.operadoraId); sv('resMaquinaId',r.maquinaId);
     sv('resTipo',r.tipo); sv('resEstado',r.estado);
     sv('resFechaJornada',r.fechaJornada||''); sv('resFechaInicio',r.fechaInicio||''); sv('resFechaFin',r.fechaFin||'');
     sv('resDeptLogistica',r.deptLogistica||''); sv('resBloqueLogistico',r.bloqueLogistico?'true':'false');
     sv('resMonto',r.monto||''); sv('resMoneda',r.moneda||'UYU'); sv('resNotas',r.notas||'');
+    if(montoEl)montoEl.dataset.autoPrecio='0';
   } else {
     sv('resId',''); sv('resOperadoraId',''); sv('resMaquinaId','');
     sv('resTipo','jornada'); sv('resEstado','solicitud_recibida');
     sv('resFechaJornada',today()); sv('resFechaInicio',''); sv('resFechaFin','');
     sv('resDeptLogistica',''); sv('resBloqueLogistico','false');
     sv('resMonto',''); sv('resMoneda','UYU'); sv('resNotas','');
+    if(montoEl)montoEl.dataset.autoPrecio='1';
+    if(isOperadoraUser()&&currentUser?.operadora_id){
+      sv('resOperadoraId',currentUser.operadora_id);
+      const op=getOp(currentUser.operadora_id);
+      if(op?.departamento)sv('resDeptLogistica',op.departamento);
+    }
   }
+  filterMaquinasReservaByOperadora();
+  if(selectedMaquinaId)sv('resMaquinaId',selectedMaquinaId);
   onResTipoChange();
   openModal('modalRes');
+}
+
+function reservaMaquinaFotoUrl(m){
+  if(typeof maquinaPhotoUrl==='function')return maquinaPhotoUrl(m);
+  const url=m?.fotoUrl||m?.foto_url||'';
+  if(!url)return '';
+  if(/^https?:\/\//.test(url))return url;
+  return window.location.origin+url;
+}
+function normalizarCiudadReserva(v){
+  return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function normalizarTextoReserva(v){
+  return normalizarCiudadReserva(v).replace(/[^a-z0-9]+/g,' ').trim();
+}
+function precioReservaParaMaquina(opId,maqId){
+  const op=getOp(opId);
+  const maq=getMaq(maqId);
+  if(!op||!maq)return null;
+  const tarifas=Array.isArray(op.equiposAlquila)?op.equiposAlquila:[];
+  const claves=[
+    normalizarTextoReserva(maq.nombre),
+    normalizarTextoReserva(maq.categoria),
+    normalizarTextoReserva(maq.codigo)
+  ].filter(Boolean);
+  const tarifa=tarifas.find(t=>{
+    const equipo=normalizarTextoReserva(t.equipo||t.nombre||t.categoria);
+    if(!equipo)return false;
+    return claves.some(k=>k&&((equipo.includes(k)||k.includes(equipo))));
+  });
+  const valor=parseFloat(tarifa?.valor);
+  if(!Number.isFinite(valor)||valor<=0)return null;
+  return {valor,tarifa};
+}
+function puedeEditarPrecioReserva(){
+  return !isOperadoraUser() && (typeof canEdit==='function' ? canEdit() : true);
+}
+function marcarPrecioReservaManual(){
+  const montoEl=document.getElementById('resMonto');
+  if(isOperadoraUser()){
+    if(montoEl)montoEl.dataset.autoPrecio='1';
+    actualizarPrecioReservaDesdeMaquina();
+    return;
+  }
+  if(montoEl)montoEl.dataset.autoPrecio='0';
+}
+function actualizarPrecioReservaDesdeMaquina(){
+  const montoEl=document.getElementById('resMonto');
+  const hint=document.getElementById('resPrecioHint');
+  if(!montoEl)return;
+  const montoActual=montoEl.value;
+  const auto=isOperadoraUser()||montoEl.dataset.autoPrecio!=='0'||montoActual==='';
+  const precio=precioReservaParaMaquina(parseInt(gv('resOperadoraId'))||0,parseInt(gv('resMaquinaId'))||0);
+  if(precio&&auto){
+    montoEl.value=precio.valor;
+    montoEl.dataset.autoPrecio='1';
+  }
+  if(hint){
+    if(precio)hint.textContent=isOperadoraUser()
+      ? `Precio definido por administración: ${precio.valor} ${gv('resMoneda')||'UYU'}`
+      : `Precio sugerido desde la ficha: ${precio.valor} ${gv('resMoneda')||'UYU'}`;
+    else hint.textContent=gv('resMaquinaId')?'Sin precio cargado para esta máquina en la ficha de la operadora.':'';
+  }
+}
+function validarCiudadReservaLocal(opId,maqId){
+  const op=getOp(opId);
+  const maq=getMaq(maqId);
+  if(!op||!maq)return {ok:true};
+  if(maq.tipoOperativo==='solo_venta')return {ok:false,msg:'Máquina marcada como solo venta: no disponible para alquiler'};
+  const opLocalidades=typeof localidadesOperadora==='function'?localidadesOperadora(op):[normalizarCiudadReserva(op.ciudad)].filter(Boolean);
+  const maqCiudad=typeof localidadMaquina==='function'?localidadMaquina(maq):normalizarCiudadReserva(maq.tipoOperativo==='base_ciudad'?(maq.ciudadBase||maq.ubicacion):(maq.ciudad||maq.ubicacion));
+  if(opLocalidades.length&&maqCiudad&&!opLocalidades.includes(maqCiudad)){
+    return {ok:false,msg:'Máquina no disponible para las localidades declaradas por la operadora'};
+  }
+  if(!opLocalidades.length){
+    return {ok:false,msg:'La operadora no tiene localidades/direcciones declaradas para alquilar máquinas'};
+  }
+  return {ok:true};
+}
+function renderReservaMaquinaPreview(maquinaId){
+  const wrap=document.getElementById('resMaquinaPreviewWrap');if(!wrap)return;
+  const m=getMaq(maquinaId);
+  if(!m){wrap.style.display='none';wrap.innerHTML='';return;}
+  const foto=reservaMaquinaFotoUrl(m);
+  const nombre=escapeHTML(m.nombre||'Máquina');
+  const codigo=escapeHTML(m.codigo||'');
+  const categoria=escapeHTML(m.categoria||'');
+  const ubicacion=escapeHTML(m.ubicacion||'');
+  const uso=m.tipoOperativo==='solo_venta'?' · Solo venta':m.tipoOperativo==='base_ciudad'?` · Base ${escapeHTML(m.ciudadBase||m.ubicacion||'')}`:' · Viajera';
+  const estado=badgeMaq(m.estado);
+  wrap.style.display='block';
+  wrap.innerHTML=`
+    <div class="reservation-machine-preview">
+      ${foto
+        ?`<button type="button" class="reservation-machine-thumb" onclick="openImageLightbox('${escapeAttr(foto)}','${escapeAttr(m.nombre||'Máquina')}')" title="Ampliar foto">
+            <img src="${escapeAttr(foto)}" alt="${escapeAttr(m.nombre||'Máquina')}"/>
+          </button>`
+        :`<div class="reservation-machine-thumb empty">⚙️</div>`}
+      <div class="reservation-machine-info">
+        <div class="reservation-machine-title">${nombre}</div>
+        <div class="reservation-machine-meta">${codigo}${categoria?' · '+categoria:''}${ubicacion?' · '+ubicacion:''}${uso}</div>
+      </div>
+      <div class="reservation-machine-state">${estado}</div>
+    </div>`;
 }
 
 function onResTipoChange(){
@@ -340,6 +595,8 @@ function autoCalcFechaFin(){
 
 function onResSelectionChange(){
   const maqId=gv('resMaquinaId'); const tipo=gv('resTipo');
+  renderReservaMaquinaPreview(maqId);
+  actualizarPrecioReservaDesdeMaquina();
   const fi=tipo==='jornada'?gv('resFechaJornada'):gv('resFechaInicio');
   const ff=tipo==='jornada'?gv('resFechaJornada'):gv('resFechaFin');
   const excluir=gv('resId');
@@ -348,6 +605,13 @@ function onResSelectionChange(){
   const msgEl=document.getElementById('resDisponibilidadMsg');
   if(!maqId||!fi){divDisp.style.display='none';if(typeof renderReservaModalAutomatizacion==='function')renderReservaModalAutomatizacion();return;}
   const chk=checkDisponibilidad(parseInt(maqId),fi,ff||fi,excluir,dept);
+  const ciudadOk=validarCiudadReservaLocal(gv('resOperadoraId'),maqId);
+  if(!ciudadOk.ok){
+    divDisp.style.display='block';
+    msgEl.innerHTML=`<div class="avail-err">${ciudadOk.msg}</div>`;
+    if(typeof renderReservaModalAutomatizacion==='function')renderReservaModalAutomatizacion();
+    return;
+  }
   divDisp.style.display='block';
   msgEl.innerHTML=`<div class="${chk.ok?'avail-ok':'avail-err'}">${chk.msg}</div>`;
   if(typeof renderReservaModalAutomatizacion==='function')renderReservaModalAutomatizacion();
@@ -357,30 +621,44 @@ async function saveReserva(){
   // Prevenir doble submit
   const btnGuardar = document.querySelector('#modalRes .btn-add, #modalRes button[onclick*="saveReserva"]');
   if(btnGuardar){if(btnGuardar._saving)return; btnGuardar._saving=true; btnGuardar.disabled=true;}
+  const liberarBotonReserva=()=>{if(btnGuardar){btnGuardar._saving=false;btnGuardar.disabled=false;}};
   const reservas=DB.get('reservas')||[]; const id=gv('resId');
   const opId=parseInt(gv('resOperadoraId')); const maqId=parseInt(gv('resMaquinaId'));
   const tipo=gv('resTipo');
-  if(!opId){showToast('⚠️ Seleccioná una operadora','warn');return;}
-  if(!maqId){showToast('⚠️ Seleccioná una máquina','warn');return;}
+  if(!opId){showToast('⚠️ Seleccioná una operadora','warn');liberarBotonReserva();return;}
+  if(!maqId){showToast('⚠️ Seleccioná una máquina','warn');liberarBotonReserva();return;}
   const op=getOp(opId);
   if(op&&['suspendida','inactiva'].includes(op.estado)){
-    showToast(`⛔ La operadora ${op.nombre} ${op.apellido} está ${op.estado} y no puede generar reservas.`,'warn');return;
+    showToast(`⛔ La operadora ${op.nombre} ${op.apellido} está ${op.estado} y no puede generar reservas.`,'warn');liberarBotonReserva();return;
+  }
+  const ciudadOk=validarCiudadReservaLocal(opId,maqId);
+  if(!ciudadOk.ok){
+    showToast('⛔ '+ciudadOk.msg,'warn');liberarBotonReserva();return;
   }
   let fechaJornada='',fechaInicio='',fechaFin='';
   if(tipo==='jornada'){
     fechaJornada=gv('resFechaJornada');
-    if(!fechaJornada){showToast('⚠️ Ingresá la fecha de jornada','warn');return;}
+    if(!fechaJornada){showToast('⚠️ Ingresá la fecha de jornada','warn');liberarBotonReserva();return;}
     fechaInicio=fechaFin=fechaJornada;
   } else {
     fechaInicio=gv('resFechaInicio'); fechaFin=gv('resFechaFin');
-    if(!fechaInicio||!fechaFin){showToast('⚠️ Completá las fechas de inicio y fin','warn');return;}
+    if(!fechaInicio||!fechaFin){showToast('⚠️ Completá las fechas de inicio y fin','warn');liberarBotonReserva();return;}
+  }
+  let montoReserva=parseFloat(gv('resMonto'))||0;
+  let monedaReserva=gv('resMoneda')||'UYU';
+  if(isOperadoraUser()){
+    const precio=precioReservaParaMaquina(opId,maqId);
+    montoReserva=precio?precio.valor:0;
+    monedaReserva='UYU';
+    sv('resMonto',montoReserva||'');
+    sv('resMoneda',monedaReserva);
   }
   const payload={
     operadora_id:opId,maquina_id:maqId,tipo,
     fecha_jornada:fechaJornada||undefined,fecha_inicio:fechaInicio,fecha_fin:fechaFin,
-    estado:gv('resEstado'),dept_logistica:gv('resDeptLogistica'),
-    bloque_logistico:gv('resBloqueLogistico')==='true',
-    monto:parseFloat(gv('resMonto'))||0,moneda:gv('resMoneda'),notas:gv('resNotas').trim(),
+    estado:isOperadoraUser()?'solicitud_recibida':gv('resEstado'),dept_logistica:gv('resDeptLogistica'),
+    bloque_logistico:isOperadoraUser()?false:gv('resBloqueLogistico')==='true',
+    monto:montoReserva,moneda:monedaReserva,notas:gv('resNotas').trim(),
   };
   if(payload.estado==='confirmada'&&typeof validarReservaAutomatica==='function'){
     const temp={id:parseInt(id)||0,operadoraId:opId,maquinaId:maqId,tipo,fechaJornada,fechaInicio,fechaFin,
@@ -388,6 +666,7 @@ async function saveReserva(){
     const validacion=validarReservaAutomatica(temp);
     if(!validacion.puede){
       showToast('⛔ No se puede confirmar: '+validacion.motivo,'warn');
+      liberarBotonReserva();
       return;
     }
   }

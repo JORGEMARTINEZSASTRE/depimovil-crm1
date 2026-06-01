@@ -1,12 +1,20 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole } = require('../middleware/auth');
+const { auth, requireRole, isOpsRole } = require('../middleware/auth');
 
 const router = express.Router();
 
 // ─────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────
+async function runSchemaStep(sql) {
+  try {
+    await pool.query(sql);
+  } catch (err) {
+    console.error('Transportistas schema step error:', err.message);
+  }
+}
+
 async function ensureTables() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS transportistas (
@@ -17,6 +25,10 @@ async function ensureTables() {
       telefono             VARCHAR(50),
       whatsapp             VARCHAR(50),
       direccion            TEXT,
+      ciudad               VARCHAR(100),
+      departamento         VARCHAR(100),
+      referencia           TEXT,
+      horarios             TEXT,
       ciclo_pago           VARCHAR(20)  DEFAULT 'mensual',
       departamentos        TEXT[]       DEFAULT '{}',
       tarifa_envio_chica   NUMERIC(10,2) DEFAULT 0,
@@ -29,6 +41,22 @@ async function ensureTables() {
       created_at           TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at           TIMESTAMP NOT NULL DEFAULT NOW()
     )
+  `);
+  await runSchemaStep('ALTER TABLE transportistas ADD COLUMN IF NOT EXISTS ciudad VARCHAR(100)');
+  await runSchemaStep('ALTER TABLE transportistas ADD COLUMN IF NOT EXISTS departamento VARCHAR(100)');
+  await runSchemaStep('ALTER TABLE transportistas ADD COLUMN IF NOT EXISTS referencia TEXT');
+  await runSchemaStep('ALTER TABLE transportistas ADD COLUMN IF NOT EXISTS horarios TEXT');
+  await runSchemaStep('ALTER TABLE transportistas DROP CONSTRAINT IF EXISTS transportistas_ciclo_pago_check');
+  await runSchemaStep(`
+    ALTER TABLE transportistas
+    ADD CONSTRAINT transportistas_ciclo_pago_check
+    CHECK (ciclo_pago IN ('semanal', 'mensual', 'por_envio'))
+  `);
+  await runSchemaStep('ALTER TABLE transportistas DROP CONSTRAINT IF EXISTS transportistas_estado_check');
+  await runSchemaStep(`
+    ALTER TABLE transportistas
+    ADD CONSTRAINT transportistas_estado_check
+    CHECK (estado IN ('activo', 'inactivo', 'eliminado'))
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS transportistas_incidentes (
@@ -62,6 +90,12 @@ async function ensureTables() {
 
 ensureTables().catch(err => console.error('Error creando tablas transportistas:', err.message));
 
+function canAccessTransportista(user, transportistaId) {
+  if (isOpsRole(user.rol)) return true;
+  return user.rol === 'transportista'
+    && parseInt(transportistaId) === parseInt(user.transportista_id);
+}
+
 // ─────────────────────────────────────────────
 // GET /api/transportistas — listar todos
 // ─────────────────────────────────────────────
@@ -73,6 +107,8 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.transportista_id) return res.json([]);
       params.push(req.user.transportista_id);
       query += ` AND id = $${params.length}`;
+    } else if (!isOpsRole(req.user.rol)) {
+      return res.json([]);
     }
     query += ' ORDER BY nombre';
     const { rows } = await pool.query(query, params);
@@ -91,6 +127,9 @@ router.get('/:id', auth, async (req, res) => {
     if (req.user.rol === 'transportista' && parseInt(req.params.id) !== parseInt(req.user.transportista_id)) {
       return res.status(403).json({ error: 'Sin permisos para este transportista' });
     }
+    if (req.user.rol !== 'transportista' && !isOpsRole(req.user.rol)) {
+      return res.status(403).json({ error: 'Sin permisos para transportistas' });
+    }
     const { rows } = await pool.query('SELECT * FROM transportistas WHERE id=$1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Transportista no encontrado' });
     res.json(rows[0]);
@@ -105,32 +144,34 @@ router.get('/:id', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const {
-    tipo, nombre, telefono, whatsapp, direccion, ciclo_pago, departamentos,
+    tipo, nombre, telefono, whatsapp, direccion, ciudad, departamento, referencia, horarios, ciclo_pago, departamentos,
     tarifa_envio_chica, tarifa_envio_grande,
     tarifa_limpieza_chica, tarifa_limpieza_grande,
     sin_rastreo_siempre, notas
   } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'Nombre es obligatorio' });
+  const tipoNormalizado = tipo || 'empresa';
 
   try {
     const { rows } = await pool.query(`
       INSERT INTO transportistas (
-        tipo, nombre, telefono, whatsapp, direccion, ciclo_pago, departamentos,
+        tipo, nombre, telefono, whatsapp, direccion, ciudad, departamento, referencia, horarios, ciclo_pago, departamentos,
         tarifa_envio_chica, tarifa_envio_grande,
         tarifa_limpieza_chica, tarifa_limpieza_grande,
         sin_rastreo_siempre, notas
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING *
     `, [
-      tipo || 'empresa', nombre.trim(),
+      tipoNormalizado, nombre.trim(),
       telefono || null, whatsapp || null, direccion || null,
+      ciudad || null, departamento || null, referencia || null, horarios || null,
       ciclo_pago || 'mensual',
       departamentos || [],
       parseFloat(tarifa_envio_chica) || 0,
       parseFloat(tarifa_envio_grande) || 0,
-      parseFloat(tarifa_limpieza_chica) || 0,
-      parseFloat(tarifa_limpieza_grande) || 0,
+      tipoNormalizado === 'empresa' ? 0 : parseFloat(tarifa_limpieza_chica) || 0,
+      tipoNormalizado === 'empresa' ? 0 : parseFloat(tarifa_limpieza_grande) || 0,
       sin_rastreo_siempre || false,
       notas || null
     ]);
@@ -146,32 +187,35 @@ router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res
 // ─────────────────────────────────────────────
 router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const {
-    tipo, nombre, telefono, whatsapp, direccion, ciclo_pago, departamentos,
+    tipo, nombre, telefono, whatsapp, direccion, ciudad, departamento, referencia, horarios, ciclo_pago, departamentos,
     tarifa_envio_chica, tarifa_envio_grande,
     tarifa_limpieza_chica, tarifa_limpieza_grande,
     sin_rastreo_siempre, notas
   } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'Nombre es obligatorio' });
+  const tipoNormalizado = tipo || 'empresa';
 
   try {
     const { rows } = await pool.query(`
       UPDATE transportistas SET
-        tipo=$1, nombre=$2, telefono=$3, whatsapp=$4, direccion=$5, ciclo_pago=$6,
-        departamentos=$7, tarifa_envio_chica=$8, tarifa_envio_grande=$9,
-        tarifa_limpieza_chica=$10, tarifa_limpieza_grande=$11,
-        sin_rastreo_siempre=$12, notas=$13, updated_at=NOW()
-      WHERE id=$14
+        tipo=$1, nombre=$2, telefono=$3, whatsapp=$4, direccion=$5,
+        ciudad=$6, departamento=$7, referencia=$8, horarios=$9, ciclo_pago=$10,
+        departamentos=$11, tarifa_envio_chica=$12, tarifa_envio_grande=$13,
+        tarifa_limpieza_chica=$14, tarifa_limpieza_grande=$15,
+        sin_rastreo_siempre=$16, notas=$17, updated_at=NOW()
+      WHERE id=$18
       RETURNING *
     `, [
-      tipo || 'empresa', nombre.trim(),
+      tipoNormalizado, nombre.trim(),
       telefono || null, whatsapp || null, direccion || null,
+      ciudad || null, departamento || null, referencia || null, horarios || null,
       ciclo_pago || 'mensual',
       departamentos || [],
       parseFloat(tarifa_envio_chica) || 0,
       parseFloat(tarifa_envio_grande) || 0,
-      parseFloat(tarifa_limpieza_chica) || 0,
-      parseFloat(tarifa_limpieza_grande) || 0,
+      tipoNormalizado === 'empresa' ? 0 : parseFloat(tarifa_limpieza_chica) || 0,
+      tipoNormalizado === 'empresa' ? 0 : parseFloat(tarifa_limpieza_grande) || 0,
       sin_rastreo_siempre || false,
       notas || null,
       req.params.id
@@ -187,12 +231,20 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
 // ─────────────────────────────────────────────
 // DELETE /api/transportistas/:id — eliminar (soft delete)
 // ─────────────────────────────────────────────
-router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
+router.delete('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      'UPDATE transportistas SET estado=$1, updated_at=NOW() WHERE id=$2 RETURNING id',
-      ['eliminado', req.params.id]
-    );
+    let rows = [];
+    try {
+      const result = await pool.query(
+        'UPDATE transportistas SET estado=$1, updated_at=NOW() WHERE id=$2 RETURNING id',
+        ['eliminado', req.params.id]
+      );
+      rows = result.rows;
+    } catch (err) {
+      if (err.code !== '23514') throw err;
+      const result = await pool.query('DELETE FROM transportistas WHERE id=$1 RETURNING id', [req.params.id]);
+      rows = result.rows;
+    }
     if (!rows.length) return res.status(404).json({ error: 'Transportista no encontrado' });
     res.status(204).end();
   } catch (err) {
@@ -206,7 +258,7 @@ router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
 // ─────────────────────────────────────────────
 router.get('/:id/envios', auth, async (req, res) => {
   try {
-    if (req.user.rol === 'transportista' && parseInt(req.params.id) !== parseInt(req.user.transportista_id)) {
+    if (!canAccessTransportista(req.user, req.params.id)) {
       return res.status(403).json({ error: 'Sin permisos para este transportista' });
     }
     const { rows } = await pool.query(`
@@ -234,7 +286,7 @@ router.get('/:id/envios', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 router.get('/:id/incidentes', auth, async (req, res) => {
   try {
-    if (req.user.rol === 'transportista' && parseInt(req.params.id) !== parseInt(req.user.transportista_id)) {
+    if (!canAccessTransportista(req.user, req.params.id)) {
       return res.status(403).json({ error: 'Sin permisos para este transportista' });
     }
     const { rows } = await pool.query(
@@ -252,7 +304,7 @@ router.get('/:id/incidentes', auth, async (req, res) => {
 // POST /api/transportistas/:id/incidentes — registrar incidente
 // ─────────────────────────────────────────────
 router.post('/:id/incidentes', auth, requireRole('superadmin', 'operaciones', 'transportista'), async (req, res) => {
-  if (req.user.rol === 'transportista' && parseInt(req.params.id) !== parseInt(req.user.transportista_id)) {
+  if (!canAccessTransportista(req.user, req.params.id)) {
     return res.status(403).json({ error: 'Sin permisos para este transportista' });
   }
   const { fecha, descripcion } = req.body;
@@ -274,7 +326,7 @@ router.post('/:id/incidentes', auth, requireRole('superadmin', 'operaciones', 't
 // ─────────────────────────────────────────────
 router.get('/:id/pagos', auth, async (req, res) => {
   try {
-    if (req.user.rol === 'transportista' && parseInt(req.params.id) !== parseInt(req.user.transportista_id)) {
+    if (!canAccessTransportista(req.user, req.params.id)) {
       return res.status(403).json({ error: 'Sin permisos para este transportista' });
     }
     const { rows } = await pool.query(

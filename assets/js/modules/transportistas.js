@@ -21,6 +21,14 @@ const DEPTOS = [
 
 let transportistaActual = null;
 
+function transportistaCicloLabel(ciclo) {
+  return { mensual:'Mensual', semanal:'Semanal', por_envio:'Por envío' }[ciclo] || ciclo || '—';
+}
+
+function transporteUbicacionCompleta(t) {
+  return [t.direccion, t.ciudad, t.departamento].filter(Boolean).join(', ');
+}
+
 // ─────────────────────────────────────────────
 // INICIALIZACIÓN DEL MÓDULO
 // ─────────────────────────────────────────────
@@ -63,10 +71,10 @@ async function renderListaTransportistas() {
 }
 
 function cardTransportista(t) {
-  const iniciales = t.nombre.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+  const iniciales = String(t.nombre||'').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
   const esEmpresa = t.tipo === 'empresa';
   const deps = (t.departamentos || []).slice(0,4).map(d =>
-    `<span class="dep-pill">${d}</span>`).join('') +
+    `<span class="dep-pill">${escapeHTML(d)}</span>`).join('') +
     (t.departamentos?.length > 4 ? `<span class="dep-pill">+${t.departamentos.length - 4}</span>` : '');
 
   return `
@@ -74,11 +82,11 @@ function cardTransportista(t) {
       <div class="trans-avatar ${esEmpresa ? 'av-empresa' : 'av-persona'}">${iniciales}</div>
       <div class="trans-info">
         <div class="trans-name-row">
-          <span class="trans-nombre">${t.nombre}</span>
+          <span class="trans-nombre">${escapeHTML(t.nombre)}</span>
           <span class="badge ${esEmpresa ? 'badge-empresa' : 'badge-persona'}">${esEmpresa ? 'Empresa' : 'Persona física'}</span>
           <span class="badge badge-activo">Activo</span>
         </div>
-        <div class="trans-meta">Ciclo ${t.ciclo_pago} · $${t.tarifa_envio_chica} chica · $${t.tarifa_envio_grande} grande</div>
+        <div class="trans-meta">Ciclo ${escapeHTML(transportistaCicloLabel(t.ciclo_pago))} · $${Number(t.tarifa_envio_chica||0).toLocaleString()} chica · $${Number(t.tarifa_envio_grande||0).toLocaleString()} grande</div>
         <div class="trans-deps">${deps}</div>
       </div>
       <div class="trans-arrow">›</div>
@@ -112,7 +120,7 @@ async function abrirFichaTransportista(id) {
 }
 
 function htmlFicha(t, envios, incs, pagos) {
-  const iniciales = t.nombre.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+  const iniciales = String(t.nombre||'').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
   const esEmpresa = t.tipo === 'empresa';
   const totalEnvios = envios.length;
   const entregados  = envios.filter(e => e.fecha_entrega && e.fecha_salida);
@@ -122,10 +130,10 @@ function htmlFicha(t, envios, incs, pagos) {
 
   return `
     <div class="ficha-header">
-      <button class="btn-back" onclick="renderListaTransportistas()">← Volver</button>
+      <button class="btn-back btn-back-strong" onclick="renderListaTransportistas()">← Volver a transportistas</button>
       <div class="ficha-actions">
-        <button class="btn-sec" onclick="abrirWhatsAppTransportista(${t.id})">WhatsApp</button>
-        <button class="btn-sec" onclick="abrirFormEditarTransportista(${t.id})">Editar</button>
+        <button class="transport-action transport-action-wa" onclick="abrirWhatsAppTransportista(${t.id})"><span>💬</span> WhatsApp</button>
+        <button class="transport-action transport-action-edit" onclick="abrirFormEditarTransportista(${t.id})"><span>✏️</span> Editar</button>
         <button class="btn-primary" onclick="abrirFormNuevoEnvio(${t.id})">+ Nuevo envío</button>
       </div>
     </div>
@@ -135,20 +143,23 @@ function htmlFicha(t, envios, incs, pagos) {
       <div class="ficha-ident">
         <div class="trans-avatar lg ${esEmpresa ? 'av-empresa' : 'av-persona'}">${iniciales}</div>
         <div>
-          <div class="ficha-nombre">${t.nombre}
+          <div class="ficha-nombre">${escapeHTML(t.nombre)}
             <span class="badge ${esEmpresa ? 'badge-empresa' : 'badge-persona'}">${esEmpresa ? 'Empresa' : 'Persona física'}</span>
             <span class="badge badge-activo">Activo</span>
           </div>
-          <div class="ficha-sub">Ciclo de pago: ${t.ciclo_pago}</div>
+          <div class="ficha-sub">Ciclo de pago: ${escapeHTML(transportistaCicloLabel(t.ciclo_pago))}</div>
         </div>
       </div>
       <div class="ficha-rows">
-        <div class="ficha-row"><span class="fr-label">WhatsApp</span><span class="fr-val">${t.whatsapp || '—'}</span></div>
-        <div class="ficha-row"><span class="fr-label">Dirección</span><span class="fr-val">${t.direccion || '—'}</span></div>
+        <div class="ficha-row"><span class="fr-label">Teléfono</span><span class="fr-val">${escapeHTML(t.telefono || t.whatsapp || '—')}</span></div>
+        <div class="ficha-row"><span class="fr-label">WhatsApp</span><span class="fr-val">${escapeHTML(t.whatsapp || '—')}</span></div>
+        <div class="ficha-row"><span class="fr-label">Dirección</span><span class="fr-val">${escapeHTML(transporteUbicacionCompleta(t) || '—')}</span></div>
+        <div class="ficha-row"><span class="fr-label">Referencia</span><span class="fr-val">${escapeHTML(t.referencia || '—')}</span></div>
+        <div class="ficha-row"><span class="fr-label">Horarios</span><span class="fr-val">${escapeHTML(t.horarios || '—')}</span></div>
         <div class="ficha-row"><span class="fr-label">Departamentos</span>
-          <span class="fr-val">${(t.departamentos || []).map(d => `<span class="dep-pill">${d}</span>`).join('') || '—'}</span>
+          <span class="fr-val">${(t.departamentos || []).map(d => `<span class="dep-pill">${escapeHTML(d)}</span>`).join('') || '—'}</span>
         </div>
-        ${t.notas ? `<div class="ficha-row"><span class="fr-label">Notas</span><span class="fr-val muted">${t.notas}</span></div>` : ''}
+        ${t.notas ? `<div class="ficha-row"><span class="fr-label">Notas</span><span class="fr-val muted">${escapeHTML(t.notas)}</span></div>` : ''}
       </div>
     </div>
 
@@ -156,10 +167,11 @@ function htmlFicha(t, envios, incs, pagos) {
     <div class="ficha-card">
       <div class="section-label">Tarifas</div>
       <div class="tarifa-grid">
-        <div class="tarifa-item"><div class="t-lbl">Envío chica</div><div class="t-val">$${t.tarifa_envio_chica}</div></div>
-        <div class="tarifa-item"><div class="t-lbl">Envío grande</div><div class="t-val">$${t.tarifa_envio_grande}</div></div>
-        <div class="tarifa-item"><div class="t-lbl">Puesta a punto máquina chica</div><div class="t-val">$${t.tarifa_limpieza_chica || 0}</div></div>
-        <div class="tarifa-item"><div class="t-lbl">Puesta a punto máquina grande</div><div class="t-val">$${t.tarifa_limpieza_grande || 0}</div></div>
+        <div class="tarifa-item"><div class="t-lbl">Envío chica</div><div class="t-val">$${Number(t.tarifa_envio_chica||0).toLocaleString()}</div></div>
+        <div class="tarifa-item"><div class="t-lbl">Envío grande</div><div class="t-val">$${Number(t.tarifa_envio_grande||0).toLocaleString()}</div></div>
+        ${!esEmpresa ? `
+        <div class="tarifa-item"><div class="t-lbl">Puesta a punto máquina chica</div><div class="t-val">$${Number(t.tarifa_limpieza_chica||0).toLocaleString()}</div></div>
+        <div class="tarifa-item"><div class="t-lbl">Puesta a punto máquina grande</div><div class="t-val">$${Number(t.tarifa_limpieza_grande||0).toLocaleString()}</div></div>` : ''}
       </div>
     </div>
 
@@ -189,7 +201,7 @@ function htmlFicha(t, envios, incs, pagos) {
       ${incs.length ? incs.map(i => `
         <div class="incidente-row">
           <span class="inc-fecha">${formatFecha(i.fecha)}</span>
-          <span class="inc-desc">${i.descripcion}</span>
+          <span class="inc-desc">${escapeHTML(i.descripcion)}</span>
           ${i.resuelto ? '<span class="badge-resuelto">Resuelto</span>' : '<span class="badge-pendiente">Pendiente</span>'}
         </div>`).join('') : '<div class="empty-state">Sin incidentes registrados</div>'}
     </div>
@@ -205,10 +217,24 @@ function htmlFicha(t, envios, incs, pagos) {
   `;
 }
 
+async function abrirWhatsAppTransportista(id) {
+  const t = transportistaActual?.id === id
+    ? transportistaActual
+    : await fetch(`${API}/transportistas/${id}`, { headers: apiHeaders() }).then(r => r.json());
+
+  const numero = String(t?.whatsapp || '').replace(/\D/g, '');
+  if (!numero) {
+    showToast('⚠️ Este transportista no tiene WhatsApp cargado', 'warn');
+    return;
+  }
+
+  window.open(`https://wa.me/${numero}`, '_blank', 'noopener');
+}
+
 function htmlEnvioRow(e) {
   const dot = e.estado === 'entregado' ? 'dot-verde' : e.estado === 'en_transito' ? 'dot-azul' : 'dot-rojo';
   const rastreo = e.tiene_rastreo && e.numero_rastreo
-    ? `<span class="rastreo-badge">${e.numero_rastreo}</span>`
+    ? `<span class="rastreo-badge">${escapeHTML(e.numero_rastreo)}</span>`
     : '<span class="rastreo-sin">Sin rastreo</span>';
   const notif = e.rastreo_notificado
     ? '<span class="notif-ok">Notificada ✓</span>'
@@ -219,11 +245,11 @@ function htmlEnvioRow(e) {
       <div class="envio-dot ${dot}"></div>
       <div class="envio-info">
         <div class="envio-header">
-          <span class="envio-maquina">${e.maquina_nombre || 'Máquina'} · ${e.tipo_envio}</span>
+          <span class="envio-maquina">${escapeHTML(e.maquina_nombre || 'Máquina')} · ${escapeHTML(e.tipo_envio)}</span>
           <span class="envio-fecha">${formatFecha(e.fecha_salida)}</span>
         </div>
         <div class="envio-detalle">
-          ${e.departamento_destino || ''} · ${e.tipo_maquina} · $${e.costo_total}
+          ${escapeHTML(e.departamento_destino || '')} · ${escapeHTML(e.tipo_maquina)} · $${Number(e.costo_total||0).toLocaleString()}
           ${e.incluye_limpieza ? '+ puesta a punto de la máquina' : ''}
           &nbsp;${rastreo}&nbsp;${notif}
         </div>
@@ -238,10 +264,10 @@ function htmlPagoRow(p) {
   return `
     <div class="pago-row">
       <div class="pago-periodo">${formatFecha(p.periodo_desde)} — ${formatFecha(p.periodo_hasta)}
-        <span class="pago-meta">${p.total_envios} envíos · ${p.total_limpiezas} puestas a punto</span>
+        <span class="pago-meta">${parseInt(p.total_envios||0,10)||0} envíos · ${parseInt(p.total_limpiezas||0,10)||0} puestas a punto</span>
       </div>
       <div class="pago-right">
-        <span class="pago-monto">$${p.monto_total}</span>
+        <span class="pago-monto">$${Number(p.monto_total||0).toLocaleString()}</span>
         ${badge}
         ${p.estado === 'pendiente' ? `<button class="btn-link" onclick="marcarPagado(${p.id})">Marcar pagado</button>` : ''}
       </div>
@@ -342,7 +368,7 @@ async function procesarRecibo(input, envioId) {
         </svg>
         <div>
           <div class="det-lbl">Número detectado</div>
-          <div class="det-num">${numero}</div>
+          <div class="det-num">${escapeHTML(numero)}</div>
         </div>
       </div>`;
     document.getElementById('rastreo-manual').value = numero;
@@ -404,7 +430,7 @@ function actualizarPreviewRastreo() {
   texto += `_DepiMóvil_`;
 
   document.getElementById('wpp-preview-text').innerHTML =
-    texto.replace(/\n/g,'<br>').replace(/\*(.*?)\*/g,'<strong>$1</strong>').replace(/_(.*?)_/g,'<em>$1</em>');
+    escapeHTML(texto).replace(/\n/g,'<br>').replace(/\*(.*?)\*/g,'<strong>$1</strong>').replace(/_(.*?)_/g,'<em>$1</em>');
 }
 
 async function enviarRastreo(envioId) {
@@ -488,7 +514,7 @@ function abrirFormTransportista(t) {
           <div class="form-grid">
             <div>
               <label class="field-label">Tipo *</label>
-              <select id="f-tipo" required>
+              <select id="f-tipo" required onchange="onTransportistaTipoChange()">
                 <option value="empresa" ${t?.tipo==='empresa'?'selected':''}>Empresa</option>
                 <option value="persona_fisica" ${t?.tipo==='persona_fisica'?'selected':''}>Persona física</option>
               </select>
@@ -504,6 +530,10 @@ function abrirFormTransportista(t) {
           <div class="section-label">Contacto y ubicación</div>
           <div class="form-grid">
             <div>
+              <label class="field-label">Teléfono</label>
+              <input type="text" id="f-telefono" value="${t?.telefono||''}" placeholder="Teléfono o central">
+            </div>
+            <div>
               <label class="field-label">WhatsApp</label>
               <input type="text" id="f-whatsapp" value="${t?.whatsapp||''}" placeholder="09X XXX XXX">
             </div>
@@ -512,11 +542,35 @@ function abrirFormTransportista(t) {
               <select id="f-ciclo">
                 <option value="mensual" ${t?.ciclo_pago==='mensual'?'selected':''}>Mensual</option>
                 <option value="semanal" ${t?.ciclo_pago==='semanal'?'selected':''}>Semanal</option>
+                <option value="por_envio" ${t?.ciclo_pago==='por_envio'?'selected':''}>Por envío</option>
               </select>
             </div>
           </div>
-          <label class="field-label" style="margin-top:12px">Dirección</label>
-          <textarea id="f-direccion" style="min-height:96px" placeholder="Dirección completa, ciudad, referencia de retiro/entrega">${t?.direccion||''}</textarea>
+          <div class="form-grid" style="margin-top:12px">
+            <div>
+              <label class="field-label">Dirección</label>
+              <input type="text" id="f-direccion" value="${t?.direccion||''}" placeholder="Calle, número, local">
+            </div>
+            <div>
+              <label class="field-label">Ciudad</label>
+              <input type="text" id="f-ciudad" value="${t?.ciudad||''}" placeholder="Ej: Salto">
+            </div>
+            <div>
+              <label class="field-label">Departamento</label>
+              <select id="f-departamento">
+                <option value="">— Seleccionar —</option>
+                ${DEPTOS.map(d=>`<option value="${d}" ${t?.departamento===d?'selected':''}>${d}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Horarios</label>
+              <input type="text" id="f-horarios" value="${t?.horarios||''}" placeholder="Ej: Lun a vie 9 a 18">
+            </div>
+            <div class="full">
+              <label class="field-label">Referencia</label>
+              <textarea id="f-referencia" placeholder="Referencia para retiro/entrega">${t?.referencia||''}</textarea>
+            </div>
+          </div>
         </div>
 
         <div class="ficha-card" style="margin-bottom:14px">
@@ -541,11 +595,11 @@ function abrirFormTransportista(t) {
               <label class="field-label">Envío grande ($)</label>
               <input type="number" id="f-env-grande" value="${t?.tarifa_envio_grande||0}" min="0">
             </div>
-            <div>
+            <div class="tarifa-limpieza-field">
               <label class="field-label">Puesta a punto máquina chica ($)</label>
               <input type="number" id="f-limp-chica" value="${t?.tarifa_limpieza_chica||0}" min="0">
             </div>
-            <div>
+            <div class="tarifa-limpieza-field">
               <label class="field-label">Puesta a punto máquina grande ($)</label>
               <input type="number" id="f-limp-grande" value="${t?.tarifa_limpieza_grande||0}" min="0">
             </div>
@@ -571,23 +625,45 @@ function abrirFormTransportista(t) {
       </form>
     </div>`;
   document.body.appendChild(modal);
+  onTransportistaTipoChange();
+}
+
+function onTransportistaTipoChange() {
+  const tipo = document.getElementById('f-tipo')?.value;
+  const esEmpresa = tipo === 'empresa';
+  document.querySelectorAll('#modal-form-transportista .tarifa-limpieza-field').forEach(el => {
+    el.style.display = esEmpresa ? 'none' : '';
+  });
+  ['f-limp-chica','f-limp-grande'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.disabled = esEmpresa;
+      if (esEmpresa) input.value = 0;
+    }
+  });
 }
 
 async function guardarTransportista(e, id) {
   e.preventDefault();
   const deps = [...document.querySelectorAll('#deps-grid input:checked')].map(el => el.value);
+  const tipoTransportista = document.getElementById('f-tipo').value;
+  const esEmpresa = tipoTransportista === 'empresa';
   const body = {
-    tipo:                   document.getElementById('f-tipo').value,
+    tipo:                   tipoTransportista,
     nombre:                 document.getElementById('f-nombre').value.trim(),
-    telefono:               '',
+    telefono:               document.getElementById('f-telefono').value.trim(),
     whatsapp:               document.getElementById('f-whatsapp').value.trim(),
     direccion:              document.getElementById('f-direccion').value.trim(),
+    ciudad:                 document.getElementById('f-ciudad').value.trim(),
+    departamento:           document.getElementById('f-departamento').value,
+    referencia:             document.getElementById('f-referencia').value.trim(),
+    horarios:               document.getElementById('f-horarios').value.trim(),
     ciclo_pago:             document.getElementById('f-ciclo').value,
     departamentos:          deps,
     tarifa_envio_chica:     parseFloat(document.getElementById('f-env-chica').value)||0,
     tarifa_envio_grande:    parseFloat(document.getElementById('f-env-grande').value)||0,
-    tarifa_limpieza_chica:  parseFloat(document.getElementById('f-limp-chica').value)||0,
-    tarifa_limpieza_grande: parseFloat(document.getElementById('f-limp-grande').value)||0,
+    tarifa_limpieza_chica:  esEmpresa ? 0 : parseFloat(document.getElementById('f-limp-chica').value)||0,
+    tarifa_limpieza_grande: esEmpresa ? 0 : parseFloat(document.getElementById('f-limp-grande').value)||0,
     sin_rastreo_siempre:    document.getElementById('f-sin-rastreo').checked,
     notas:                  document.getElementById('f-notas').value.trim(),
   };
@@ -611,6 +687,28 @@ async function guardarTransportista(e, id) {
   } catch(err) {
     console.error('Error guardarTransportista:', err);
     mostrarToast('Error al guardar', 'error');
+  }
+}
+
+async function confirmarEliminarTransportista(id) {
+  const t = transportistaActual?.id === id
+    ? transportistaActual
+    : await fetch(`${API}/transportistas/${id}`, { headers: apiHeaders() }).then(r => r.json()).catch(() => null);
+  const nombre = t?.nombre ? ` "${t.nombre}"` : '';
+  if (!confirm(`¿Eliminar transportista${nombre}? Quedará oculto de la lista.`)) return;
+  try {
+    const res = await fetch(`${API}/transportistas/${id}`, {
+      method: 'DELETE',
+      headers: apiHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    document.getElementById('modal-form-transportista')?.remove();
+    mostrarToast('Transportista eliminado ✓');
+    transportistaActual = null;
+    renderListaTransportistas();
+  } catch (err) {
+    console.error('Error eliminar transportista:', err);
+    mostrarToast('Error al eliminar transportista', 'error');
   }
 }
 
@@ -652,6 +750,14 @@ async function abrirFormNuevoEnvio(transportistaId) {
             <select id="env-tipo">
               <option value="ida">Ida</option>
               <option value="vuelta">Vuelta</option>
+              <option value="por_envio">Por envío</option>
+              <option value="envio_operadora">Envío a operadora</option>
+              <option value="retiro_operadora">Retiro en operadora</option>
+              <option value="traslado_ciudades">Traslado entre ciudades</option>
+              <option value="agencia_retiro_entrega">Retiro / entrega en agencia</option>
+              <option value="movimiento_bases">Movimiento entre bases</option>
+              <option value="traslado_tecnico">Trámite / técnico</option>
+              <option value="retiro_viajera">Levantar máquina viajera</option>
             </select>
           </div>
           <div>
@@ -676,7 +782,7 @@ async function abrirFormNuevoEnvio(transportistaId) {
           </div>
         </div>
 
-        <label class="dep-check" style="margin-top:10px">
+        <label class="dep-check envio-limpieza-row" style="margin-top:10px;${t?.tipo==='empresa'?'display:none':''}">
           <input type="checkbox" id="env-limpieza" onchange="actualizarCostosEnvio()">
           Incluye puesta a punto de la máquina
         </label>
@@ -686,7 +792,7 @@ async function abrirFormNuevoEnvio(transportistaId) {
             <label class="field-label">Costo envío ($)</label>
             <input type="number" id="env-costo" value="${t?.tarifa_envio_chica||0}" min="0">
           </div>
-          <div>
+          <div class="envio-limpieza-row" style="${t?.tipo==='empresa'?'display:none':''}">
             <label class="field-label">Costo puesta a punto ($)</label>
             <input type="number" id="env-costo-limp" value="0" min="0" disabled>
           </div>
@@ -709,12 +815,15 @@ function actualizarCostosEnvio() {
   const t = transportistaActual;
   if (!t) return;
   const tamano = document.getElementById('env-tamano').value;
-  const limpieza = document.getElementById('env-limpieza').checked;
+  const esEmpresa = t.tipo === 'empresa';
+  const limpieza = !esEmpresa && document.getElementById('env-limpieza').checked;
   const costoEnv = tamano === 'chica' ? t.tarifa_envio_chica : t.tarifa_envio_grande;
   const costoLimp = limpieza ? (tamano === 'chica' ? t.tarifa_limpieza_chica : t.tarifa_limpieza_grande) : 0;
   document.getElementById('env-costo').value = costoEnv;
-  document.getElementById('env-costo-limp').value = costoLimp;
-  document.getElementById('env-costo-limp').disabled = !limpieza;
+  if(document.getElementById('env-costo-limp')) {
+    document.getElementById('env-costo-limp').value = costoLimp;
+    document.getElementById('env-costo-limp').disabled = !limpieza;
+  }
   document.getElementById('env-total').textContent = `$${costoEnv + costoLimp}`;
 }
 
@@ -728,7 +837,7 @@ async function guardarEnvio(e, transportistaId) {
     tipo_maquina:        document.getElementById('env-tamano').value,
     departamento_destino:document.getElementById('env-depto').value,
     fecha_salida:        document.getElementById('env-salida').value,
-    incluye_limpieza:    document.getElementById('env-limpieza').checked,
+    incluye_limpieza:    transportistaActual?.tipo !== 'empresa' && document.getElementById('env-limpieza')?.checked,
     costo_envio:         parseFloat(document.getElementById('env-costo').value)||0,
     costo_limpieza:      parseFloat(document.getElementById('env-costo-limp').value)||0,
     tiene_rastreo:       !transportistaActual?.sin_rastreo_siempre,

@@ -121,7 +121,7 @@ function mapHabilitacion(h){
     Pressoterapia:'Pressoterapia',
     electroestimulacion:'Electroestimulación',
   };
-  const estadoMap={activo:'activa',suspendido:'suspendida',vencido:'vencida'};
+  const estadoMap={activo:'activa',inactivo:'suspendida',vencido:'vencida'};
   const categoria=h.categoria||categoriaMap[h.equipo_categoria]||h.equipo_categoria||'';
   return {
     id:h.id,
@@ -147,7 +147,15 @@ function mapOperadora(o){
     tipoDireccion:o.tipo_direccion||direcciones[0]?.tipo||'trabajo',
     direccionesEntrega:direcciones,
     equiposAlquila:equipos,
-    portalToken:o.portal_token||''
+    portalToken:o.portal_token||'',
+    ultimaActividad:o.ultima_actividad||o.updated_at||o.created_at||o.fecha_alta||'',
+    updatedAt:o.updated_at||'',
+    createdAt:o.created_at||'',
+    preparacion:o.preparacion||'',
+    titulos:o.titulos||'',
+    rangoDepimovil:o.rango_depimovil||o.rangoDepimovil||'',
+    jornadasTotal:o.jornadas_total||o.jornadasTotal||0,
+    perfilMinimo:!!o.perfil_minimo
   };
 }
 function mapEnvio(e){
@@ -161,6 +169,18 @@ function mapEnvio(e){
     fechaRetiroEst:e.fecha_retiro_est||'',fechaRetiroReal:e.fecha_retiro_real||'',
     costoEnvio:parseFloat(e.costo_envio)||0,costoRetiro:parseFloat(e.costo_retiro)||0,
     moneda:e.moneda||'UYU',obs:e.obs||''
+  };
+}
+function mapMantenimiento(m){
+  return {
+    id:m.id,
+    maquinaId:m.maquina_id,
+    tipo:m.tipo,
+    fechaRealizado:normalizeDateInput(m.fecha_realizado),
+    proximoVencimiento:normalizeDateInput(m.proximo_vencimiento),
+    estado:m.estado||'vigente',
+    maquinaCodigo:m.maquina_codigo||'',
+    maquinaNombre:m.maquina_nombre||'',
   };
 }
 async function syncContratosLocales(contratosApi){
@@ -198,16 +218,27 @@ async function loadAllData(){
       api('/api/operadoras'),api('/api/maquinas'),api('/api/reservas'),
       api('/api/pagos'),api('/api/leads'),api('/api/contratos'),
       api('/api/auth/operadoras/revision'),api('/api/finanzas/bootstrap'),
-      api('/api/envios'),api('/api/transportistas')
+      api('/api/envios'),api('/api/transportistas'),api('/api/mantenimientos'),
+      api('/api/automatizaciones/tasks?status=pendiente')
     ]);
     const val=function(i, fallback){return results[i].status==='fulfilled'?results[i].value:fallback};
-    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]), finanzas=val(7,null), envios=val(8,[]), transportistas=val(9,[]);
+    const ops=val(0,[]), maqs=val(1,[]), reservas=val(2,[]), pagos=val(3,[]), leads=val(4,[]), contratos=val(5,[]), revisiones=val(6,[]), finanzas=val(7,null), envios=val(8,[]), transportistas=val(9,[]), mantenimientos=val(10,[]), automationTasks=val(11,[]);
     DB.set('operadoras',ops.map(mapOperadora));
     DB.set('maquinas',maqs.map(m=>({id:m.id,codigo:m.codigo,nombre:m.nombre,
       categoria:m.categoria||'',ubicacion:m.ubicacion||'',estado:m.estado||'disponible',
-      serial:m.serial_num||'',marca:m.marca||'',modelo:m.modelo||'',deptBase:m.dept_base||'',
-      ultMant:m.ult_mant||'',proxMant:m.prox_mant||'',
-      fotoUrl:m.foto_url||'',obs:m.obs||''})));
+      marca:m.marca||'',modelo:m.modelo||'',serie:m.serial_num||'',serial:m.serial_num||'',
+      deptBase:m.dept_base||'Uruguay',ultMant:normalizeDateInput(m.ult_mant),proxMant:normalizeDateInput(m.prox_mant),
+      fotoUrl:m.foto_url||'',iconoUrl:m.icono_url||'',esViajera:!!m.es_viajera,
+      tipoOperativo:m.tipo_operativo==='alquiler'?'viajera':(m.tipo_operativo||(m.es_viajera?'viajera':'base_ciudad')),ciudadBase:m.ciudad_base||'',
+      gestorPuestaPuntoId:m.gestor_puesta_punto_id||null,puestaPuntoEstado:m.puesta_punto_estado||'',
+      puestaPuntoAsignadaEn:m.puesta_punto_asignada_en||'',puestaPuntoCompletadaEn:m.puesta_punto_completada_en||'',
+      puestaPuntoWaEstado:m.puesta_punto_wa_estado||'',puestaPuntoWaNotificadoEn:m.puesta_punto_wa_notificado_en||'',puestaPuntoWaError:m.puesta_punto_wa_error||'',
+      puestaPuntoChecklist:m.puesta_punto_checklist||{},puestaPuntoChecklistEn:m.puesta_punto_checklist_en||'',puestaPuntoChecklistResponsable:m.puesta_punto_checklist_responsable||'',
+      tecnicoEstado:m.tecnico_estado||'',tecnicoNombre:m.tecnico_nombre||'',
+      tecnicoSalidaEn:m.tecnico_salida_en||'',tecnicoRegresoEn:m.tecnico_regreso_en||'',
+      disponibilidadVisibleGestor:!!m.disponibilidad_visible_gestor,
+      obs:m.obs||''})));
+    DB.set('mantenimientos',mantenimientos.map(mapMantenimiento));
     DB.set('reservas',reservas.map(mapReserva));
     DB.set('pagos',pagos.map(p=>({id:p.id,codigo:p.codigo,reservaId:p.reserva_id,
       operadoraId:p.operadora_id,tipo:p.tipo,estado:p.estado,
@@ -216,17 +247,21 @@ async function loadAllData(){
       saldoPendiente:parseFloat(p.saldo_pendiente)||0,
       fechaPago:p.fecha_pago,comprobante:p.comprobante||'',obs:p.obs||'',
       creadaEn:p.created_at?.split('T')[0]||''})));
-    DB.set('leads',leads.map(l=>({id:l.id,nombre:l.nombre,apellido:'',gabinete:'',
-      ciudad:l.ciudad||'',departamento:l.departamento||'',pais:'Uruguay',
+    DB.set('leads',leads.map(l=>({id:l.id,nombre:l.nombre||'',apellido:l.apellido||'',gabinete:l.gabinete||'',
+      ciudad:l.ciudad||'',departamento:l.departamento||'',pais:l.pais||'Uruguay',
       whatsapp:l.telefono||'',telefono:l.telefono||'',email:l.email||'',
-      fuente:l.canal||'',interes:'',tecnologia:'',estado:l.estado||'nuevo',
-      obs:l.obs||'',fechaAlta:l.created_at?l.created_at.split('T')[0]:'',
-      fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',operadoraId:null})));
+      fuente:l.canal||'',interes:l.interes||'',tecnologia:l.tecnologia||'',estado:l.estado||'nuevo',
+      temperatura:l.temperatura||'frio',obs:l.obs||'',proxAccion:l.prox_accion||'',proxFecha:l.prox_fecha||'',
+      fechaAlta:l.created_at?l.created_at.split('T')[0]:'',
+      fechaUpdate:l.updated_at?l.updated_at.split('T')[0]:'',operadoraId:l.operadora_id||null,
+      convertidoEn:l.convertido_en||null,convertidoPor:l.convertido_por||null,
+      whatsappScore:Number(l.whatsapp_score||0),ultimoContacto:l.ultimo_contacto||'',intencionWhatsapp:l.intencion_whatsapp||''})));
     const contratosFinales = await syncContratosLocales(contratos);
     DB.set('contratos',contratosFinales.map(mapContrato));
     DB.set('envios',envios.map(mapEnvio));
     DB.set('transportistas',transportistas||[]);
     DB.set('revision_operadoras',revisiones||[]);
+    DB.set('automation_tasks',Array.isArray(automationTasks)?automationTasks:[]);
     aplicarFinanzasCache(finanzas);
     const habResults=await Promise.allSettled((ops||[]).map(o=>api('/api/operadoras/'+o.id+'/habilitaciones')));
     const habilitaciones=[];

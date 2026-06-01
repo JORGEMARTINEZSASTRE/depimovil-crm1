@@ -2,10 +2,11 @@
    NAVIGATION
 ══════════════════════════════════ */
 const viewTitles={'transportistas':'Transportistas',
-  dashboard:'Dashboard',operadoras:'Operadoras','operadora-ficha':'Ficha de Operadora',
+  dashboard:'Menú',operadoras:'Operadoras','operadora-ficha':'Ficha de Operadora',
   'revision-operadoras':'Revisión de Operadoras',
   documentos:'Documentos de Operadoras',
   maquinas:'Máquinas','maquina-ficha':'Ficha de Máquina',
+  mantenimientos:'Mantenimientos de Máquinas',
   reservas:'Reservas','reserva-ficha':'Ficha de Reserva',
   calendario:'Calendario de Reservas',
   logistica:'Reglas Logísticas',
@@ -17,15 +18,15 @@ const viewTitles={'transportistas':'Transportistas',
   contratos:'Contratos de Alquiler',
   whatsapp:'Centro de Notificaciones WhatsApp',
   envios:'Envíos de Máquinas','envio-ficha':'Ficha de Envío',
-  configuracion:'Configuración del Sistema',
+  configuracion:'Colores',
   reportes:'Reportes Operativos',
   auditoria:'Log de Auditoría',
   leads:'Leads / Prospectos CRM','lead-ficha':'Ficha de Lead',
   embudo:'Embudo Comercial',
-  materiales:'Materiales de Formación',
+  materiales:'Certificaciones',
 };
 const navGroupByView={
-  'revision-operadoras':'operaciones',documentos:'operaciones',calendario:'operaciones',materiales:'operaciones',
+  'revision-operadoras':'operaciones',documentos:'operaciones',mantenimientos:'operaciones',calendario:'operaciones',materiales:'operaciones',
   pagos:'finanzas',proveedores:'finanzas',compras:'finanzas','ventas-maquinas':'finanzas',contratos:'finanzas',
   envios:'logistica',transportistas:'logistica',logistica:'logistica',
   leads:'comercial',embudo:'comercial',
@@ -50,12 +51,15 @@ function navigate(view){
     if(details)details.open=true;
   }
   document.getElementById('pageTitle').textContent=viewTitles[view]||view;
+  const dashBtn=document.getElementById('dashboardHomeBtn');
+  if(dashBtn)dashBtn.style.display=view==='dashboard'?'none':'inline-flex';
   closeSidebar();
   if(view==='dashboard')renderDashboard();
   if(view==='operadoras')renderOperadoras();
   if(view==='revision-operadoras')renderRevisionOperadoras();
   if(view==='documentos')renderDocumentos();
   if(view==='maquinas')renderMaquinas();
+  if(view==='mantenimientos')renderMantenimientos();
   if(view==='reservas')renderReservas();
   if(view==='calendario')renderCalendario();
   if(view==='logistica')renderLogistica();

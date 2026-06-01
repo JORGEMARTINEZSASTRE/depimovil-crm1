@@ -1,97 +1,264 @@
 /* ══════════════════════════════════
    DASHBOARD
 ══════════════════════════════════ */
-
-// ── Helpers financieros ──
-function _mesPrefix(offset=0){
-  const d=new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth()+offset);
-  return d.toISOString().slice(0,7); // 'YYYY-MM'
+function setDashboardFilterValue(view, selector, value){
+  const el=document.querySelector(`#view-${view} ${selector}`);
+  if(el)el.value=value||'';
+}
+function dashboardStatNavigate(kind){
+  if(kind==='operadoras'){
+    if(typeof opFilter==='object'){opFilter.search='';opFilter.status='activa';}
+    navigate('operadoras');
+    setDashboardFilterValue('operadoras','.search-input','');
+    setDashboardFilterValue('operadoras','select.filter-select','activa');
+    return;
+  }
+  if(kind==='maquinas'){
+    if(typeof maqFilter==='object'){maqFilter.search='';maqFilter.status='disponible';}
+    navigate('maquinas');
+    setDashboardFilterValue('maquinas','.search-input','');
+    setDashboardFilterValue('maquinas','select.filter-select','disponible');
+    return;
+  }
+  if(kind==='reservas'){
+    if(typeof resFilter==='object'){resFilter.search='';resFilter.estado='confirmada';resFilter.tipo='';resFilter.control='';}
+    navigate('reservas');
+    setDashboardFilterValue('reservas','.search-input','');
+    setDashboardFilterValue('reservas','#filterResStatus','confirmada');
+    setDashboardFilterValue('reservas','#filterResTipo','');
+    setDashboardFilterValue('reservas','#filterResControl','');
+    return;
+  }
+  if(kind==='pagos'){
+    if(typeof pagoFilter==='object'){pagoFilter.search='';pagoFilter.estado='pendientes';}
+    navigate('pagos');
+    setDashboardFilterValue('pagos','.search-input','');
+    setDashboardFilterValue('pagos','#filterPagoStatus','pendientes');
+    return;
+  }
+  if(kind==='leads'){
+    if(typeof leadFilter==='object'){leadFilter.search='';leadFilter.estado='';leadFilter.fuente='';}
+    navigate('leads');
+    setDashboardFilterValue('leads','.search-input','');
+    setDashboardFilterValue('leads','#filterLeadStatus','');
+    setDashboardFilterValue('leads','#filterLeadFuente','');
+    return;
+  }
+  if(kind==='envios'){
+    if(typeof envioFilter==='object'){envioFilter.search='';envioFilter.estado='';}
+    navigate('envios');
+    setDashboardFilterValue('envios','.search-input','');
+    setDashboardFilterValue('envios','#filterEnvioStatus','');
+  }
 }
 
-function _fmtMonto(n,moneda='UYU'){
-  if(n>=1000000) return (n/1000000).toFixed(1)+'M '+moneda;
-  if(n>=1000)    return (n/1000).toFixed(1)+'k '+moneda;
-  return n.toLocaleString()+' '+moneda;
+function fechaMasDias(fecha, dias){
+  const d=new Date((fecha||today())+'T12:00:00');
+  d.setDate(d.getDate()+dias);
+  return d.toISOString().split('T')[0];
+}
+function dashboardDateOnly(value){
+  if(!value)return '';
+  if(typeof normalizeDateInput==='function')return normalizeDateInput(value);
+  return String(value).slice(0,10);
+}
+function dashboardAgeDays(value,hoy){
+  const f=dashboardDateOnly(value);
+  if(!f)return 0;
+  return Math.max(0,daysDiff(f,hoy));
+}
+function dashboardMaqAction(id,status){
+  return `if(typeof maqFilter==='object'){maqFilter.search='';maqFilter.status='${status||''}'};navigate('maquinas');setTimeout(()=>showMaqFicha(${id}),50)`;
 }
 
-function _tendencia(actual,anterior){
-  if(!anterior) return {txt:'Primer mes',color:'var(--text3)',icon:'—'};
-  const pct=Math.round(((actual-anterior)/anterior)*100);
-  if(pct>0)  return {txt:`+${pct}% vs mes ant.`,color:'var(--green)',icon:'▲'};
-  if(pct<0)  return {txt:`${pct}% vs mes ant.`,color:'var(--red)',icon:'▼'};
-  return {txt:'igual que mes ant.',color:'var(--text3)',icon:'→'};
+function dashAction(label, onclick){
+  return `<button class="action-btn" onclick="${onclick}">${label}</button>`;
 }
 
-function _renderFinKpis(pagos, movsCaja, puedeVer){
-  const el=document.getElementById('finKpisGrid');
-  if(!el) return;
-  if(!puedeVer){ el.innerHTML=''; return; }
+function dashboardAutomationOpenAction(t){
+  const entity=String(t.entity||'');
+  const id=parseInt(t.entity_id||t.entityId||0);
+  if(!id)return '';
+  if(entity==='operadora')return `navigate('operadoras');setTimeout(()=>showOpFicha(${id}),50)`;
+  if(entity==='reserva')return `navigate('reservas');setTimeout(()=>showResFicha(${id}),50)`;
+  if(entity==='pago')return `navigate('pagos');setTimeout(()=>showPagoFicha(${id}),50)`;
+  if(entity==='envio')return `navigate('envios');setTimeout(()=>showEnvioFicha(${id}),50)`;
+  if(entity==='maquina')return dashboardMaqAction(id,'');
+  return '';
+}
 
-  const mesCurrent=_mesPrefix(0);
-  const mesAnterior=_mesPrefix(-1);
+function dashboardAutomationTargetView(t){
+  const entity=String(t.entity||'');
+  if(entity==='operadora')return 'operadoras';
+  if(entity==='reserva')return 'reservas';
+  if(entity==='pago')return 'pagos';
+  if(entity==='envio')return 'envios';
+  if(entity==='maquina')return 'maquinas';
+  return '';
+}
 
-  // Ingresos cobrados (pagos validados) — solo UYU por simplicidad
-  const cobradosMes     = pagos.filter(p=>p.estado==='validado'&&(p.fechaPago||'').startsWith(mesCurrent));
-  const cobradosMesAnt  = pagos.filter(p=>p.estado==='validado'&&(p.fechaPago||'').startsWith(mesAnterior));
-  const ingMes    = cobradosMes.reduce((s,p)=>s+(p.moneda==='UYU'?p.montoTotal||0:0),0);
-  const ingMesAnt = cobradosMesAnt.reduce((s,p)=>s+(p.moneda==='UYU'?p.montoTotal||0:0),0);
-  const tendIng   = _tendencia(ingMes, ingMesAnt);
+function dashboardCanSeeAutomationTask(t){
+  const role=typeof getAccessRole==='function'?getAccessRole():'';
+  if(['superadmin','administrador'].includes(role))return true;
+  if(role==='comercial'&&t.area!=='comercial')return false;
+  if(role==='operaciones'&&!['logistica','operaciones','administracion'].includes(t.area))return false;
+  const view=dashboardAutomationTargetView(t);
+  return !view || (typeof canView==='function'&&canView(view));
+}
 
-  // Pendiente de cobro total
-  const pendTotal = pagos
-    .filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)&&p.moneda==='UYU')
-    .reduce((s,p)=>s+(p.saldoPendiente||p.montoTotal||0),0);
+function dashboardAutomationItem(t,hoy){
+  const due=dashboardDateOnly(t.due_at||t.dueAt);
+  const vencida=due&&due<hoy;
+  const actionOpen=dashboardAutomationOpenAction(t);
+  const action=[
+    actionOpen?dashAction('Abrir',actionOpen):'',
+    dashAction('Resolver',`resolverAutomationTask(${parseInt(t.id)})`)
+  ].filter(Boolean).join('');
+  return {
+    priority:vencida?'alta':'media',
+    icon:vencida?'⚠️':'⚡',
+    title:t.title||'Tarea automática',
+    sub:[due?`Vence ${fmtDate(due)}`:'Sin vencimiento',t.detail||''].filter(Boolean).join(' · '),
+    action
+  };
+}
 
-  // Deuda vencida en $
-  const deudaMonto = pagos
-    .filter(p=>p.estado==='deuda_vencida'&&p.moneda==='UYU')
-    .reduce((s,p)=>s+(p.saldoPendiente||p.montoTotal||0),0);
+async function resolverAutomationTask(id){
+  if(!id)return;
+  try{
+    await api('/api/automatizaciones/tasks/'+id,{method:'PATCH',body:JSON.stringify({status:'resuelta'})});
+    DB.set('automation_tasks',(DB.get('automation_tasks')||[]).filter(t=>parseInt(t.id)!==parseInt(id)));
+    showToast('✅ Tarea resuelta');
+    renderDashboard();
+  }catch(e){
+    showToast('⚠️ '+e.message,'warn');
+  }
+}
 
-  // Ingresos vs Egresos de caja del mes
-  const movsMes = (movsCaja||[]).filter(m=>(m.fecha||'').startsWith(mesCurrent));
-  const cajIngreso = movsMes.filter(m=>m.tipo==='ingreso'&&m.moneda==='UYU').reduce((s,m)=>s+(m.monto||0),0);
-  const cajEgreso  = movsMes.filter(m=>m.tipo==='egreso' &&m.moneda==='UYU').reduce((s,m)=>s+(m.monto||0),0);
-  const balance    = cajIngreso - cajEgreso;
-  const balColor   = balance>=0?'var(--green)':'var(--red)';
-
-  // Nombre del mes
-  const [yy,mm]=mesCurrent.split('-');
-  const nombreMes=new Date(+yy,+mm-1,1).toLocaleString('es',{month:'long',year:'numeric'});
-
-  el.innerHTML=`
-  <div class="dash-card fin-kpi-card" style="grid-column:1/-1;margin-bottom:0">
-    <div class="fin-kpi-header">
-      <h3 style="margin:0">💰 Resumen Financiero — <span style="color:var(--accent);text-transform:capitalize">${nombreMes}</span></h3>
-      <button class="action-btn" onclick="navigate('pagos')">Ver pagos →</button>
+function dashTaskItem(t){
+  const cls=t.priority==='alta'?'daily-task alta':t.priority==='media'?'daily-task media':'daily-task';
+  return `<div class="${cls}">
+    <div class="daily-task-icon">${t.icon||'•'}</div>
+    <div class="daily-task-body">
+      <div class="daily-task-title">${escapeHTML(t.title||'')}</div>
+      <div class="daily-task-sub">${escapeHTML(t.sub||'')}</div>
     </div>
-    <div class="fin-kpi-grid">
-      <div class="fin-kpi-item">
-        <div class="fin-kpi-label">Cobrado este mes</div>
-        <div class="fin-kpi-value" style="color:var(--green)">${_fmtMonto(ingMes)}</div>
-        <div class="fin-kpi-trend" style="color:${tendIng.color}">${tendIng.icon} ${tendIng.txt}</div>
+    <div class="daily-task-action">${t.action||''}</div>
+  </div>`;
+}
+
+function dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos}){
+  const automationTasks=(DB.get('automation_tasks')||[])
+    .filter(t=>(t.status||'pendiente')==='pendiente')
+    .filter(dashboardCanSeeAutomationTask)
+    .sort((a,b)=>String(a.due_at||a.created_at||'').localeCompare(String(b.due_at||b.created_at||'')));
+  const automationAlta=automationTasks.filter(t=>{
+    const due=dashboardDateOnly(t.due_at);
+    return due&&due<=hoy;
+  }).map(t=>dashboardAutomationItem(t,hoy));
+  const automationComercial=automationTasks.filter(t=>{
+    const due=dashboardDateOnly(t.due_at);
+    return (!due||due>hoy)&&t.area==='comercial';
+  }).map(t=>dashboardAutomationItem(t,hoy));
+  const automationOperaciones=automationTasks.filter(t=>{
+    const due=dashboardDateOnly(t.due_at);
+    return (!due||due>hoy)&&['logistica','operaciones','administracion'].includes(t.area);
+  }).map(t=>dashboardAutomationItem(t,hoy));
+  const activeRes=reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado));
+  const closedLeadStates=['ganado','perdido','cliente_activa'];
+  const senasPend=puedeVerPagos?pagos.filter(p=>
+    p.estado==='sena_pendiente' || ((p.senaRequerida||0)>0 && (p.senaAbonada||0)<(p.senaRequerida||0))
+  ):[];
+  const saldosPend=puedeVerPagos?pagos.filter(p=>
+    (p.saldoPendiente||0)>0 && !['validado','cancelado'].includes(p.estado)
+  ):[];
+  const leadsCalientes=leads.filter(l=>
+    Number(l.whatsappScore||0)>=45 || ['pendiente_sena','reserva_confirmada'].includes(l.estado)
+  ).sort((a,b)=>(Number(b.whatsappScore||0)-Number(a.whatsappScore||0)) || (b.id-a.id));
+  const leadsVencidos=leads.filter(l=>
+    l.proxFecha && l.proxFecha<=hoy && !closedLeadStates.includes(l.estado)
+  ).sort((a,b)=>(a.proxFecha||'').localeCompare(b.proxFecha||''));
+  const reservasProximas=activeRes.filter(r=>{
+    const f=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
+    return f && f>=hoy && daysDiff(hoy,f)<=2;
+  }).sort((a,b)=>((a.fechaJornada||a.fechaInicio||'').localeCompare(b.fechaJornada||b.fechaInicio||'')));
+  const reservasVencidas=activeRes.filter(r=>r.fechaFin&&r.fechaFin<hoy);
+  const enviosSalida=envios.filter(e=>
+    ['pendiente_envio','preparando'].includes(e.estado) && e.fechaEnvioEst && e.fechaEnvioEst<=fechaMasDias(hoy,1)
+  ).sort((a,b)=>(a.fechaEnvioEst||'').localeCompare(b.fechaEnvioEst||''));
+  const retiros=envios.filter(e=>
+    e.estado==='retiro_pendiente' || (e.estado==='entregado' && e.fechaRetiroEst && e.fechaRetiroEst<=hoy)
+  ).sort((a,b)=>(a.fechaRetiroEst||'').localeCompare(b.fechaRetiroEst||''));
+  const viajerasPendientes=maqs.filter(m=>m.puestaPuntoEstado==='pendiente')
+    .map(m=>({...m,diasGestion:dashboardAgeDays(m.puestaPuntoAsignadaEn,hoy)}))
+    .sort((a,b)=>b.diasGestion-a.diasGestion);
+  const viajerasTecnico=maqs.filter(m=>m.tecnicoEstado==='en_tecnico')
+    .map(m=>({...m,diasTecnico:dashboardAgeDays(m.tecnicoSalidaEn,hoy)}))
+    .sort((a,b)=>b.diasTecnico-a.diasTecnico);
+
+  const alta=[
+    ...automationAlta.slice(0,4),
+    ...senasPend.slice(0,4).map(p=>{
+      const op=getOp(p.operadoraId);
+      const falta=Math.max(0,(p.senaRequerida||0)-(p.senaAbonada||0));
+      return {priority:'alta',icon:'💳',title:'Seña pendiente',sub:`${op?op.nombre+' '+op.apellido:'Operadora'} · faltan ${falta.toLocaleString()} ${p.moneda||'UYU'}`,action:dashAction('Abrir',`showPagoFicha(${p.id})`)};
+    }),
+    ...reservasVencidas.slice(0,3).map(r=>{
+      const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId);
+      return {priority:'alta',icon:'⏰',title:'Reserva vencida sin cierre',sub:`${r.codigo} · ${maq?maq.nombre:'Máquina'} · ${op?op.nombre+' '+op.apellido:'Operadora'}`,action:dashAction('Ver',`showResFicha(${r.id})`)};
+    }),
+    ...leadsVencidos.slice(0,3).map(l=>({priority:'alta',icon:'📞',title:'Seguimiento vencido',sub:`${l.nombre} ${l.apellido||''} · ${l.proxAccion||'Sin acción'}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
+    ...viajerasTecnico.filter(m=>m.diasTecnico>=7).slice(0,3).map(m=>({priority:'alta',icon:'🛠',title:'Máquina en técnico demorada',sub:`${m.codigo} · ${m.nombre} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
+  ];
+
+  const comercial=[
+    ...automationComercial.slice(0,4),
+    ...leadsCalientes.slice(0,5).map(l=>({priority:'media',icon:'🔥',title:'Lead caliente',sub:`${l.nombre} ${l.apellido||''} · ${LEAD_ESTADOS[l.estado]?.label||l.estado} · score ${Number(l.whatsappScore||0)}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
+    ...saldosPend.slice(0,4).map(p=>{
+      const op=getOp(p.operadoraId);
+      return {priority:'media',icon:'💰',title:'Saldo pendiente',sub:`${op?op.nombre+' '+op.apellido:'Operadora'} · ${(p.saldoPendiente||0).toLocaleString()} ${p.moneda||'UYU'}`,action:dashAction('Pago',`showPagoFicha(${p.id})`)};
+    }),
+  ];
+
+  const operaciones=[
+    ...automationOperaciones.slice(0,5),
+    ...reservasProximas.slice(0,4).map(r=>{
+      const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId); const f=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
+      return {priority:'media',icon:'📅',title:'Reserva próxima',sub:`${fmtDate(f)} · ${maq?maq.nombre:'Máquina'} · ${op?op.nombre+' '+op.apellido:'Operadora'}`,action:dashAction('Ver',`showResFicha(${r.id})`)};
+    }),
+    ...enviosSalida.slice(0,4).map(e=>{
+      const op=getOp(e.operadoraId);
+      return {priority:'media',icon:'🚚',title:'Preparar / enviar equipo',sub:`${fmtDate(e.fechaEnvioEst)} · ${op?op.nombre+' '+op.apellido:'Operadora'} · ${e.departamento||''}`,action:dashAction('Envío',`showEnvioFicha(${e.id})`)};
+    }),
+    ...retiros.slice(0,4).map(e=>{
+      const op=getOp(e.operadoraId);
+      return {priority:'alta',icon:'↩️',title:'Retiro pendiente',sub:`${fmtDate(e.fechaRetiroEst)} · ${op?op.nombre+' '+op.apellido:'Operadora'} · ${e.departamento||''}`,action:dashAction('Ver',`showEnvioFicha(${e.id})`)};
+    }),
+    ...viajerasPendientes.slice(0,5).map(m=>({priority:m.diasGestion>=1?'alta':'media',icon:'🧼',title:'Puesta a punto pendiente',sub:`${m.codigo} · ${m.nombre} · ${m.diasGestion} día${m.diasGestion!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'mantenimiento'))})),
+    ...viajerasTecnico.filter(m=>m.diasTecnico<7).slice(0,4).map(m=>({priority:'media',icon:'🛠',title:'En técnico',sub:`${m.codigo} · ${m.nombre} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
+  ];
+
+  return {alta,comercial,operaciones,totales:{senasPend,leadsCalientes,reservasProximas,enviosSalida,retiros,saldosPend,viajerasPendientes,viajerasTecnico,automationTasks}};
+}
+
+function renderDailyPanel(items){
+  const empty='<div class="daily-empty">Sin pendientes fuertes en esta categoría.</div>';
+  return `<div class="dash-card daily-panel" style="grid-column:1/-1">
+    <div class="daily-panel-head">
+      <div>
+        <h3>📌 Hoy hay que atender</h3>
+        <div class="daily-panel-sub">Prioridades comerciales, cobros, reservas, envíos, retiros y automatizaciones.</div>
       </div>
-      <div class="fin-kpi-item">
-        <div class="fin-kpi-label">Mes anterior</div>
-        <div class="fin-kpi-value" style="color:var(--text2)">${_fmtMonto(ingMesAnt)}</div>
-        <div class="fin-kpi-trend" style="color:var(--text3)">${cobradosMesAnt.length} pago${cobradosMesAnt.length!==1?'s':''}</div>
+      <div class="daily-panel-actions">
+        ${dashAction('Leads',`dashboardStatNavigate('leads')`)}
+        ${dashAction('Pagos',`dashboardStatNavigate('pagos')`)}
+        ${dashAction('Envíos',`dashboardStatNavigate('envios')`)}
       </div>
-      <div class="fin-kpi-item">
-        <div class="fin-kpi-label">Pendiente de cobro</div>
-        <div class="fin-kpi-value" style="color:var(--yellow)">${_fmtMonto(pendTotal)}</div>
-        <div class="fin-kpi-trend" style="color:var(--text3)">${pagos.filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)).length} pago${pagos.filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)).length!==1?'s':''}</div>
-      </div>
-      <div class="fin-kpi-item">
-        <div class="fin-kpi-label">Deuda vencida</div>
-        <div class="fin-kpi-value" style="color:${deudaMonto>0?'var(--red)':'var(--green)'}">${deudaMonto>0?_fmtMonto(deudaMonto):'$0'}</div>
-        <div class="fin-kpi-trend" style="color:var(--text3)">${pagos.filter(p=>p.estado==='deuda_vencida').length} operadora${pagos.filter(p=>p.estado==='deuda_vencida').length!==1?'s':''}</div>
-      </div>
-      <div class="fin-kpi-item fin-kpi-balance">
-        <div class="fin-kpi-label">Balance caja (mes)</div>
-        <div class="fin-kpi-value" style="color:${balColor}">${balance>=0?'+':''}${_fmtMonto(balance)}</div>
-        <div class="fin-kpi-trend" style="color:var(--text3)">▲ ${_fmtMonto(cajIngreso)} · ▼ ${_fmtMonto(cajEgreso)}</div>
-      </div>
+    </div>
+    <div class="daily-grid">
+      <div class="daily-col"><h4>Alta prioridad</h4>${items.alta.length?items.alta.slice(0,8).map(dashTaskItem).join(''):empty}</div>
+      <div class="daily-col"><h4>Comercial</h4>${items.comercial.length?items.comercial.slice(0,8).map(dashTaskItem).join(''):empty}</div>
+      <div class="daily-col"><h4>Operaciones</h4>${items.operaciones.length?items.operaciones.slice(0,8).map(dashTaskItem).join(''):empty}</div>
     </div>
   </div>`;
 }
@@ -102,57 +269,59 @@ function renderDashboard(){
   const reservas=DB.get('reservas')||[];
   const pagos=DB.get('pagos')||[];
   const envios=DB.get('envios')||[];
-  const movsCaja=DB.get('caja_movimientos')||[];
+  const mantenimientos=DB.get('mantenimientos')||[];
   const hoy=today();
+  if(typeof updateMantenimientosBadge==='function')updateMantenimientosBadge();
 
   // ── Alertas ──
   const proxVencer=reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado)&&r.fechaFin&&r.fechaFin>=hoy&&daysDiff(hoy,r.fechaFin)<=5);
   const vencidas=reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado)&&r.fechaFin&&r.fechaFin<hoy);
   const mantProx=maqs.filter(m=>m.proxMant&&m.proxMant!=='—'&&m.proxMant>=hoy&&daysDiff(hoy,m.proxMant)<=7);
   const mantVenc=maqs.filter(m=>m.proxMant&&m.proxMant!=='—'&&m.proxMant<hoy&&m.estado!=='fuera_servicio');
+  const mantRegProx=typeof getMantEstado==='function'?mantenimientos.filter(m=>getMantEstado(m)==='próximo'):[];
+  const mantRegVenc=typeof getMantEstado==='function'?mantenimientos.filter(m=>getMantEstado(m)==='vencido'):[];
   const deudasVenc=pagos.filter(p=>p.estado==='deuda_vencida');
   const envTransito=envios.filter(e=>e.estado==='en_transito');
   const puedeVerPagos=typeof canView==='function'&&canView('pagos');
+  const puedeVerMant=typeof canView==='function'&&canView('mantenimientos');
+  const leads=DB.get('leads')||[];
+  const dailyItems=dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos});
+  const viajerasPendDemoradas=dailyItems.totales.viajerasPendientes.filter(m=>m.diasGestion>=1);
+  const viajerasTecnicoDemoradas=dailyItems.totales.viajerasTecnico.filter(m=>m.diasTecnico>=7);
 
   let alertsHTML='';
+  if(viajerasPendDemoradas.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">🧼</span><div><strong>${viajerasPendDemoradas.length} máquina${viajerasPendDemoradas.length>1?'s':''} viajera${viajerasPendDemoradas.length>1?'s':''} pendiente${viajerasPendDemoradas.length>1?'s':''} de puesta a punto</strong> hace más de 24 hs. <button class="action-btn" style="margin-left:8px" onclick="dashboardStatNavigate('maquinas')">Ver →</button></div></div>`;
+  if(viajerasTecnicoDemoradas.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🛠</span><div><strong>${viajerasTecnicoDemoradas.length} máquina${viajerasTecnicoDemoradas.length>1?'s':''} en técnico demorada${viajerasTecnicoDemoradas.length>1?'s':''}</strong> por más de 7 días. <button class="action-btn" style="margin-left:8px" onclick="dashboardStatNavigate('maquinas')">Ver →</button></div></div>`;
   if(vencidas.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🚨</span><div><strong>${vencidas.length} reserva${vencidas.length>1?'s':''} vencida${vencidas.length>1?'s':''}</strong> — Requieren atención. <button class="action-btn" style="margin-left:8px" onclick="navigate('reservas')">Ver →</button></div></div>`;
   if(puedeVerPagos&&deudasVenc.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">💳</span><div><strong>${deudasVenc.length} deuda${deudasVenc.length>1?'s':''} vencida${deudasVenc.length>1?'s':''}</strong> — Operadoras con pagos pendientes. <button class="action-btn" style="margin-left:8px" onclick="navigate('pagos')">Ver →</button></div></div>`;
-  if(mantVenc.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🔧</span><div><strong>${mantVenc.length} máquina${mantVenc.length>1?'s':''} con mantenimiento vencido</strong>. <button class="action-btn" style="margin-left:8px" onclick="navigate('maquinas')">Ver →</button></div></div>`;
+  if(puedeVerMant&&mantRegVenc.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🔧</span><div><strong>${mantRegVenc.length} mantenimiento${mantRegVenc.length>1?'s':''} vencido${mantRegVenc.length>1?'s':''}</strong>. <button class="action-btn" style="margin-left:8px" onclick="navigate('mantenimientos')">Ver →</button></div></div>`;
+  else if(mantVenc.length) alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🔧</span><div><strong>${mantVenc.length} máquina${mantVenc.length>1?'s':''} con mantenimiento vencido</strong>. <button class="action-btn" style="margin-left:8px" onclick="navigate('maquinas')">Ver →</button></div></div>`;
   if(proxVencer.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⏰</span><div><strong>${proxVencer.length} reserva${proxVencer.length>1?'s':''}</strong> vence${proxVencer.length>1?'n':''} en ≤5 días. <button class="action-btn" style="margin-left:8px" onclick="navigate('reservas')">Ver →</button></div></div>`;
-  if(mantProx.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⚙️</span><div><strong>${mantProx.length} máquina${mantProx.length>1?'s':''} con mantenimiento próximo</strong> (≤7 días). <button class="action-btn" style="margin-left:8px" onclick="navigate('maquinas')">Ver →</button></div></div>`;
+  if(puedeVerMant&&mantRegProx.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⚙️</span><div><strong>${mantRegProx.length} mantenimiento${mantRegProx.length>1?'s':''} próximo${mantRegProx.length>1?'s':''}</strong> (≤30 días). <button class="action-btn" style="margin-left:8px" onclick="navigate('mantenimientos')">Ver →</button></div></div>`;
+  else if(mantProx.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">⚙️</span><div><strong>${mantProx.length} máquina${mantProx.length>1?'s':''} con mantenimiento próximo</strong> (≤7 días). <button class="action-btn" style="margin-left:8px" onclick="navigate('maquinas')">Ver →</button></div></div>`;
   if(envTransito.length) alertsHTML+=`<div class="alert-banner info"><span class="ab-icon">🚚</span><div><strong>${envTransito.length} envío${envTransito.length>1?'s':''} en tránsito</strong> — Pendientes de confirmación de entrega. <button class="action-btn" style="margin-left:8px" onclick="navigate('envios')">Ver →</button></div></div>`;
-
-  // ── Alertas operadoras inactivas ──
-  if(typeof _calcMetricasOp === 'function'){
-    const opsActivas = ops.filter(o=>o.estado==='activa');
-    const perdidas   = opsActivas.filter(o=>{ const m=_calcMetricasOp(o.id); return m.diasInactiva!==null&&m.diasInactiva>90; });
-    const inactivas  = opsActivas.filter(o=>{ const m=_calcMetricasOp(o.id); return m.diasInactiva!==null&&m.diasInactiva>60&&m.diasInactiva<=90; });
-    const tibias     = opsActivas.filter(o=>{ const m=_calcMetricasOp(o.id); return m.diasInactiva!==null&&m.diasInactiva>30&&m.diasInactiva<=60; });
-    if(perdidas.length)  alertsHTML+=`<div class="alert-banner danger"><span class="ab-icon">🔴</span><div><strong>${perdidas.length} operadora${perdidas.length>1?'s':''} perdida${perdidas.length>1?'s':''}</strong> — Sin reservas hace más de 90 días. <button class="action-btn" style="margin-left:8px" onclick="navigate('operadoras')">Reactivar →</button></div></div>`;
-    if(inactivas.length) alertsHTML+=`<div class="alert-banner warn"><span class="ab-icon">🟠</span><div><strong>${inactivas.length} operadora${inactivas.length>1?'s':''} inactiva${inactivas.length>1?'s':''}</strong> — Sin reservas entre 60 y 90 días. <button class="action-btn" style="margin-left:8px" onclick="navigate('operadoras')">Ver →</button></div></div>`;
-    if(tibias.length)    alertsHTML+=`<div class="alert-banner info"><span class="ab-icon">🟡</span><div><strong>${tibias.length} operadora${tibias.length>1?'s':''} tibia${tibias.length>1?'s':''}</strong> — Sin reservas entre 30 y 60 días. Buen momento para contactar. <button class="action-btn" style="margin-left:8px" onclick="navigate('operadoras')">Ver →</button></div></div>`;
-  }
-
   document.getElementById('dashAlerts').innerHTML=alertsHTML;
 
   const statsData=[
-    {icon:'👩‍💼',label:'Operadoras Activas',value:ops.filter(o=>o.estado==='activa').length,color:'#d4a96a',bg:'rgba(212,169,106,0.1)',trend:`${ops.length} total · ${ops.filter(o=>o.estado==='prospecto').length} prospectos`},
-    {icon:'⚙️',label:'Máquinas Disponibles',value:maqs.filter(m=>m.estado==='disponible').length,color:'#52c48a',bg:'rgba(82,196,138,0.1)',trend:`${maqs.length} total · ${maqs.filter(m=>m.estado==='mantenimiento').length} en mant.`},
-    {icon:'📅',label:'Reservas Confirmadas',value:reservas.filter(r=>r.estado==='confirmada').length,color:'#9b7fe8',bg:'rgba(155,127,232,0.1)',trend:`${reservas.filter(r=>r.estado==='solicitud_recibida').length} solicitudes sin revisar`},
+    {icon:'👩‍💼',label:'Operadoras Activas',value:ops.filter(o=>o.estado==='activa').length,color:'#d4a96a',bg:'rgba(212,169,106,0.1)',trend:`${ops.length} total · ${ops.filter(o=>o.estado==='prospecto').length} prospectos`,action:'operadoras'},
+    {icon:'⚙️',label:'Máquinas Disponibles',value:maqs.filter(m=>m.estado==='disponible').length,color:'#52c48a',bg:'rgba(82,196,138,0.1)',trend:`${maqs.length} total · ${maqs.filter(m=>m.estado==='mantenimiento').length} en mant.`,action:'maquinas'},
+    {icon:'📅',label:'Reservas Confirmadas',value:reservas.filter(r=>r.estado==='confirmada').length,color:'#9b7fe8',bg:'rgba(155,127,232,0.1)',trend:`${reservas.filter(r=>r.estado==='solicitud_recibida').length} solicitudes sin revisar`,action:'reservas'},
   ];
   if(puedeVerPagos) statsData.push(
-    {icon:'💳',label:'Pagos Pendientes',value:pagos.filter(p=>['pendiente','sena_pendiente'].includes(p.estado)).length,color:'#e0c05c',bg:'rgba(224,192,92,0.1)',trend:`${deudasVenc.length} deuda${deudasVenc.length!==1?'s':''} vencida${deudasVenc.length!==1?'s':''}`}
+    {icon:'💳',label:'Pagos Pendientes',value:pagos.filter(p=>['pendiente','sena_pendiente'].includes(p.estado)).length,color:'#e0c05c',bg:'rgba(224,192,92,0.1)',trend:`${deudasVenc.length} deuda${deudasVenc.length!==1?'s':''} vencida${deudasVenc.length!==1?'s':''}`,action:'pagos'}
+  );
+  statsData.push(
+    {icon:'🔥',label:'Leads Calientes',value:dailyItems.totales.leadsCalientes.length,color:'#ff9f43',bg:'rgba(255,159,67,0.1)',trend:`${dailyItems.totales.senasPend.length} seña${dailyItems.totales.senasPend.length!==1?'s':''} pendiente${dailyItems.totales.senasPend.length!==1?'s':''}`,action:'leads'},
+    {icon:'↩️',label:'Retiros Pendientes',value:dailyItems.totales.retiros.length,color:'#5c8fe0',bg:'rgba(92,143,224,0.1)',trend:`${dailyItems.totales.enviosSalida.length} salida${dailyItems.totales.enviosSalida.length!==1?'s':''} próxima${dailyItems.totales.enviosSalida.length!==1?'s':''}`,action:'envios'},
+    {icon:'🧼',label:'Viajeras a Preparar',value:dailyItems.totales.viajerasPendientes.length,color:'#e0c05c',bg:'rgba(224,192,92,0.1)',trend:`${dailyItems.totales.viajerasTecnico.length} en técnico`,action:'maquinas'}
   );
   document.getElementById('statsGrid').innerHTML=statsData.map(s=>`
-    <div class="stat-card">
+    <button type="button" class="stat-card stat-card-link" onclick="dashboardStatNavigate('${s.action}')" aria-label="Abrir ${escapeAttr(s.label)}">
       <div class="stat-card-icon" style="background:${s.bg}">${s.icon}</div>
       <h3 style="color:${s.color}">${s.value}</h3>
-      <p>${s.label}</p>
+      <p>${escapeHTML(s.label)}</p>
       ${s.trend?`<div class="trend" style="color:${s.color};opacity:.7">${s.trend}</div>`:''}
-    </div>`).join('');
-
-  // ── KPIs Financieros ──
-  _renderFinKpis(pagos, movsCaja, puedeVerPagos);
+    </button>`).join('');
 
   const recRes=reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado)).slice().sort((a,b)=>{
     const fa=a.fechaJornada||a.fechaInicio||''; const fb=b.fechaJornada||b.fechaInicio||'';
@@ -162,6 +331,7 @@ function renderDashboard(){
   const mantProxMaq=maqs.filter(m=>m.proxMant&&m.proxMant!=='—'&&m.proxMant>=hoy&&daysDiff(hoy,m.proxMant)<=14).sort((a,b)=>a.proxMant.localeCompare(b.proxMant));
 
   document.getElementById('dashboardGrid').innerHTML=`
+    ${renderDailyPanel(dailyItems)}
     <div class="dash-card">
       <h3>📅 Reservas Activas</h3>
       ${recRes.length?recRes.map(r=>{
@@ -217,32 +387,6 @@ function renderDashboard(){
       })()}
       <div style="text-align:right;margin-top:12px">
         <button class="action-btn" onclick="navigate('whatsapp')">Ver centro →</button></div>
-    </div>
-    <div class="dash-card">
-      <h3>👩‍💼 Operadoras — Atención requerida</h3>
-      ${(()=>{
-        if(typeof _calcMetricasOp !== 'function') return '<div class="dash-list-item"><div class="name" style="color:var(--text2)">—</div></div>';
-        const opsActivas = ops.filter(o=>o.estado==='activa');
-        const necesitan  = opsActivas
-          .map(o=>({...o,..._calcMetricasOp(o.id)}))
-          .filter(o=>o.diasInactiva!==null&&o.diasInactiva>30)
-          .sort((a,b)=>b.diasInactiva-a.diasInactiva)
-          .slice(0,5);
-        if(!necesitan.length) return `<div class="dash-list-item"><div class="name" style="color:var(--green)">✅ Todas activas — Ninguna inactiva</div></div>`;
-        return necesitan.map(o=>{
-          const niv=_nivelActividadOp(o.diasInactiva,o.totalReservas);
-          return `<div class="dash-list-item">
-            <div>
-              <div class="name">${o.nombre} ${o.apellido}</div>
-              <div class="sub">${o.gabinete||o.ciudad||'—'} · ${o.diasInactiva}d sin reservar</div>
-            </div>
-            <span style="color:${niv.color};font-weight:700;font-size:12px">${niv.icon} ${niv.txt}</span>
-          </div>`;
-        }).join('');
-      })()}
-      <div style="text-align:right;margin-top:12px">
-        <button class="action-btn" onclick="navigate('operadoras')">Ver todas →</button>
-      </div>
     </div>
     <div class="dash-card">
       <h3>🎯 Leads — Pipeline</h3>

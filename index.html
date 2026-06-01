@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
 
-<link rel="stylesheet" href="assets/css/app.css?v=20260518-logo"/>
+<link rel="stylesheet" href="assets/css/app.css?v=20260601-rentabilidad-maquinas"/>
 </head>
 <body>
 
@@ -35,38 +35,32 @@
       <h1>DepiMóvil</h1>
       <p>Plataforma Operativa</p>
     </div>
-    <div class="login-tabs">
-      <button class="login-tab active" id="tabLoginAdmin" onclick="switchLoginMode('admin')">Admin</button>
-      <button class="login-tab" id="tabLoginWhatsapp" onclick="switchLoginMode('whatsapp')">WhatsApp</button>
+    <div class="login-tabs" id="loginTabs" style="display:none">
+      <button class="login-tab" id="tabLoginAdmin" onclick="switchLoginMode('admin')">Acceso interno</button>
+      <button class="login-tab active" id="tabLoginWhatsapp" onclick="switchLoginMode('whatsapp')">WhatsApp</button>
     </div>
-    <div id="loginAdminPanel">
+    <div id="loginAdminPanel" style="display:none">
       <div class="field-group"><label>Email</label>
-        <input type="email" id="loginEmail" placeholder="usuario@depimovil.com" value="admin@depimovil.com"/></div>
+        <input type="email" id="loginEmail" placeholder="usuario@depimovil.com" autocomplete="username"/></div>
       <div class="field-group"><label>Contraseña</label>
-        <input type="password" id="loginPass" placeholder="••••••••" value="admin123"/></div>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/></div>
       <button class="btn-primary" onclick="doLogin()">Ingresar al Sistema</button>
     </div>
-    <div id="loginWhatsappPanel" style="display:none">
+    <div id="loginWhatsappPanel">
       <input type="hidden" id="waLoginRol" value="operadora"/>
       <div class="login-demo" style="margin-top:0;margin-bottom:18px">
         <p>Acceso de operadoras</p>
-        <div class="demo-row"><span>Ingresá con tu número de WhatsApp. Si sos nueva, completá el alta online y después pedí el código para entrar.</span></div>
+        <div class="demo-row"><span>Si ya estás dada de alta, pedí el código con tu WhatsApp. Si nunca te registraste, usá el botón de nueva operadora.</span></div>
       </div>
       <div class="field-group"><label>WhatsApp</label>
-        <input type="tel" id="waLoginPhone" placeholder="+59899921164"/></div>
+        <input type="tel" id="waLoginPhone" placeholder="+598 99 123 456"/></div>
       <div id="waCodeGroup" class="field-group" style="display:none"><label>Código</label>
         <input type="text" id="waLoginCode" placeholder="123456" maxlength="6" inputmode="numeric"/></div>
       <button class="btn-primary" id="waRequestBtn" onclick="requestWhatsappCode()">Enviar código por WhatsApp</button>
       <button class="btn-primary" id="waVerifyBtn" onclick="verifyWhatsappCode()" style="display:none;margin-top:10px">Ingresar con código</button>
-      <button class="btn-secondary full-width" onclick="openOperadoraRegistro()" style="margin-top:10px">Soy operadora nueva</button>
+      <button class="btn-secondary full-width" onclick="openOperadoraRegistro()" style="margin-top:10px">Registrarme como nueva operadora</button>
     </div>
     <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
-    <div class="login-demo" id="loginDemoBox">
-      <p>👤 Usuarios de prueba</p>
-      <div class="demo-row"><span>Super Admin</span><span>admin@depimovil.com / admin123</span></div>
-      <div class="demo-row"><span>Operaciones</span><span>ops@depimovil.com / ops123</span></div>
-      <div class="demo-row"><span>Operadora</span><span>operadora@depimovil.com / op123</span></div>
-    </div>
   </div>
 </div>
 
@@ -78,17 +72,19 @@
       <button class="modal-close" onclick="closeModal('modalRegistroOperadora')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="registro-intro">Completá tus datos para quedar activa en DepiMóvil. El administrador revisa la ficha y puede pedir documentos después.</div>
+      <div class="registro-intro">Completá tus datos si todavía no tenés alta en DepiMóvil. Administración revisa la ficha y te avisa por WhatsApp cuando quede habilitada.</div>
       <div class="form-grid">
         <div class="form-section-title">Datos principales</div>
-        <div class="form-field"><label>Nombre</label><input type="text" id="regOpNombre" autocomplete="given-name"/></div>
-        <div class="form-field"><label>Apellido</label><input type="text" id="regOpApellido" autocomplete="family-name"/></div>
-        <div class="form-field"><label>WhatsApp</label><input type="tel" id="regOpWhatsapp" placeholder="099921164" inputmode="tel"/></div>
-        <div class="form-field"><label>Cédula / DNI</label><input type="text" id="regOpDocumento" placeholder="Solo número" inputmode="numeric"/></div>
-        <div class="form-field"><label>Ciudad</label><input type="text" id="regOpCiudad"/></div>
-        <div class="form-field"><label>Departamento</label><input type="text" id="regOpDepartamento"/></div>
+        <div class="form-field"><label>Nombre</label><input type="text" id="regOpNombre" autocomplete="off"/></div>
+        <div class="form-field"><label>Apellido</label><input type="text" id="regOpApellido" autocomplete="off"/></div>
+        <div class="form-field"><label>WhatsApp</label><input type="tel" id="regOpWhatsapp" inputmode="tel" autocomplete="off"/></div>
+        <div class="form-field"><label>Cédula / DNI</label><input type="text" id="regOpDocumento" placeholder="Ingresar números todo junto, sin puntos" inputmode="numeric"/></div>
+        <div class="form-field"><label>Instagram</label><input type="text" id="regOpInstagram" autocomplete="off"/></div>
+        <div class="form-field"><label>Nombre de la estética / spa</label><input type="text" id="regOpEstetica" autocomplete="off"/></div>
+        <div class="form-field"><label>Ciudad / localidad</label><input type="text" id="regOpCiudad" autocomplete="off"/></div>
+        <div class="form-field"><label>Departamento</label><input type="text" id="regOpDepartamento" autocomplete="off"/></div>
         <div class="form-field full"><label>Sucursales o lugares esporádicos donde trabaja</label>
-          <textarea id="regOpLugares" placeholder="Ej: Salto centro, consultorio propio, estética asociada..."></textarea></div>
+          <textarea id="regOpLugares" placeholder="Ej: consultorio propio, estética asociada, dirección de trabajo..." autocomplete="off"></textarea></div>
 
         <div class="form-section-title">Experiencia</div>
         <div class="form-field full"><label>Experiencia en estética</label>
@@ -151,6 +147,7 @@
             <button class="nav-item" data-view="reservas" onclick="navigate('reservas')"><span class="icon">📅</span><span>Reservas</span><span class="nav-badge" id="navBadgeReservas" style="display:none">0</span></button>
             <button class="nav-item" data-view="operadoras" onclick="navigate('operadoras')"><span class="icon">👩‍💼</span><span>Operadoras</span></button>
             <button class="nav-item" data-view="maquinas" onclick="navigate('maquinas')"><span class="icon">⚙️</span><span>Máquinas</span><span class="nav-badge" id="navBadgeMaq" style="display:none">0</span></button>
+            <button class="nav-item" data-view="mantenimientos" onclick="navigate('mantenimientos')"><span class="icon">🔧</span><span>Mantenimientos</span><span class="nav-badge" id="navBadgeMant" style="display:none">0</span></button>
             <button class="nav-item" data-view="caja" onclick="navigate('caja')"><span class="icon">💵</span><span>Caja</span><span class="nav-badge" id="navBadgeCaja" style="display:none">0</span></button>
             <button class="nav-item" data-view="whatsapp" onclick="navigate('whatsapp')"><span class="icon">💬</span><span>WhatsApp</span><span class="nav-badge" id="navBadgeWA" style="display:none">0</span></button>
           </div>
@@ -162,7 +159,7 @@
           <button class="nav-item" data-view="revision-operadoras" onclick="navigate('revision-operadoras')"><span class="icon">☑</span> Revisión <span class="nav-badge" id="navBadgeRevisionOps" style="display:none">0</span></button>
           <button class="nav-item" data-view="documentos" onclick="navigate('documentos')"><span class="icon">🪪</span> Documentos <span class="nav-badge" id="navBadgeDocumentos" style="display:none">0</span></button>
           <button class="nav-item" data-view="calendario" onclick="navigate('calendario')"><span class="icon">🗓</span> Calendario</button>
-          <button class="nav-item" data-view="materiales" onclick="navigate('materiales')"><span class="icon">📚</span> Materiales</button>
+          <button class="nav-item" data-view="materiales" onclick="navigate('materiales')"><span class="icon">📚</span> Certificaciones</button>
         </details>
         <details class="nav-group" data-nav-group="finanzas">
           <summary><span>Finanzas</span><span class="chev">⌄</span></summary>
@@ -187,7 +184,6 @@
           <summary><span>Sistema</span><span class="chev">⌄</span></summary>
           <button class="nav-item" data-view="reportes" onclick="navigate('reportes')"><span class="icon">📊</span> Reportes</button>
           <button class="nav-item" data-view="auditoria" onclick="navigate('auditoria')"><span class="icon">🔍</span> Auditoría</button>
-          <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion')"><span class="icon">🔧</span> Configuración</button>
           <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion');setTimeout(()=>document.getElementById('crmColorsSection')?.scrollIntoView({behavior:'smooth',block:'start'}),80)"><span class="icon">🎨</span> Colores</button>
         </details>
       </div>
@@ -195,8 +191,8 @@
         <div class="user-chip" style="cursor:pointer" onclick="openPerfilModal()" title="Ver perfil / cambiar contraseña">
           <div class="user-avatar" id="userAvatar">A</div>
           <div class="user-info">
-            <strong id="userName">Admin</strong>
-            <span id="userRole">Super Admin</span>
+            <strong id="userName">Usuario</strong>
+            <span id="userRole">Rol</span>
           </div>
           <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="Cerrar sesión">⏏</button>
         </div>
@@ -207,13 +203,14 @@
       <div class="topbar">
         <div class="topbar-left">
           <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-          <span class="page-title" id="pageTitle">Dashboard</span>
+          <span class="page-title" id="pageTitle">Menú</span>
         </div>
         <div class="topbar-right">
+          <button class="dashboard-home-btn" id="dashboardHomeBtn" onclick="navigate('dashboard')" style="display:none">← Regresar al menú principal</button>
           <button class="btn-export" onclick="openSearch()" title="Búsqueda global (/)">
             🔍 <span style="display:none" id="searchBtnLabel">Buscar</span>
           </button>
-          <span class="topbar-badge" id="topbarRole">Super Admin</span>
+          <span class="topbar-badge" id="topbarRole">Rol</span>
         </div>
       </div>
       <div class="content">
@@ -222,13 +219,11 @@
         <div class="view active" id="view-dashboard">
           <div id="dashAlerts"></div>
           <div class="stats-grid" id="statsGrid"></div>
-          <div id="finKpisGrid"></div>
           <div class="dashboard-grid" id="dashboardGrid"></div>
         </div>
 
         <!-- OPERADORAS LIST -->
         <div class="view" id="view-operadoras">
-          <div id="opRankingPanel"></div>
           <div class="table-container">
             <div class="table-header">
               <h3>👩‍💼 Operadoras</h3>
@@ -241,7 +236,6 @@
                   <option value="inactiva">Inactiva</option>
                   <option value="suspendida">Suspendida</option>
                 </select>
-                <button class="action-btn" onclick="filtrarOpInactivas()" id="btnFiltroInactivas" style="color:var(--yellow);border-color:rgba(224,192,92,.3)">🟡 Ver inactivas</button>
                 <button class="btn-add" onclick="openOpModal()" id="btnAddOp">+ Nueva</button>
               </div>
             </div>
@@ -260,7 +254,7 @@
             <div style="overflow-x:auto">
               <table><thead><tr>
                 <th>Nombre</th><th>Gabinete / Actividad</th><th>Ciudad</th><th>Departamento</th>
-                <th>Estado</th><th>Nivel</th><th>Acciones</th>
+                <th>Estado</th><th>Nivel</th><th>Último movimiento</th><th>Acciones</th>
               </tr></thead><tbody id="opTableBody"></tbody></table>
             </div>
           </div>
@@ -277,6 +271,8 @@
                   <option value="">Todas</option>
                   <option value="pendiente">Pendientes</option>
                   <option value="documentos_solicitados">Documentos solicitados</option>
+                  <option value="contrato_pendiente">Contrato pendiente</option>
+                  <option value="habilitacion_pendiente">Habilitación pendiente</option>
                   <option value="observada">Observadas</option>
                   <option value="aprobada">Aprobadas</option>
                   <option value="rechazada">Rechazadas</option>
@@ -294,7 +290,7 @@
 
         <!-- OPERADORA FICHA -->
         <div class="view" id="view-operadora-ficha">
-          <button class="back-btn" onclick="navigate('operadoras')">← Volver a Operadoras</button>
+          <button class="back-btn" onclick="navigate('operadoras')">← Regresar atrás</button>
           <div id="fichaOpContent"></div>
         </div>
 
@@ -324,7 +320,6 @@
 
         <!-- MÁQUINAS LIST -->
         <div class="view" id="view-maquinas">
-          <div id="maqRoiRanking"></div>
           <div class="table-container">
             <div class="table-header">
               <h3>⚙️ Máquinas</h3>
@@ -341,6 +336,7 @@
                 <button class="btn-add" onclick="openMaqModal()" id="btnAddMaq">+ Nueva</button>
               </div>
             </div>
+            <div id="maquinasViajerasPanel" class="machine-ops-panel"></div>
             <div style="overflow-x:auto">
               <table><thead><tr>
                 <th>Código</th><th>Nombre</th><th>Categoría</th><th>Ubicación</th>
@@ -354,6 +350,33 @@
         <div class="view" id="view-maquina-ficha">
           <button class="back-btn" onclick="navigate('maquinas')">← Volver a Máquinas</button>
           <div id="fichaMaqContent"></div>
+        </div>
+
+        <!-- MANTENIMIENTOS -->
+        <div class="view" id="view-mantenimientos">
+          <div id="mantAlerts"></div>
+          <div class="table-container">
+            <div class="table-header">
+              <h3>🔧 Mantenimientos</h3>
+              <div class="table-actions">
+                <select class="filter-select" id="mantFilterMaquina" onchange="filterMantMaquina(this.value)">
+                  <option value="">Todas las máquinas</option>
+                </select>
+                <select class="filter-select" onchange="filterMantEstado(this.value)">
+                  <option value="">Todos los estados</option>
+                  <option value="vigente">Vigente</option>
+                  <option value="próximo">Próximo</option>
+                  <option value="vencido">Vencido</option>
+                </select>
+                <button class="btn-add" onclick="openMantModal()" id="btnAddMant">+ Registrar</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Máquina</th><th>Tipo servicio</th><th>Último cambio</th><th>Próximo</th><th>Estado</th>
+              </tr></thead><tbody id="mantTableBody"></tbody></table>
+            </div>
+          </div>
         </div>
 
         <!-- RESERVAS LIST -->
@@ -437,6 +460,7 @@
                 <input class="search-input" type="text" placeholder="🔍 Buscar operadora, reserva…" oninput="filterPagos(this.value)"/>
                 <select class="filter-select" onchange="filterPagoEstado(this.value)" id="filterPagoStatus">
                   <option value="">Todos los estados</option>
+                  <option value="pendientes">Pendientes y señas</option>
                   <option value="pendiente">Pendiente</option>
                   <option value="sena_pendiente">Seña Pendiente</option>
                   <option value="sena_abonada">Seña Abonada</option>
@@ -551,7 +575,7 @@
         <!-- CONFIGURACIÓN -->
         <div class="view" id="view-configuracion">
           <div style="margin-bottom:24px">
-            <h2 style="font-size:18px;font-weight:700;color:var(--text)">🔧 Configuración del Sistema</h2>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text)">🎨 Colores del CRM</h2>
             <p style="font-size:13px;color:var(--text2);margin-top:4px">Datos de la empresa e integración WhatsApp Business API.</p>
           </div>
           <div id="configContent"></div>
@@ -715,14 +739,18 @@
           </div>
         </div>
 
-        <!-- MATERIALES / FORMACIÓN -->
+        <!-- CERTIFICACIONES / FORMACIÓN -->
         <div class="view" id="view-materiales">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
             <div>
-              <h2 style="font-size:18px;font-weight:700;color:var(--text)">📚 Materiales de Formación</h2>
-              <p style="font-size:13px;color:var(--text2);margin-top:4px">Recursos de capacitación por equipo y categoría.</p>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text)">📚 Certificaciones</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:4px">Tests, materiales, videos y manuales por equipo y categoría.</p>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-secondary" type="button" onclick="filterMaterialesTipo('test')">Test</button>
+              <button class="btn-secondary" type="button" onclick="filterMaterialesTipo('')">Materiales</button>
+              <button class="btn-secondary" type="button" onclick="filterMaterialesTipo('video')">Videos</button>
+              <button class="btn-secondary" type="button" onclick="filterMaterialesTipo('manual')">Manuales</button>
               <select class="filter-select" onchange="filterMateriales(this.value)" id="filterMatCat">
                 <option value="">Todas las categorías</option>
                 <option value="Láser Depilación">⚡ Láser Depilación</option>
@@ -750,7 +778,14 @@
                   <option value="nuevo">Nuevo</option>
                   <option value="contactado">Contactado</option>
                   <option value="interesado">Interesado</option>
+                  <option value="calificado">Calificado</option>
                   <option value="presupuesto_enviado">Presupuesto Enviado</option>
+                  <option value="pendiente_respuesta">Pendiente Respuesta</option>
+                  <option value="pendiente_sena">Pendiente Seña</option>
+                  <option value="reserva_confirmada">Reserva Confirmada</option>
+                  <option value="cliente_activa">Cliente Activa</option>
+                  <option value="cliente_inactiva">Cliente Inactiva</option>
+                  <option value="recuperacion">Recuperación</option>
                   <option value="seguimiento">Seguimiento</option>
                   <option value="ganado">Ganado</option>
                   <option value="perdido">Perdido</option>
@@ -813,11 +848,11 @@
     <div class="modal-body">
       <input type="hidden" id="opId"/>
       <div class="form-grid">
-        <div class="form-field"><label>Nombre</label><input type="text" id="opNombre"/></div>
-        <div class="form-field"><label>Apellido</label><input type="text" id="opApellido"/></div>
-        <div class="form-field full"><label>Nombre del Gabinete / Negocio</label><input type="text" id="opGabinete"/></div>
-        <div class="form-field"><label>Ciudad</label><input type="text" id="opCiudad"/></div>
-        <div class="form-field"><label>Departamento</label><input type="text" id="opDepartamento"/></div>
+        <div class="form-field"><label>Nombre</label><input type="text" id="opNombre" autocomplete="off"/></div>
+        <div class="form-field"><label>Apellido</label><input type="text" id="opApellido" autocomplete="off"/></div>
+        <div class="form-field full"><label>Nombre del Gabinete / Negocio</label><input type="text" id="opGabinete" autocomplete="off"/></div>
+        <div class="form-field"><label>Ciudad</label><input type="text" id="opCiudad" autocomplete="off"/></div>
+        <div class="form-field"><label>Departamento</label><input type="text" id="opDepartamento" autocomplete="off"/></div>
         <div class="form-field"><label>País</label><input type="text" id="opPais" value="Uruguay"/></div>
         <div class="form-field"><label>WhatsApp</label><input type="tel" id="opWhatsapp"/></div>
         <div class="form-field"><label>Usuario de Instagram</label><input type="text" id="opInstagram" placeholder="@usuario"/></div>
@@ -864,11 +899,20 @@
         <div class="form-field"><label>Código Interno</label><input type="text" id="maqCodigo"/></div>
         <div class="form-field"><label>Nombre Comercial</label><input type="text" id="maqNombre"/></div>
         <div class="form-field"><label>Categoría</label>
-          <select id="maqCategoria">
+          <select id="maqCategoria" onchange="onMaqCategoriaChange()">
             <option>Láser Depilación</option><option>Radiofrecuencia / HIFU</option>
-            <option>Pressoterapia</option><option>Hidrofacial</option>
-            <option>Electroestimulación</option><option>Ultrasonido</option><option>Cavitación</option><option>Otro</option>
+            <option>IPL</option><option>Pressoterapia</option><option>Hidrofacial</option>
+            <option>Electroestimulación</option><option>Ultrasonido</option><option>Cavitación</option><option>Diodo + NDYAG</option><option>Otro</option>
+            <option value="__add">+ Agregar nueva categoría</option>
           </select></div>
+        <div class="form-field" id="maqCategoriaNuevaField" style="display:none"><label>Nueva categoría</label><input type="text" id="maqCategoriaNueva" placeholder="Ej: Diodo + NDYAG"/></div>
+        <div class="form-field"><label>Uso operativo</label>
+          <select id="maqTipoOperativo" onchange="onMaqTipoOperativoChange()">
+            <option value="viajera">Viajera</option>
+            <option value="base_ciudad">Base + ciudad</option>
+            <option value="solo_venta">Solo venta</option>
+          </select></div>
+        <div class="form-field" id="maqCiudadBaseField"><label>Ciudad base</label><input type="text" id="maqCiudadBase" placeholder="Ej: Montevideo" autocomplete="off"/></div>
         <div class="form-field"><label>Marca</label><input type="text" id="maqMarca"/></div>
         <div class="form-field"><label>Modelo / Tipo</label><input type="text" id="maqModelo"/></div>
         <div class="form-field"><label>Número de Serie</label><input type="text" id="maqSerie"/></div>
@@ -881,9 +925,18 @@
                   <option value="en_viaje">En Viaje de China</option></select></div>
         <div class="form-field"><label>Último Mantenimiento</label><input type="date" id="maqUltMant"/></div>
         <div class="form-field"><label>Próximo Mantenimiento</label><input type="date" id="maqProxMant"/></div>
-        <div class="form-field full"><label>URL Foto de la Máquina</label>
-          <input type="text" id="maqFotoUrl" placeholder="https://... (URL pública de la imagen)"/>
-          <div id="maqFotoPreview" style="margin-top:8px;display:none"><img id="maqFotoImg" style="height:80px;border-radius:8px;object-fit:cover"/></div>
+        <div class="form-field"><label>Ícono URL</label><input type="url" id="maqIconoUrl" placeholder="https://..."/></div>
+        <div class="form-field" style="display:none"><label>&nbsp;</label>
+          <label class="check-row"><input type="checkbox" id="maqEsViajera"/> Máquina viajera</label></div>
+        <div class="form-field full"><label>Foto para operadoras</label>
+          <div class="machine-photo-field">
+            <div class="machine-photo-preview" id="maqFotoPreview"><span>Sin foto</span></div>
+            <div style="flex:1;min-width:220px">
+              <input type="hidden" id="maqFotoUrl"/>
+              <input type="file" id="maqFotoFile" accept="image/jpeg,image/png,image/webp" onchange="previewMaquinaFoto(this.files[0])"/>
+              <div style="font-size:11px;color:var(--text3);margin-top:6px">JPG, PNG o WebP. Máximo 8 MB.</div>
+            </div>
+          </div>
         </div>
         <div class="form-field full"><label>Observaciones Técnicas</label>
           <textarea id="maqObs"></textarea></div>
@@ -892,6 +945,39 @@
     <div class="modal-foot">
       <button class="btn-secondary" onclick="closeModal('modalMaq')">Cancelar</button>
       <button class="btn-add" onclick="saveMaquina()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MANTENIMIENTO -->
+<div class="modal-overlay" id="modalMant">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Registrar Mantenimiento</h3>
+      <button class="modal-close" onclick="closeModal('modalMant')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Máquina <span style="color:var(--red)">*</span></label>
+          <select id="mantMaquinaId"></select>
+        </div>
+        <div class="form-field">
+          <label>Tipo servicio <span style="color:var(--red)">*</span></label>
+          <select id="mantTipo">
+            <option value="cambio_agua">Cambio de agua</option>
+            <option value="cambio_filtros">Cambio de filtros</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha realizado <span style="color:var(--red)">*</span></label>
+          <input type="date" id="mantFechaRealizado"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalMant')">Cancelar</button>
+      <button class="btn-add" onclick="saveMantenimiento()">💾 Registrar</button>
     </div>
   </div>
 </div>
@@ -907,11 +993,11 @@
       <input type="hidden" id="resId"/>
       <div class="form-grid">
         <div class="form-section-title">Asignación</div>
-        <div class="form-field full">
+        <div class="form-field full" id="resOperadoraField">
           <label>Filtrar por Departamento</label>
-          <select id="resDeptoFilter" onchange="filterOperadorasByDepto()" style="margin-bottom:8px;"><option value="">— Todos los departamentos —</option></select>
+          <select id="resDeptoFilter" onchange="filterOperadorasReservaByDepto()" style="margin-bottom:8px;"><option value="">— Todos los departamentos —</option></select>
           <label>Operadora <span style="color:var(--red)">*</span></label>
-          <select id="resOperadoraId" onchange="onResSelectionChange();setTimeout(filterMaquinasByOperadora,100)">
+          <select id="resOperadoraId" onchange="onResSelectionChange();setTimeout(filterMaquinasReservaByOperadora,100)">
             <option value="">— Seleccionar operadora activa —</option>
           </select>
         </div>
@@ -921,6 +1007,7 @@
             <option value="">— Seleccionar máquina disponible —</option>
           </select>
         </div>
+        <div class="form-field full" id="resMaquinaPreviewWrap" style="display:none"></div>
         <div class="form-section-title">Fechas</div>
         <div class="form-field">
           <label>Tipo de Reserva</label>
@@ -930,7 +1017,7 @@
             <option value="mensual">Mensual</option>
           </select>
         </div>
-        <div class="form-field">
+        <div class="form-field" id="resEstadoField">
           <label>Estado Inicial</label>
           <select id="resEstado">
             <option value="solicitud_recibida">Solicitud Recibida</option>
@@ -959,9 +1046,9 @@
           <div id="resDisponibilidadMsg"></div>
         </div>
         <div class="form-field full" id="resAutomatizacion" style="display:none"></div>
-        <div class="form-section-title">Logística (para bloqueo por departamento)</div>
+        <div class="form-section-title">Departamento y entrega</div>
         <div class="form-field">
-          <label>Departamento Logístico</label>
+          <label>Departamento de la reserva</label>
           <select id="resDeptLogistica" onchange="onResSelectionChange()">
             <option value="">— Sin asignar —</option>
             <option>Montevideo</option><option>Canelones</option><option>Maldonado</option>
@@ -983,7 +1070,8 @@
         <div class="form-section-title">Tarifa</div>
         <div class="form-field">
           <label>Monto</label>
-          <input type="number" id="resMonto" placeholder="0" oninput="onResSelectionChange()"/>
+          <input type="number" id="resMonto" placeholder="0" oninput="marcarPrecioReservaManual(); onResSelectionChange()"/>
+          <div id="resPrecioHint" class="docs-line" style="margin-top:6px"></div>
         </div>
         <div class="form-field">
           <label>Moneda</label>
@@ -1068,6 +1156,7 @@
           <select id="pagoTipo">
             <option value="mensualidad">Mensualidad</option>
             <option value="jornada">Jornada</option>
+            <option value="por_envio">Por envío</option>
             <option value="sena">Seña</option>
             <option value="saldo">Saldo pendiente</option>
             <option value="otro">Otro</option>
@@ -1320,9 +1409,9 @@
         <div class="form-field full"><label>Nombre del Gabinete / Negocio</label>
           <input type="text" id="leadGabinete" placeholder="Ej: Beauty Studio MG"/></div>
         <div class="form-field"><label>Ciudad</label>
-          <input type="text" id="leadCiudad" placeholder="Ej: Salto"/></div>
+          <input type="text" id="leadCiudad" placeholder="Ej: Montevideo" autocomplete="off"/></div>
         <div class="form-field"><label>Departamento</label>
-          <input type="text" id="leadDepartamento" placeholder="Ej: Salto"/></div>
+          <input type="text" id="leadDepartamento" placeholder="Ej: Montevideo" autocomplete="off"/></div>
         <div class="form-field"><label>País</label>
           <input type="text" id="leadPais" value="Uruguay"/></div>
         <div class="form-field"><label>WhatsApp</label>
@@ -1350,7 +1439,14 @@
             <option value="nuevo">Nuevo</option>
             <option value="contactado">Contactado</option>
             <option value="interesado">Interesado</option>
+            <option value="calificado">Calificado</option>
             <option value="presupuesto_enviado">Presupuesto Enviado</option>
+            <option value="pendiente_respuesta">Pendiente Respuesta</option>
+            <option value="pendiente_sena">Pendiente Seña</option>
+            <option value="reserva_confirmada">Reserva Confirmada</option>
+            <option value="cliente_activa">Cliente Activa</option>
+            <option value="cliente_inactiva">Cliente Inactiva</option>
+            <option value="recuperacion">Recuperación</option>
             <option value="seguimiento">Seguimiento</option>
             <option value="ganado">Ganado</option>
             <option value="perdido">Perdido</option>
@@ -1822,7 +1918,7 @@
     <div class="modal-body" id="modalRevisionBody"></div>
     <div class="modal-foot revision-actions">
       <button class="btn-secondary" onclick="closeModal('modalRevisionOperadora')">Cerrar</button>
-      <button class="btn-secondary" onclick="guardarRevisionOperadora('pedir_documentos')">Pedir documentos</button>
+      <button class="btn-secondary" onclick="guardarRevisionOperadora('pedir_faltantes')">Pedir faltantes</button>
       <button class="btn-secondary" onclick="guardarRevisionOperadora('observar')">Observar</button>
       <button class="btn-danger" onclick="guardarRevisionOperadora('eliminar')">Eliminar pedido</button>
       <button class="btn-danger" onclick="guardarRevisionOperadora('rechazar')">Rechazar</button>
@@ -2035,18 +2131,19 @@
   </div>
 </div>
 
-<script data-cfasync="false" src="assets/js/core/storage-api.js?v=20260518-envios-cero"></script>
-<script data-cfasync="false" src="assets/js/core/seed-data.js"></script>
-<script data-cfasync="false" src="assets/js/core/auth.js?v=20260519-wa-retry"></script>
-<script data-cfasync="false" src="assets/js/core/navigation.js"></script>
-<script data-cfasync="false" src="assets/js/modules/dashboard.js"></script>
-<script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260523-operadoras-ficha"></script>
-<script data-cfasync="false" src="assets/js/modules/revision-operadoras.js?v=20260523-huerfanas"></script>
-<script data-cfasync="false" src="assets/js/modules/documentos.js"></script>
-<script data-cfasync="false" src="assets/js/modules/maquinas.js"></script>
-<script data-cfasync="false" src="assets/js/modules/reservas.js?v=20260519-envios-auto"></script>
+<script data-cfasync="false" src="assets/js/core/storage-api.js?v=20260601-automation-tasks"></script>
+<script data-cfasync="false" src="assets/js/core/seed-data.js?v=20260526-no-demo-prod"></script>
+<script data-cfasync="false" src="assets/js/core/auth.js?v=20260527-login-operadoras"></script>
+<script data-cfasync="false" src="assets/js/core/navigation.js?v=20260527-certificaciones"></script>
+<script data-cfasync="false" src="assets/js/modules/dashboard.js?v=20260601-automation-tasks"></script>
+<script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260601-reserva-precio-rol"></script>
+<script data-cfasync="false" src="assets/js/modules/revision-operadoras.js?v=20260528-pedir-contrato"></script>
+<script data-cfasync="false" src="assets/js/modules/documentos.js?v=20260531-certificados"></script>
+<script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260601-incidencias-reserva"></script>
+<script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260601-ficha-maquina-visual"></script>
+<script data-cfasync="false" src="assets/js/modules/reservas.js?v=20260601-incidencias-reserva"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js"></script>
-<script data-cfasync="false" src="assets/js/modules/pagos.js"></script>
+<script data-cfasync="false" src="assets/js/modules/pagos.js?v=20260526-menu-stats"></script>
 <script data-cfasync="false" src="assets/js/modules/caja.js?v=20260523-puesta-punto"></script>
 <script data-cfasync="false" src="assets/js/modules/compras-proveedores.js?v=20260523-puesta-punto"></script>
 <script data-cfasync="false" src="assets/js/modules/ventas-maquinas.js"></script>
@@ -2054,19 +2151,19 @@
 <script data-cfasync="false" src="assets/js/modules/whatsapp.js?v=20260523-plantillas"></script>
 <script data-cfasync="false" src="assets/js/modules/envios.js?v=20260519-envios-auto"></script>
 <script data-cfasync="false" src="assets/js/modules/configuracion.js"></script>
-<script data-cfasync="false" src="assets/js/modules/reportes.js"></script>
-<script data-cfasync="false" src="assets/js/modules/auditoria.js"></script>
-<script data-cfasync="false" src="assets/js/modules/busqueda.js"></script>
+<script data-cfasync="false" src="assets/js/modules/reportes.js?v=20260601-rentabilidad-maquinas"></script>
+<script data-cfasync="false" src="assets/js/modules/auditoria.js?v=20260523-xss"></script>
+<script data-cfasync="false" src="assets/js/modules/busqueda.js?v=20260523-xss"></script>
 <script data-cfasync="false" src="assets/js/modules/exportacion.js"></script>
-<script data-cfasync="false" src="assets/js/modules/leads.js"></script>
-<script data-cfasync="false" src="assets/js/modules/perfil.js"></script>
+<script data-cfasync="false" src="assets/js/modules/leads.js?v=20260523-xss"></script>
+<script data-cfasync="false" src="assets/js/modules/perfil.js?v=20260523-security"></script>
 <script data-cfasync="false" src="assets/js/modules/embudo.js"></script>
 <script data-cfasync="false" src="assets/js/modules/notas-leads.js"></script>
-<script data-cfasync="false" src="assets/js/modules/formacion.js?v=20260519-presoterapia"></script>
-<script data-cfasync="false" src="assets/js/core/helpers.js?v=20260519-fecha-alta"></script>
-<script data-cfasync="false" src="assets/js/core/boot.js"></script>
-<script data-cfasync="false" src="assets/js/modules/transportistas.js?v=20260523-form-mejora"></script>
-<script data-cfasync="false" src="assets/js/modules/contratos-y-filtros.js"></script>
+<script data-cfasync="false" src="assets/js/modules/formacion.js?v=20260531-certificados"></script>
+<script data-cfasync="false" src="assets/js/core/helpers.js?v=20260601-reservas-operadora"></script>
+<script data-cfasync="false" src="assets/js/core/boot.js?v=20260527-login-operadoras"></script>
+<script data-cfasync="false" src="assets/js/modules/transportistas.js?v=20260524-operativa"></script>
+<script data-cfasync="false" src="assets/js/modules/contratos-y-filtros.js?v=20260527-contrato-marco"></script>
 <script data-cfasync="false" src="assets/js/modules/contratos.js"></script>
 </body>
 </html>

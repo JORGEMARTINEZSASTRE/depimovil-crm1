@@ -1,7 +1,8 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
+const { emitAutomationEvent } = require('../utils/automation_engine');
 
 const router = express.Router();
 
@@ -73,6 +74,8 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.transportista_id) return res.json([]);
       params.push(req.user.transportista_id);
       where.push(`e.transportista_id = $${params.length}`);
+    } else if (!isOpsRole(req.user.rol)) {
+      return res.json([]);
     }
     const { rows } = await pool.query(`
       SELECT e.*
@@ -100,6 +103,8 @@ router.get('/:id', auth, async (req, res) => {
     } else if (req.user.rol === 'transportista') {
       params.push(req.user.transportista_id || 0);
       query += ` AND transportista_id = $${params.length}`;
+    } else if (!isOpsRole(req.user.rol)) {
+      return res.status(403).json({ error: 'Sin permisos para envíos' });
     }
     const { rows } = await pool.query(query, params);
     if (!rows.length) return res.status(404).json({ error: 'Envío no encontrado' });
@@ -165,6 +170,16 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'transportista')
       tiene_rastreo !== false
     ]);
     await client.query('COMMIT');
+    if (rows[0].estado === 'en_transito') {
+      emitAutomationEvent(null, {
+        event: 'machine.shipped',
+        entity: 'envio',
+        entityId: rows[0].id,
+        dedupeKey: `machine.shipped:envio:${rows[0].id}`,
+        payload: { envio: rows[0] },
+        user: req.user,
+      }).catch(() => {});
+    }
     res.status(201).json(rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
@@ -189,10 +204,10 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'transportista
   } = req.body;
 
   try {
-    const { rows: prev } = await pool.query('SELECT id, transportista_id FROM envios WHERE id=$1', [req.params.id]);
+    const { rows: prev } = await pool.query('SELECT id, transportista_id, estado FROM envios WHERE id=$1', [req.params.id]);
     if (!prev.length) return res.status(404).json({ error: 'Envío no encontrado' });
-    if (req.user.rol === 'transportista' && parseInt(prev[0].transportista_id) !== parseInt(req.user.transportista_id)) {
-      return res.status(403).json({ error: 'Sin permisos para este envío' });
+    if (req.user.rol === 'transportista') {
+      return res.status(403).json({ error: 'Transportistas solo pueden actualizar rastreo de envíos asignados' });
     }
 
     const costoTotal = (parseFloat(costo_envio) || 0) + (parseFloat(costo_limpieza) || 0);
@@ -230,6 +245,23 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'transportista
       tiene_rastreo !== false,
       req.params.id
     ]);
+    if (estado && estado !== prev[0].estado) {
+      const eventByState = {
+        en_transito: 'machine.shipped',
+        entregado: 'machine.received',
+        retirado: 'machine.returned',
+      };
+      if (eventByState[estado]) {
+        await emitAutomationEvent(null, {
+          event: eventByState[estado],
+          entity: 'envio',
+          entityId: parseInt(req.params.id, 10),
+          dedupeKey: `${eventByState[estado]}:envio:${req.params.id}`,
+          payload: { envio: rows[0], estadoPrevio: prev[0].estado },
+          user: req.user,
+        });
+      }
+    }
     res.json(rows[0]);
   } catch (err) {
     console.error('PUT /api/envios/:id error:', err);
@@ -246,6 +278,8 @@ router.put('/:id/rastreo', auth, async (req, res) => {
     if (req.user.rol === 'transportista') {
       const own = await pool.query('SELECT id FROM envios WHERE id=$1 AND transportista_id=$2', [req.params.id, req.user.transportista_id || 0]);
       if (!own.rows.length) return res.status(403).json({ error: 'Sin permisos para este envío' });
+    } else if (!isOpsRole(req.user.rol)) {
+      return res.status(403).json({ error: 'Sin permisos para rastreo' });
     }
     const { rows } = await pool.query(`
       UPDATE envios SET

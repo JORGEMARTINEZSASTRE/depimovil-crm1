@@ -3,13 +3,13 @@ function formatMonto(n,moneda){if(n===null||n===undefined||n==='')return'\u2014'
 // === FIN FORMATO ===
 
 // === FILTRO MAQUINAS ===
-function filterMaquinasByOperadora(){var opSel=document.getElementById('resOperadoraId');var maqSel=document.getElementById('resMaquinaId');var opId=parseInt(opSel.value);var ops=JSON.parse(localStorage.getItem('dm_operadoras')||'[]');var hab=JSON.parse(localStorage.getItem('dm_habilitaciones')||'[]');var maqs=JSON.parse(localStorage.getItem('dm_maquinas')||'[]');while(maqSel.options.length>1)maqSel.remove(1);if(!opId){maqs.forEach(function(m){if(m.estado==='disponible'){var o=document.createElement('option');o.value=m.id;o.text=m.codigo+'\u2014'+m.nombre+' ['+m.categoria+']';maqSel.add(o)}});return}var op=ops.find(function(o){return o.id===opId});if(!op)return;var ciudad=(op.ciudad||'').toUpperCase();var depto=(op.departamento||'').toUpperCase();var habCats=hab.filter(function(h){return h.operadoraId===opId&&h.estado==='activa'}).map(function(h){return h.categoria});maqs.filter(function(m){if(m.estado!=='disponible')return false;if(habCats.length>0&&habCats.indexOf(m.categoria)===-1)return false;var ubi=(m.ubicacion||'').toUpperCase();if(ubi==='SIN ASIGNAR'||ubi==='')return true;if(ciudad&&ubi.indexOf(ciudad)!==-1)return true;if(depto&&ubi.indexOf(depto)!==-1)return true;return false}).forEach(function(m){var o=document.createElement('option');o.value=m.id;o.text=m.codigo+' \u2014 '+m.nombre+' ['+m.categoria+']';maqSel.add(o)})}
+function filterMaquinasByOperadora(){if(typeof filterMaquinasReservaByOperadora==='function')return filterMaquinasReservaByOperadora();var opSel=document.getElementById('resOperadoraId');var maqSel=document.getElementById('resMaquinaId');var opId=parseInt(opSel.value);var ops=JSON.parse(localStorage.getItem('dm_operadoras')||'[]');var hab=JSON.parse(localStorage.getItem('dm_habilitaciones')||'[]');var maqs=JSON.parse(localStorage.getItem('dm_maquinas')||'[]');while(maqSel.options.length>1)maqSel.remove(1);if(!opId){maqs.forEach(function(m){if(m.estado==='disponible'&&m.tipoOperativo!=='solo_venta'){var o=document.createElement('option');o.value=m.id;o.text=m.codigo+'\u2014'+m.nombre+' ['+m.categoria+']';maqSel.add(o)}});return}var op=ops.find(function(o){return o.id===opId});if(!op)return;var ciudad=(op.ciudad||'').toUpperCase();var depto=(op.departamento||'').toUpperCase();var habCats=hab.filter(function(h){return h.operadoraId===opId&&h.estado==='activa'}).map(function(h){return h.categoria});maqs.filter(function(m){if(m.estado!=='disponible'||m.tipoOperativo==='solo_venta')return false;if(habCats.length>0&&habCats.indexOf(m.categoria)===-1)return false;var ubi=(m.tipoOperativo==='base_ciudad'?(m.ciudadBase||m.ubicacion):m.ubicacion||'').toUpperCase();if(m.tipoOperativo==='base_ciudad')return ciudad&&ubi.indexOf(ciudad)!==-1;if(ubi==='SIN ASIGNAR'||ubi==='')return true;if(ciudad&&ubi.indexOf(ciudad)!==-1)return true;if(depto&&ubi.indexOf(depto)!==-1)return true;return false}).forEach(function(m){var o=document.createElement('option');o.value=m.id;o.text=m.codigo+' \u2014 '+m.nombre+' ['+m.categoria+']';maqSel.add(o)})}
 // === FIN FILTRO MAQUINAS ===
 
 // === FILTRO DEPTO ===
 var _allResOps=[];
 function initDeptoFilter(){var s=document.getElementById('resOperadoraId'),f=document.getElementById('resDeptoFilter');if(!s||!f)return;_allResOps=[];for(var i=1;i<s.options.length;i++)_allResOps.push({v:s.options[i].value,t:s.options[i].text});var d={};_allResOps.forEach(function(o){var m=o.t.match(/\(([^)]+)\)\s*$/);if(m)d[m[1]]=1});while(f.options.length>1)f.remove(1);Object.keys(d).sort().forEach(function(k){var o=document.createElement('option');o.value=k;o.text=k;f.add(o)})}
-function filterOperadorasByDepto(){var s=document.getElementById('resOperadoraId'),dept=document.getElementById('resDeptoFilter').value;while(s.options.length>1)s.remove(1);_allResOps.forEach(function(o){if(!dept||o.t.indexOf('('+dept+')')!==-1){var opt=document.createElement('option');opt.value=o.v;opt.text=o.t;s.add(opt)}})}
+function filterOperadorasByDepto(){if(typeof filterOperadorasReservaByDepto==='function')return filterOperadorasReservaByDepto();var s=document.getElementById('resOperadoraId'),dept=document.getElementById('resDeptoFilter').value;while(s.options.length>1)s.remove(1);_allResOps.forEach(function(o){if(!dept||o.t.indexOf('('+dept+')')!==-1){var opt=document.createElement('option');opt.value=o.v;opt.text=o.t;s.add(opt)}})}
 // === FIN FILTRO DEPTO ===
 
 // === CONTRATO DE ALQUILER ===
@@ -43,7 +43,7 @@ function openContratoModal(opId) {
   var modal = document.getElementById('modalContrato');
   if (!modal) return;
   resetContratoForm();
-  
+
   // Populate operadoras select
   var ops = JSON.parse(localStorage.getItem('dm_operadoras') || '[]');
   var sel = document.getElementById('ctrOperadora');
@@ -59,7 +59,7 @@ function openContratoModal(opId) {
   var maqs = JSON.parse(localStorage.getItem('dm_maquinas') || '[]');
   var mSel = document.getElementById('ctrMaquina');
   mSel.innerHTML = '<option value="">\u2014 Seleccionar \u2014</option>';
-  maqs.filter(function(m){ return m.estado === 'disponible'; }).forEach(function(m){
+  maqs.filter(function(m){ return m.estado === 'disponible' && m.tipoOperativo !== 'solo_venta'; }).forEach(function(m){
     var opt = document.createElement('option');
     opt.value = m.id;
     opt.text = m.codigo + ' \u2014 ' + m.nombre + ' [' + m.categoria + ']';
@@ -175,10 +175,10 @@ function renderContratoPreview() {
   var sena = parseFloat(garantia) > 0 ? formatMonto(garantia, moneda) : '____________________';
   var saldo = parseFloat(monto||0) && parseFloat(garantia||0) ? formatMonto(Math.max(0, parseFloat(monto)-parseFloat(garantia)), moneda) : '____________________';
   
-  var h = '<div class="contrato-header-mini">DEPIM\u00d3VIL<br><span>SOLUCIONES PARA PROFESIONALES DE EST\u00c9TICA</span></div>';
-  h += '<h1>CONTRATO DE ALQUILER DE EQUIPO EST\u00c9TICO</h1>';
-  h += '<h2>Modelo institucional listo para completar</h2>';
-  h += '<div class="clausula">En la ciudad de <strong>'+esc(ciudad)+'</strong>, a los ____ d\u00edas del mes de ____________________ de 20____, comparecen por una parte <strong>DEPIM\u00d3VIL</strong>, representada por Jorge Martinez y Julieta Perelstein, en adelante <strong>LA ARRENDADORA</strong>, y por otra parte <strong>'+esc(nombre)+'</strong>, C.I./RUT <strong>'+esc(ci)+'</strong>, con domicilio en <strong>'+esc(domicilio)+'</strong>, ciudad <strong>'+esc(ciudad)+'</strong>, tel\u00e9fono <strong>'+esc(telefono)+'</strong>, correo <strong>'+esc(correo)+'</strong>, en adelante <strong>LA ARRENDATARIA</strong>, quienes acuerdan lo siguiente:</div>';
+  var h = '<div class="contrato-header-mini">DEPI M\u00d3VIL URUGUAY<br><span>ALQUILER DE EQUIPOS DE EST\u00c9TICA PROFESIONAL</span></div>';
+  h += '<h1>CONTRATO DE ALQUILER DE EQUIPOS EST\u00c9TICOS PROFESIONALES</h1>';
+  h += '<h2>Domicilio de la Empresa: Uruguay 1533, Salto, Uruguay</h2>';
+  h += '<div class="clausula">En la ciudad de <strong>'+esc(ciudad)+'</strong>, Rep\u00fablica Oriental del Uruguay, comparecen por una parte <strong>DEPI M\u00d3VIL URUGUAY</strong>, empresa dedicada al alquiler, soporte, capacitaci\u00f3n y provisi\u00f3n de aparatolog\u00eda est\u00e9tica profesional, con domicilio comercial en calle <strong>Uruguay 1533, ciudad de Salto, Rep\u00fablica Oriental del Uruguay</strong>, en adelante <strong>LA ARRENDADORA</strong>, y por otra parte <strong>'+esc(nombre)+'</strong>, C.I./RUT <strong>'+esc(ci)+'</strong>, con domicilio en <strong>'+esc(domicilio)+'</strong>, ciudad <strong>'+esc(ciudad)+'</strong>, tel\u00e9fono <strong>'+esc(telefono)+'</strong>, correo <strong>'+esc(correo)+'</strong>, en adelante <strong>LA ARRENDATARIA</strong>, quienes acuerdan lo siguiente:</div>';
   
   h += '<div class="clausula"><div class="clausula-title">PRIMERA. OBJETO.</div>';
   h += 'LA ARRENDADORA da en alquiler a LA ARRENDATARIA el equipo: <strong>'+esc(equipo)+'</strong>, modelo/referencia <strong>'+esc(referencia)+'</strong>, N.\u00ba de serie <strong>'+esc(serial)+'</strong>, nombre fantas\u00eda <strong>'+esc(nombreFantasia)+'</strong>, con los accesorios que se detallan en el anexo de entrega. El equipo se destina exclusivamente a uso profesional est\u00e9tico.</div>';
@@ -203,11 +203,14 @@ function renderContratoPreview() {
   
   h += '<div class="clausula"><div class="clausula-title">NOVENA. DA\u00d1OS, P\u00c9RDIDA O FALTANTES.</div>';
   h += 'LA ARRENDATARIA responder\u00e1 por cualquier rotura, p\u00e9rdida, hurto, extrav\u00edo o faltante del equipo y/o sus accesorios mientras permanezcan bajo su tenencia. En caso de da\u00f1o total o p\u00e9rdida, deber\u00e1 abonar el valor de reposici\u00f3n vigente al momento del hecho.</div>';
-  
+
   h += '<div class="clausula"><div class="clausula-title">D\u00c9CIMA. RESCISI\u00d3N Y MORA.</div>';
   h += 'LA ARRENDADORA podr\u00e1 rescindir el presente contrato y exigir la devoluci\u00f3n inmediata del equipo en caso de falta de pago, uso indebido, cesi\u00f3n a terceros o incumplimiento de cualquiera de las obligaciones asumidas. La mora se producir\u00e1 autom\u00e1ticamente por el solo vencimiento de los plazos pactados, sin necesidad de intimaci\u00f3n previa.</div>';
-  
-  h += '<div class="clausula"><div class="clausula-title">D\u00c9CIMA PRIMERA. DOMICILIO Y JURISDICCI\u00d3N.</div>';
+
+  h += '<div class="clausula"><div class="clausula-title">D\u00c9CIMA PRIMERA. REITERACI\u00d3N DE ALQUILERES.</div>';
+  h += 'Cada nueva solicitud, reserva, renovaci\u00f3n o reiteraci\u00f3n de alquiler realizada por LA ARRENDATARIA implica la aceptaci\u00f3n nuevamente del presente contrato y de sus condiciones vigentes, sin necesidad de una nueva firma escrita por cada operaci\u00f3n.</div>';
+
+  h += '<div class="clausula"><div class="clausula-title">D\u00c9CIMA SEGUNDA. DOMICILIO Y JURISDICCI\u00d3N.</div>';
   h += 'Las partes constituyen como domicilios especiales los denunciados en este contrato y acuerdan someter cualquier diferencia a la jurisdicci\u00f3n de los tribunales competentes de la Rep\u00fablica Oriental del Uruguay.</div>';
   
   if (obs) {
@@ -231,7 +234,7 @@ function renderContratoPreview() {
   h += '<div class="clausula anexo-line"><strong>Estado general al momento de la entrega:</strong> ____________________________________________</div>';
   h += '<div class="clausula anexo-line"><strong>Observaciones:</strong> ____________________________________________</div>';
   h += '<div class="firmas">';
-  h += '<div class="firma-box"><div class="firma-line">Firma ARRENDADORA<br>JORGE MARTINEZ</div></div>';
+  h += '<div class="firma-box"><div class="firma-line">Firma ARRENDADORA<br>DEPI M\u00d3VIL URUGUAY<br>Uruguay 1533, Salto, Uruguay</div></div>';
   h += '<div class="firma-box"><div class="firma-line">Firma ARRENDATARIA<br>'+esc(nombre)+'</div></div>';
   h += '</div>';
   h += '<div class="contrato-footer-mini">DepiM\u00f3vil Uruguay | Contrato base de alquiler de equipo est\u00e9tico</div>';

@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -53,6 +53,8 @@ router.get('/habilitaciones', auth, async (req, res) => {
       query = 'SELECT * FROM habilitaciones WHERE operadora_id=$1 ORDER BY categoria';
       params.push(parseInt(req.user.operadora_id));
     } else if (req.user.rol === 'transportista') {
+      return res.json([]);
+    } else if (!isOpsRole(req.user.rol)) {
       return res.json([]);
     } else
     if (operadora_id) {
@@ -113,6 +115,7 @@ router.delete('/habilitaciones/:id', auth, requireRole('superadmin', 'operacione
 // ─────────────────────────────────────────────
 router.get('/reglas-logisticas', auth, async (req, res) => {
   try {
+    if (!isOpsRole(req.user.rol)) return res.json([]);
     const { rows } = await pool.query('SELECT * FROM reglas_logisticas ORDER BY departamento');
     res.json(rows);
   } catch (err) {
@@ -153,7 +156,7 @@ router.get('/roles', auth, requireRole('superadmin'), async (req, res) => {
   res.json([
     { id: 'superadmin',             label: 'Administrador',              descripcion: 'Acceso total. Jorge y Julieta.' },
     { id: 'operaciones',            label: 'Administración / Ops',       descripcion: 'Gestión operativa sin borrar usuarios críticos' },
-    { id: 'comercial',              label: 'Comercial',                  descripcion: 'Leads, reservas, pagos y WhatsApp comercial' },
+    { id: 'comercial',              label: 'Comercial',                  descripcion: 'Leads, embudo y WhatsApp comercial' },
     { id: 'operadora_habilitada',   label: 'Operadora habilitada',       descripcion: 'Puede ver sus reservas, pagos, envíos, equipos y formación' },
     { id: 'operadora_limitada',     label: 'Operadora en capacitación',  descripcion: 'Solo inicio y formación hasta completar habilitación' },
     { id: 'operadora',              label: 'Operadora automática',       descripcion: 'Se clasifica como habilitada o en capacitación según sus habilitaciones activas' },
@@ -168,7 +171,7 @@ router.get('/usuarios', auth, requireRole('superadmin'), async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT id, nombre, email, rol, status, operadora_id, transportista_id,
-             registro_origen, created_at, ultimo_login
+             registro_origen, created_at, ultimo_login_whatsapp AS ultimo_login
       FROM usuarios
       ORDER BY nombre
     `);

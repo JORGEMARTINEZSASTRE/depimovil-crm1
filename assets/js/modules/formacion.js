@@ -1,5 +1,5 @@
 /* ══════════════════════════════════
-   FORMACIÓN — MATERIALES, CAPACITACIONES Y HABILITACIONES
+   FORMACIÓN — CERTIFICACIONES, CAPACITACIONES Y HABILITACIONES
 ══════════════════════════════════ */
 
 const CAT_ICONS = {
@@ -113,9 +113,14 @@ function getCapacitacionesByOp(operadoraId){
 
 // ── Materiales ──
 let matFilter='';
+let matTipoFilter='';
+function puedeTomarEvaluacion(){
+  return !!(isSuperAdmin() || canEdit() || (typeof isOperadoraUser === 'function' && isOperadoraUser()));
+}
 function renderMateriales(){
   const mats=(DB.get('materiales')||[]).filter(m=>
-    !matFilter || m.categoria===matFilter
+    (!matFilter || m.categoria===matFilter) &&
+    (!matTipoFilter || matTipoFilter==='test' || m.tipo===matTipoFilter)
   );
   const cats=['Láser Depilación','Radiofrecuencia / HIFU','Pressoterapia','Electroestimulación','General'];
 
@@ -143,17 +148,54 @@ function renderMateriales(){
     </div>`;
   }).join('');
 
-  document.getElementById('materialesContent').innerHTML = renderEvaluaciones() + (bycat ||
+  const evalBlock = (!matTipoFilter || matTipoFilter==='test') ? renderEvaluaciones() : '';
+  const matsBlock = matTipoFilter==='test' ? '' : (bycat ||
     `<div class="empty-state"><div class="icon">📚</div><h3>Sin materiales</h3></div>`
   );
+  document.getElementById('materialesContent').innerHTML = evalBlock + matsBlock;
 }
 function filterMateriales(cat){ matFilter=cat; renderMateriales(); }
+function filterMaterialesTipo(tipo){ matTipoFilter=tipo || ''; renderMateriales(); }
 
 function getEvaluacionResultados(){
   return DB.get('evaluaciones_resultados')||[];
 }
 function getEvaluacionById(id){
   return EVALUACIONES_TECNICAS.find(e=>e.id===id);
+}
+
+async function emitirCertificadoOperadora(opId, resultado, evaluacion){
+  try{
+    const resp=await api('/api/operadoras/'+opId+'/certificados',{
+      method:'POST',
+      body:JSON.stringify({
+        categoria:evaluacion.categoria,
+        evaluacion_id:evaluacion.id,
+        evaluacion_titulo:evaluacion.titulo,
+        resultado_id:resultado.id,
+        correctas:resultado.correctas,
+        total:resultado.total,
+        porcentaje:resultado.porcentaje,
+      })
+    });
+    const docs=DB.get('documentos_certificados')||[];
+    if(resp.documento){
+      DB.set('documentos_certificados',[resp.documento,...docs.filter(d=>parseInt(d.id)!==parseInt(resp.documento.id))]);
+    }
+    if(resp.whatsapp?.enviado){
+      showToast('🏅 Certificado emitido y enviado por WhatsApp');
+    }else if(resp.whatsapp?.omitido){
+      showToast('🏅 Certificado ya emitido; WhatsApp no duplicado');
+    }else if(resp.whatsapp?.error){
+      showToast('🏅 Certificado emitido. WhatsApp pendiente: '+resp.whatsapp.error,'warn');
+    }else{
+      showToast('🏅 Certificado emitido y WhatsApp en cola');
+    }
+    return resp;
+  }catch(e){
+    showToast('⚠️ La habilitación quedó activa, pero no se pudo emitir/enviar el certificado: '+e.message,'warn');
+    return null;
+  }
 }
 
 function renderEvaluaciones(){
@@ -180,7 +222,7 @@ function renderEvaluaciones(){
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span class="badge badge-obligatorio">Obligatorio</span>
         <span class="badge badge-green">${ev.categoria}</span>
-        ${canEdit()?`<button class="action-btn" onclick="openEvaluacionModal('${ev.id}')" style="color:var(--blue)">Tomar evaluación</button>`:''}
+        ${puedeTomarEvaluacion()?`<button class="action-btn" onclick="openEvaluacionModal('${ev.id}')" style="color:var(--blue)">Tomar evaluación</button>`:''}
       </div>
     </div>`;
     }).join('')}
@@ -188,15 +230,22 @@ function renderEvaluaciones(){
 }
 
 function openEvaluacionModal(evaluacionId){
-  if(!isSuperAdmin()&&!canEdit()){showToast('⚠️ Sin permisos','warn');return;}
+  if(!puedeTomarEvaluacion()){showToast('⚠️ Sin permisos','warn');return;}
   const evaluacion=getEvaluacionById(evaluacionId);
   if(!evaluacion) return;
   const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa');
+  const isOpUser=typeof isOperadoraUser==='function'&&isOperadoraUser()&&!isSuperAdmin()&&!canEdit();
+  const opId=isOpUser ? parseInt(currentUser?.operadora_id) : 0;
+  const opActual=opId ? (getOp(opId)||ops.find(o=>parseInt(o.id)===opId)) : null;
+  if(isOpUser&&!opId){showToast('⚠️ Tu usuario no tiene ficha de operadora vinculada','warn');return;}
   document.getElementById('evalId').value=evaluacionId;
   document.getElementById('evalTitulo').textContent=evaluacion.titulo;
-  document.getElementById('evalOperadora').innerHTML=
-    `<option value="">Seleccionar operadora...</option>`+
-    ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido}</option>`).join('');
+  const evalOpWrap=document.getElementById('evalOperadora')?.closest('.form-field');
+  if(evalOpWrap) evalOpWrap.style.display=isOpUser?'none':'';
+  document.getElementById('evalOperadora').innerHTML=isOpUser
+    ? `<option value="${opId}" selected>${opActual ? `${opActual.nombre||''} ${opActual.apellido||''}`.trim() : 'Mi ficha'}</option>`
+    : `<option value="">Seleccionar operadora...</option>`+
+      ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido}</option>`).join('');
   document.getElementById('evalResumen').innerHTML=
     `Aprobación mínima: <strong>${evaluacion.minimoAprobacion}/${evaluacion.preguntas.length}</strong>. Si aprueba, queda habilitada para <strong>${evaluacion.categoria}</strong>.`;
   document.getElementById('evalPreguntas').innerHTML=evaluacion.preguntas.map((p,i)=>`
@@ -282,6 +331,7 @@ async function saveEvaluacionTecnica(){
       DB.set('habilitaciones',habs);
       auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${correctas}/${evaluacion.preguntas.length}`);
       showToast(`✅ Evaluación aprobada (${correctas}/${evaluacion.preguntas.length}). Operadora habilitada.`);
+      await emitirCertificadoOperadora(opId,resultado,evaluacion);
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }

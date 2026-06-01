@@ -3,6 +3,7 @@ const pool = require('../utils/db');
 const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
 const { encolar } = require('../utils/wa_queue');
+const { emitAutomationEvent } = require('../utils/automation_engine');
 
 const router = express.Router();
 
@@ -75,6 +76,42 @@ async function notificarWAPago(pagoId, estado) {
   } catch (e) {
     console.error('notificarWAPago error:', e.message);
   }
+}
+
+function pagoCompleto(estado, senaAbonada, montoTotal, saldoPendiente) {
+  if (['validado', 'sena_abonada'].includes(estado)) return true;
+  const abonado = parseFloat(senaAbonada) || 0;
+  const total = parseFloat(montoTotal) || 0;
+  const saldo = parseFloat(saldoPendiente) || 0;
+  return abonado > 0 && (saldo <= 0 || (total > 0 && abonado >= total));
+}
+
+async function confirmarReservaPorPago(client, pago, user) {
+  if (!pago?.reserva_id || !pagoCompleto(pago.estado, pago.sena_abonada, pago.monto_total, pago.saldo_pendiente)) return null;
+  const { rows: reservas } = await client.query('SELECT id, estado FROM reservas WHERE id=$1 FOR UPDATE', [pago.reserva_id]);
+  if (!reservas.length || reservas[0].estado === 'confirmada') return null;
+  const estadoPrevio = reservas[0].estado;
+  const { rows } = await client.query(
+    "UPDATE reservas SET estado='confirmada', updated_at=NOW() WHERE id=$1 RETURNING *",
+    [pago.reserva_id]
+  );
+  await client.query(`
+    INSERT INTO reserva_historial (reserva_id, estado_previo, estado_nuevo, motivo, usuario_id, usuario_email)
+    VALUES ($1,$2,'confirmada',$3,$4,$5)
+  `, [pago.reserva_id, estadoPrevio, `Confirmación automática por pago ${pago.codigo}`, user?.id || null, user?.email || null]);
+  await client.query(`
+    INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle)
+    VALUES ($1,$2,'AUTO_CONFIRM','reserva',$3,$4)
+  `, [user?.id || null, user?.email || null, pago.reserva_id, `Reserva confirmada automáticamente por pago ${pago.codigo}`]);
+  await emitAutomationEvent(client, {
+    event: 'booking.confirmed',
+    entity: 'reserva',
+    entityId: pago.reserva_id,
+    dedupeKey: `booking.confirmed:reserva:${pago.reserva_id}`,
+    payload: { reserva: rows[0], source: 'payment', pago },
+    user,
+  });
+  return rows[0];
 }
 
 // ─────────────────────────────────────────────
@@ -163,6 +200,17 @@ router.post('/', auth, requireRole('superadmin'), async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6)`,
       [req.user.id, req.user.email, 'CREATE', 'pago', rows[0].id, codigo]
     );
+    const reservaConfirmada = await confirmarReservaPorPago(client, rows[0], req.user);
+    if (pagoCompleto(rows[0].estado, rows[0].sena_abonada, rows[0].monto_total, rows[0].saldo_pendiente)) {
+      await emitAutomationEvent(client, {
+        event: 'payment.completed',
+        entity: 'pago',
+        entityId: rows[0].id,
+        dedupeKey: `payment.completed:pago:${rows[0].id}`,
+        payload: { pago: rows[0], reservaConfirmada },
+        user: req.user,
+      });
+    }
     await client.query('COMMIT');
 
     // Notificar WhatsApp fuera de transacción
@@ -190,11 +238,16 @@ router.put('/:id', auth, requireRole('superadmin'), async (req, res) => {
     fecha_pago, comprobante, obs
   } = req.body;
 
+  const client = await pool.connect();
   try {
-    const { rows: prev } = await pool.query('SELECT estado FROM pagos WHERE id=$1', [req.params.id]);
-    if (!prev.length) return res.status(404).json({ error: 'Pago no encontrado' });
+    await client.query('BEGIN');
+    const { rows: prev } = await client.query('SELECT estado FROM pagos WHERE id=$1 FOR UPDATE', [req.params.id]);
+    if (!prev.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Pago no encontrado' });
+    }
 
-    const { rows } = await pool.query(`
+    const { rows } = await client.query(`
       UPDATE pagos SET
         reserva_id=$1, operadora_id=$2, tipo=$3, estado=$4,
         monto_total=$5, moneda=$6, sena_requerida=$7, sena_abonada=$8, saldo_pendiente=$9,
@@ -211,6 +264,18 @@ router.put('/:id', auth, requireRole('superadmin'), async (req, res) => {
       fecha_pago || null, comprobante || null, obs || null,
       req.params.id
     ]);
+    const reservaConfirmada = await confirmarReservaPorPago(client, rows[0], req.user);
+    if (pagoCompleto(rows[0].estado, rows[0].sena_abonada, rows[0].monto_total, rows[0].saldo_pendiente)) {
+      await emitAutomationEvent(client, {
+        event: 'payment.completed',
+        entity: 'pago',
+        entityId: rows[0].id,
+        dedupeKey: `payment.completed:pago:${rows[0].id}`,
+        payload: { pago: rows[0], reservaConfirmada },
+        user: req.user,
+      });
+    }
+    await client.query('COMMIT');
 
     // Notificar si cambió el estado
     if (estado && estado !== prev[0].estado && ['validado', 'sena_pendiente'].includes(estado)) {
@@ -219,8 +284,11 @@ router.put('/:id', auth, requireRole('superadmin'), async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('PUT /api/pagos/:id error:', err);
     res.status(500).json({ error: 'Error al actualizar pago' });
+  } finally {
+    client.release();
   }
 });
 

@@ -2,157 +2,92 @@
    OPERADORAS
 ══════════════════════════════════ */
 let opFilter={search:'',status:''};
-
-// ── Métricas por operadora ──
-function _calcMetricasOp(opId){
-  const pagos    = DB.get('pagos')||[];
-  const reservas = DB.get('reservas')||[];
-  const hoy      = today();
-
-  const opReservas = reservas.filter(r=>r.operadoraId===opId);
-  const opPagos    = pagos.filter(p=>p.operadoraId===opId);
-
-  // Ingresos cobrados (UYU)
-  const cobrado = opPagos
-    .filter(p=>p.estado==='validado'&&p.moneda==='UYU')
-    .reduce((s,p)=>s+(p.montoTotal||0),0);
-
-  // Saldo pendiente
-  const pendiente = opPagos
-    .filter(p=>['pendiente','sena_pendiente','sena_abonada'].includes(p.estado)&&p.moneda==='UYU')
-    .reduce((s,p)=>s+(p.saldoPendiente||p.montoTotal||0),0);
-
-  // Tiene deuda vencida
-  const tieneDeuda = opPagos.some(p=>p.estado==='deuda_vencida');
-
-  // Última reserva
-  const fechasRes = opReservas
-    .map(r=>r.fechaFin||r.fechaJornada||r.fechaInicio||'')
-    .filter(Boolean).sort();
-  const ultimaReserva = fechasRes.length ? fechasRes[fechasRes.length-1] : null;
-
-  // Días sin reservar
-  const diasInactiva = ultimaReserva ? daysDiff(ultimaReserva, hoy) : null;
-
-  // Reservas activas
-  const ACTIVOS = ['solicitud_recibida','confirmada','en_curso','en_transito','entregada'];
-  const reservasActivas = opReservas.filter(r=>ACTIVOS.includes(r.estado)).length;
-
-  return {
-    cobrado, pendiente, tieneDeuda,
-    totalReservas: opReservas.length,
-    reservasActivas,
-    ultimaReserva,
-    diasInactiva
-  };
-}
-
-function _nivelActividadOp(diasInactiva, totalReservas){
-  if(totalReservas===0)         return {txt:'Sin reservas', color:'var(--text3)', icon:'⚪'};
-  if(diasInactiva===null)       return {txt:'Sin datos',    color:'var(--text3)', icon:'⚪'};
-  if(diasInactiva<=30)          return {txt:'Activa',       color:'var(--green)', icon:'🟢'};
-  if(diasInactiva<=60)          return {txt:'Tibia',        color:'var(--yellow)',icon:'🟡'};
-  if(diasInactiva<=90)          return {txt:'Inactiva',     color:'var(--accent)',icon:'🟠'};
-  return                               {txt:'Perdida',      color:'var(--red)',   icon:'🔴'};
-}
-
-function _renderOpRanking(){
-  const el = document.getElementById('opRankingPanel');
-  if(!el) return;
-  const puedeVer = typeof canView==='function' && canView('pagos');
-  if(!puedeVer){ el.innerHTML=''; return; }
-
-  const ops = DB.get('operadoras')||[];
-  const activas = ops.filter(o=>o.estado==='activa');
-  if(!activas.length){ el.innerHTML=''; return; }
-
-  const data = activas
-    .map(o=>({...o, ..._calcMetricasOp(o.id)}))
-    .sort((a,b)=>b.cobrado - a.cobrado);
-
-  const maxCobrado = Math.max(...data.map(d=>d.cobrado), 1);
-
-  // Top 5 + resumen de inactivas
-  const top5     = data.slice(0,5);
-  const tibiasN  = data.filter(d=>d.diasInactiva!==null&&d.diasInactiva>30&&d.diasInactiva<=60).length;
-  const inactivN = data.filter(d=>d.diasInactiva!==null&&d.diasInactiva>60).length;
-
-  el.innerHTML=`
-  <div class="dash-card op-ranking-card" style="margin-bottom:20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
-      <h3 style="margin:0">👑 Ranking de Operadoras — Top rentabilidad</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${tibiasN>0?`<span class="op-rank-badge" style="background:rgba(224,192,92,0.12);color:var(--yellow)">🟡 ${tibiasN} tibia${tibiasN>1?'s':''}</span>`:''}
-        ${inactivN>0?`<span class="op-rank-badge" style="background:rgba(224,92,107,0.1);color:var(--red)">🔴 ${inactivN} inactiva${inactivN>1?'s':''}</span>`:''}
-      </div>
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Basado en pagos cobrados (UYU) · Solo operadoras activas</div>
-
-    ${top5.map((o,i)=>{
-      const barW = Math.round((o.cobrado/maxCobrado)*100);
-      const niv  = _nivelActividadOp(o.diasInactiva, o.totalReservas);
-      const dias = o.diasInactiva!==null ? `${o.diasInactiva}d sin reservar` : 'Sin reservas';
-      return `
-      <div class="op-rank-row" onclick="showOpFicha(${o.id})">
-        <div class="op-rank-pos">${i+1}</div>
-        <div class="op-rank-avatar">${o.nombre.charAt(0)}${o.apellido.charAt(0)}</div>
-        <div class="op-rank-info">
-          <div class="op-rank-name">${o.nombre} ${o.apellido}${o.gabinete?` <span style="color:var(--text3);font-size:11px">· ${o.gabinete}</span>`:''}</div>
-          <div class="op-rank-bar-wrap">
-            <div class="op-rank-bar" style="width:${barW}%;background:${niv.color}"></div>
-          </div>
-        </div>
-        <div class="op-rank-stats">
-          <div style="font-weight:700;color:var(--green)">${o.cobrado>0?_fmtMonto(o.cobrado):'$0'}</div>
-          <div style="font-size:11px;color:var(--text3)">${o.totalReservas} reserva${o.totalReservas!==1?'s':''}</div>
-        </div>
-        <div class="op-rank-nivel" style="color:${niv.color}">
-          ${niv.icon} <span style="font-size:11px">${o.cobrado>0?dias:niv.txt}</span>
-        </div>
-      </div>`;
-    }).join('')}
-    <div style="text-align:right;margin-top:12px">
-      <button class="action-btn" onclick="navigate('reportes')">Ver reportes completos →</button>
-    </div>
-  </div>`;
-}
 function badgeOp(e){
   const m={activa:'badge-green',prospecto:'badge-blue',inactiva:'badge-gray',suspendida:'badge-red'};
   const l={activa:'Activa',prospecto:'Prospecto',inactiva:'Inactiva',suspendida:'Suspendida'};
   return `<span class="badge ${m[e]||'badge-gray'}">${l[e]||e}</span>`;
 }
+function opHas(value){
+  if(Array.isArray(value)) return value.length>0;
+  if(typeof value==='number') return value>0;
+  return String(value||'').trim().length>0;
+}
+function opYesNo(value){
+  return opHas(value)?'<span class="badge badge-green">Sí</span>':'<span class="badge badge-gray">No</span>';
+}
+function opEquiposResumen(o){
+  const equipos=Array.isArray(o.equiposAlquila)?o.equiposAlquila:[];
+  if(!equipos.length) return 'Sin máquina cargada';
+  return equipos.map(e=>escapeHTML(e.equipo||'')).filter(Boolean).join(', ');
+}
+function opJornadasTotal(o){
+  if(Number.isFinite(Number(o.jornadasTotal))) return Number(o.jornadasTotal)||0;
+  return (Array.isArray(o.equiposAlquila)?o.equiposAlquila:[]).reduce((s,e)=>s+(parseInt(e.jornadas||0,10)||0),0);
+}
+function opActividadTs(o){
+  const raw=o.ultimaActividad||o.updatedAt||o.fechaAlta||'';
+  const time=raw?new Date(raw).getTime():0;
+  return Number.isFinite(time)?time:0;
+}
+function opActividadLabel(o){
+  const raw=o.ultimaActividad||o.updatedAt||o.fechaAlta||'';
+  if(!raw)return 'Sin movimiento';
+  const time=new Date(raw);
+  if(Number.isNaN(time.getTime()))return fmtDate(raw);
+  return time.toLocaleDateString('es-UY');
+}
+function setOperadorasTableMode(minimo){
+  const thead=document.querySelector('#view-operadoras table thead tr');
+  if(thead){
+    thead.innerHTML=minimo
+      ? '<th>Operadora</th><th>Ciudad</th><th>Máquina que alquila</th><th>Preparación / títulos</th><th>Rango</th><th>Jornadas</th><th>Último movimiento</th><th>Acciones</th>'
+      : '<th>Nombre</th><th>Gabinete / Actividad</th><th>Ciudad</th><th>Departamento</th><th>Estado</th><th>Nivel</th><th>Último movimiento</th><th>Acciones</th>';
+  }
+  const share=document.querySelector('#view-operadoras .op-share-card');
+  if(share) share.style.display=minimo?'none':'';
+  const add=document.getElementById('btnAddOp');
+  if(add) add.style.display=canEdit()?'':'none';
+}
 function renderOperadoras(){
-  _renderOpRanking();
+  const minimo=typeof isOperadoraRole==='function'&&isOperadoraRole(currentUser?.rol);
+  setOperadorasTableMode(minimo);
   const ops=(DB.get('operadoras')||[]).filter(o=>{
     const q=opFilter.search.toLowerCase();
-    const ms=!q||(o.nombre+' '+o.apellido+' '+o.gabinete+' '+o.ciudad).toLowerCase().includes(q);
-    const estadoOk=!opFilter.status||o.estado===opFilter.status;
-    if(opFilter._inactivas){
-      const m=_calcMetricasOp(o.id);
-      return estadoOk&&ms&&m.diasInactiva!==null&&m.diasInactiva>30;
-    }
-    return ms&&estadoOk;
-  });
+    const ms=!q||(o.nombre+' '+o.apellido+' '+o.gabinete+' '+o.ciudad+' '+opEquiposResumen(o)+' '+(o.preparacion||'')+' '+(o.titulos||'')).toLowerCase().includes(q);
+    return ms&&(!opFilter.status||o.estado===opFilter.status);
+  }).sort((a,b)=>opActividadTs(b)-opActividadTs(a)||parseInt(b.id||0,10)-parseInt(a.id||0,10));
   const tbody=document.getElementById('opTableBody');
-  if(!ops.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">👩‍💼</div><h3>Sin resultados</h3><p>No hay operadoras que coincidan.</p></div></td></tr>`;return;}
+  if(!ops.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="icon">👩‍💼</div><h3>Sin resultados</h3><p>No hay operadoras que coincidan.</p></div></td></tr>`;return;}
+  if(minimo){
+    tbody.innerHTML=ops.map(o=>{
+      const propia=parseInt(o.id)===parseInt(currentUser?.operadora_id);
+      const prep=o.preparacion||o.titulos||'';
+      return `<tr>
+        <td><span class="bold">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)}</span></td>
+        <td>${opYesNo(o.ciudad)} <span style="color:var(--text2);margin-left:6px">${escapeHTML(o.ciudad||'—')}</span></td>
+        <td>${opYesNo(o.equiposAlquila)} <span style="color:var(--text2);margin-left:6px">${opEquiposResumen(o)}</span></td>
+        <td>${opYesNo(prep)} <span style="color:var(--text2);margin-left:6px">${escapeHTML(prep||'Sin habilitación cargada')}</span></td>
+        <td>${opYesNo(o.rangoDepimovil||o.nivel)} <span class="badge badge-blue" style="margin-left:6px">${escapeHTML(o.rangoDepimovil||o.nivel||'—')}</span></td>
+        <td>${opYesNo(opJornadasTotal(o))} <span style="color:var(--text2);margin-left:6px">${opJornadasTotal(o)}</span></td>
+        <td><span style="font-size:12px;color:var(--text2)">${escapeHTML(opActividadLabel(o))}</span></td>
+        <td style="white-space:nowrap">${propia?`<button class="action-btn" onclick="showOpFicha(${o.id})">Mi ficha</button>`:'<span class="badge badge-gray">Perfil mínimo</span>'}</td>
+      </tr>`;
+    }).join('');
+    return;
+  }
   tbody.innerHTML=ops.map(o=>`<tr>
-    <td><span class="bold">${o.nombre} ${o.apellido}</span></td>
-    <td>${o.gabinete||'—'}</td><td>${o.ciudad}</td><td>${o.departamento}</td>
+    <td><span class="bold">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)}</span></td>
+    <td>${escapeHTML(o.gabinete||'—')}</td><td>${escapeHTML(o.ciudad)}</td><td>${escapeHTML(o.departamento)}</td>
     <td>${badgeOp(o.estado)}</td><td><span style="color:var(--text2)">${o.nivel}</span></td>
+    <td><span style="font-size:12px;color:var(--text2)">${escapeHTML(opActividadLabel(o))}</span></td>
     <td style="white-space:nowrap">
       <button class="action-btn" onclick="showOpFicha(${o.id})">Ver</button>
       ${canEdit()?`<button class="action-btn" onclick="openOpModal(${o.id})" style="margin-left:4px">Editar</button>`:''}
+      ${isSuperAdmin()?`<button class="action-btn" onclick="deleteOperadora(${o.id})" style="margin-left:4px;color:var(--red)">Eliminar</button>`:''}
     </td></tr>`).join('');
 }
 function filterOperadoras(v){opFilter.search=v;renderOperadoras();}
-function filterOpStatus(v){opFilter.status=v;opFilter._inactivas=false;renderOperadoras();}
-function filtrarOpInactivas(){
-  opFilter.status='activa';
-  opFilter._inactivas=true;
-  document.querySelector('#view-operadoras .filter-select').value='activa';
-  renderOperadoras();
-  showToast('🟡 Mostrando operadoras sin reservas hace +30 días');
-}
+function filterOpStatus(v){opFilter.status=v;renderOperadoras();}
 function registroOperadoraLink(){
   return 'https://crm.depimovil.live/alta-operadoras.html';
 }
@@ -231,7 +166,22 @@ function mapOperadoraLocal(o){
     instagramUsuario:o.instagram_usuario||'',email:o.email||'',fechaAlta:o.fecha_alta,estado:o.estado,
     nivel:o.nivel||'Intermedio',obs:o.obs||'',
     direccionEntrega:o.direccion_entrega||direcciones[0]?.direccion||'',tipoDireccion:o.tipo_direccion||direcciones[0]?.tipo||'trabajo',
-    direccionesEntrega:direcciones,equiposAlquila:equipos,portalToken:o.portal_token||''};
+    direccionesEntrega:direcciones,equiposAlquila:equipos,portalToken:o.portal_token||'',
+    ultimaActividad:o.ultima_actividad||o.updated_at||o.created_at||o.fecha_alta||'',updatedAt:o.updated_at||'',createdAt:o.created_at||'',
+    preparacion:o.preparacion||'',titulos:o.titulos||'',rangoDepimovil:o.rango_depimovil||o.rangoDepimovil||'',jornadasTotal:o.jornadas_total||o.jornadasTotal||0,
+    perfilMinimo:!!o.perfil_minimo};
+}
+async function pedirFaltantesOperadora(id, obs){
+  if(!id)return;
+  const nota=obs!=null?obs:prompt('Detalle para enviar por WhatsApp (opcional):','Subir cédula/DNI frente y dorso');
+  if(nota===null)return;
+  try{
+    const data=await api('/api/operadoras/'+id+'/pedir-faltantes',{method:'POST',body:JSON.stringify({obs:nota})});
+    const extra=data.codigo_enviado?'WhatsApp enviado':'quedó en cola de WhatsApp';
+    showToast('✅ Pedido de faltantes '+extra);
+  }catch(e){
+    showToast('❌ '+e.message,'error');
+  }
 }
 function showOpFicha(id){
   if(typeof isOperadoraRole==='function'&&isOperadoraRole(currentUser?.rol)&&parseInt(id)!==parseInt(currentUser?.operadora_id)){
@@ -240,64 +190,55 @@ function showOpFicha(id){
   }
   const ops=DB.get('operadoras')||[];const o=ops.find(x=>x.id===id);if(!o)return;
   const reservas=(DB.get('reservas')||[]).filter(r=>r.operadoraId===id);
+  const nombreCompleto=escapeHTML(o.nombre+' '+o.apellido);
+  const inicialNombre=escapeHTML((o.nombre||'').charAt(0));
+  const inicialApellido=escapeHTML((o.apellido||'').charAt(0));
   navigate('operadora-ficha');
   document.getElementById('fichaOpContent').innerHTML=`
     <div class="ficha-header">
       <div class="ficha-header-left">
-        <div class="ficha-avatar op">${o.nombre.charAt(0)}${o.apellido.charAt(0)}</div>
-        <div class="ficha-title"><h2>${o.nombre} ${o.apellido}</h2><p>${o.gabinete||''} · ${o.ciudad}, ${o.departamento}</p></div>
+        <div class="ficha-avatar op">${inicialNombre}${inicialApellido}</div>
+        <div class="ficha-title"><h2>${nombreCompleto}</h2><p>${escapeHTML(o.gabinete||'')} · ${escapeHTML(o.ciudad)}, ${escapeHTML(o.departamento)}</p></div>
       </div>
       <div class="ficha-actions">
         ${badgeOp(o.estado)}
+        ${typeof canView==='function'&&canView('reservas')?`<button class="btn-add" onclick="openResModalForOperadora(${o.id})">${isOperadoraUser()?'Solicitar reserva':'Nueva reserva'}</button>`:''}
         ${canEdit()?`<button class="btn-secondary" onclick="openOpModal(${o.id})">✏️ Editar</button>`:''}
+        ${isSuperAdmin()?`<button class="btn-secondary" onclick="deleteOperadora(${o.id})" style="color:var(--red)">Eliminar</button>`:''}
       </div>
     </div>
     <div class="ficha-grid">
       <div class="info-card">
         <h4>📋 Datos Personales</h4>
-        ${ir('Nombre completo',o.nombre+' '+o.apellido)}${ir('Email',o.email||'—')}
-        ${ir('WhatsApp',o.whatsapp||'—')}${ir('Instagram',o.instagramUsuario?('@'+String(o.instagramUsuario).replace(/^@/,'')):'—')}
+        ${ir('Nombre completo',nombreCompleto)}${ir('Email',escapeHTML(o.email||'—'))}
+        ${ir('WhatsApp',escapeHTML(o.whatsapp||'—'))}${ir('Instagram',escapeHTML(o.instagramUsuario?('@'+String(o.instagramUsuario).replace(/^@/,'')):'—'))}
         ${ir('Fecha de alta',fmtDate(o.fechaAlta))}${ir('Estado',badgeOp(o.estado))}
-        ${ir('Nivel',`<span class="badge badge-blue">${o.nivel}</span>`)}
+        ${ir('Nivel',`<span class="badge badge-blue">${escapeHTML(o.nivel)}</span>`)}
       </div>
       <div class="info-card">
         <h4>📍 Ubicación & Entrega</h4>
-        ${ir('Gabinete',o.gabinete||'—')}${ir('Ciudad',o.ciudad)}
-        ${ir('Departamento',o.departamento)}${ir('País',o.pais)}
+        ${ir('Gabinete',escapeHTML(o.gabinete||'—'))}${ir('Ciudad',escapeHTML(o.ciudad))}
+        ${ir('Departamento',escapeHTML(o.departamento))}${ir('País',escapeHTML(o.pais))}
         ${(()=>{
           const direcciones=(o.direccionesEntrega&&o.direccionesEntrega.length)?o.direccionesEntrega:(o.direccionEntrega?[{direccion:o.direccionEntrega,tipo:o.tipoDireccion,principal:true}]:[]);
           if(!direcciones.length)return ir('📦 Direcciones de entrega','<span style="color:var(--red);font-size:12px">⚠️ Sin dirección</span>');
-          return ir('📦 Direcciones de entrega',direcciones.map(d=>`<div style="margin-bottom:6px"><span style="color:var(--accent);font-weight:600">${d.direccion}</span>${d.localidad?` · ${d.localidad}`:''}${d.departamento?` · ${d.departamento}`:''}${d.principal?'<span class="badge badge-blue" style="margin-left:8px">Principal</span>':''}</div>`).join(''));
+          return ir('📦 Direcciones de entrega',direcciones.map(d=>`<div style="margin-bottom:6px"><span style="color:var(--accent);font-weight:600">${escapeHTML(d.direccion)}</span>${d.localidad?` · ${escapeHTML(d.localidad)}`:''}${d.departamento?` · ${escapeHTML(d.departamento)}`:''}${d.principal?'<span class="badge badge-blue" style="margin-left:8px">Principal</span>':''}</div>`).join(''));
         })()}
       </div>
       <div class="info-card">
         <h4>🧾 Equipos que alquila</h4>
-        ${(o.equiposAlquila||[]).length?(o.equiposAlquila||[]).map(e=>`<div class="dash-list-item"><div><div class="name">${e.equipo}</div><div class="sub">${e.jornadas||0} jornada${parseInt(e.jornadas||0,10)===1?'':'s'}${e.obs?' · '+e.obs:''}</div></div><strong>${(parseFloat(e.valor)||0).toLocaleString()} UYU</strong></div>`).join(''):`<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin equipos cargados.</div>`}
+        ${(o.equiposAlquila||[]).length?(o.equiposAlquila||[]).map(e=>`<div class="dash-list-item"><div><div class="name">${escapeHTML(e.equipo)}</div><div class="sub">${parseInt(e.jornadas||0,10)||0} jornada${parseInt(e.jornadas||0,10)===1?'':'s'}${e.obs?' · '+escapeHTML(e.obs):''}</div></div><strong>${(parseFloat(e.valor)||0).toLocaleString()} UYU</strong></div>`).join(''):`<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin equipos cargados.</div>`}
       </div>
       <div class="info-card">
         <h4>📅 Reservas (${reservas.length})</h4>
         ${reservas.length?reservas.slice(0,5).map(r=>{
           const maq=getMaq(r.maquinaId);
-          return `<div class="dash-list-item"><div><div class="name">${maq?maq.nombre:'—'}</div><div class="sub">${fmtDate(r.fechaInicio)} → ${fmtDate(r.fechaFin)}</div></div><div style="display:flex;gap:6px;align-items:center">${badgeRes(r.estado)}<button class="action-btn" onclick="showResFicha(${r.id})">Ver</button></div></div>`;
+          return `<div class="dash-list-item"><div><div class="name">${escapeHTML(maq?maq.nombre:'—')}</div><div class="sub">${fmtDate(r.fechaInicio)} → ${fmtDate(r.fechaFin)}</div></div><div style="display:flex;gap:6px;align-items:center">${badgeRes(r.estado)}<button class="action-btn" onclick="showResFicha(${r.id})">Ver</button></div></div>`;
         }).join(''):`<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin reservas registradas.</div>`}
       </div>
-      ${(()=>{
-        if(!(typeof canView==='function'&&canView('pagos'))) return '';
-        const m=_calcMetricasOp(o.id);
-        const niv=_nivelActividadOp(m.diasInactiva,m.totalReservas);
-        return `<div class="info-card">
-          <h4>📊 Actividad & Rentabilidad</h4>
-          ${ir('Ingresos cobrados',`<strong style="color:var(--green)">${m.cobrado>0?_fmtMonto(m.cobrado):'$0 UYU'}</strong>`)}
-          ${ir('Saldo pendiente',`<strong style="color:${m.pendiente>0?'var(--yellow)':'var(--text2)'}">${m.pendiente>0?_fmtMonto(m.pendiente):'$0'}</strong>`)}
-          ${ir('Total reservas',`${m.totalReservas} reservas · ${m.reservasActivas} activa${m.reservasActivas!==1?'s':''}`)}
-          ${ir('Última reserva',m.ultimaReserva?fmtDate(m.ultimaReserva):'Sin reservas')}
-          ${ir('Estado actividad',`<span style="color:${niv.color};font-weight:700">${niv.icon} ${niv.txt}${m.diasInactiva!==null?' ('+m.diasInactiva+'d)':''}</span>`)}
-          ${m.tieneDeuda?`<div class="alert-banner danger" style="margin-top:8px;padding:8px 12px"><span class="ab-icon">🚨</span><strong>Deuda vencida</strong> — Regularizar urgente.</div>`:''}
-        </div>`;
-      })()}
       <div class="info-card full">
         <h4>📝 Observaciones Internas</h4>
-        <div class="obs-text">${o.obs||'Sin observaciones.'}</div>
+        <div class="obs-text">${escapeHTML(o.obs||'Sin observaciones.')}</div>
       </div>
       ${isSuperAdmin()?`<div class="info-card full">
         <h4>💳 Resumen Financiero</h4>
@@ -320,8 +261,11 @@ function showOpFicha(id){
       </div>`:''}
       <div class="info-card full" id="docsPanel_${o.id}">
         <h4 style="display:flex;align-items:center;justify-content:space-between">
-          🪨 Documentos & Contrato
-          ${o.portalToken?`<button class="btn-add" style="font-size:11px;padding:4px 10px" onclick="copyPortalLink('${o.portalToken}')">📋 Copiar Link Portal</button>`:'<span style="font-size:11px;color:var(--text3)">Sin token</span>'}
+          🪪 Documentos & Contrato
+          <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            ${canEdit()?`<button class="btn-secondary" style="font-size:11px;padding:4px 10px" onclick="pedirFaltantesOperadora(${o.id})">Pedir faltantes</button>`:''}
+            ${o.portalToken?`<button class="btn-add" style="font-size:11px;padding:4px 10px" onclick="copyPortalLink('${o.portalToken}')">📋 Copiar Link Portal</button>`:'<span style="font-size:11px;color:var(--text3)">Sin token</span>'}
+          </span>
         </h4>
         <div id="docsBody_${o.id}" style="padding:8px 0;color:var(--text3);font-size:13px">Cargando documentos...</div>
       </div>
@@ -381,5 +325,22 @@ async function saveOperadora(){
   }catch(e){showToast('\u274c Error: '+e.message,'error');}
 }
 async function deleteOperadora(id){
-  showToast('La eliminación de operadoras está deshabilitada. Cambiá el estado a Inactiva o Suspendida.','warn');
+  const ops=DB.get('operadoras')||[];
+  const op=ops.find(o=>parseInt(o.id)===parseInt(id));
+  const nombre=op?`${op.nombre||''} ${op.apellido||''}`.trim():`operadora #${id}`;
+  if(!isSuperAdmin()){
+    showToast('Solo el administrador principal puede eliminar operadoras.','warn');
+    return;
+  }
+  if(!confirm(`¿Eliminar definitivamente a ${nombre}? Esta acción quita su ficha y desactiva su usuario de acceso.`))return;
+  try{
+    await api('/api/operadoras/'+parseInt(id),{method:'DELETE'});
+    const actualizadas=await api('/api/operadoras');
+    DB.set('operadoras',actualizadas.map(mapOperadoraLocal));
+    showToast('✅ Operadora eliminada');
+    navigate('operadoras');
+    renderOperadoras();
+  }catch(e){
+    showToast('❌ '+e.message,'error');
+  }
 }

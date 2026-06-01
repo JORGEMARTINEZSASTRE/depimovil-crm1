@@ -64,15 +64,15 @@ function runGlobalSearch(q){
         action:()=>{closeSearch();showLeadFicha(l.id);}});
   });
 
-  if(!results.length){el.innerHTML='<div class="search-hint">Sin resultados para "'+q+'"</div>';return;}
+  if(!results.length){el.innerHTML='<div class="search-hint">Sin resultados para "'+escapeHTML(q)+'"</div>';return;}
   el.innerHTML=results.slice(0,12).map((r,i)=>`
     <div class="search-result-item" onclick="searchResultActions[${i}]()">
-      <div class="search-result-icon">${r.icon}</div>
+      <div class="search-result-icon">${escapeHTML(r.icon)}</div>
       <div class="search-result-body">
-        <div class="search-result-title">${r.title}</div>
-        <div class="search-result-sub">${r.sub}</div>
+        <div class="search-result-title">${escapeHTML(r.title)}</div>
+        <div class="search-result-sub">${escapeHTML(r.sub)}</div>
       </div>
-      <span class="search-result-badge">${r.badge}</span>
+      <span class="search-result-badge">${escapeHTML(r.badge)}</span>
     </div>`).join('');
   // Store action refs
   window.searchResultActions = results.slice(0,12).map(r=>r.action);

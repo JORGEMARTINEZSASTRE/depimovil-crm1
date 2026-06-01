@@ -20,10 +20,10 @@ function renderAuditoria(){
   body.innerHTML=filtered.map(e=>`
     <div class="audit-row">
       <div style="min-width:130px;font-size:11px;color:var(--text3)">${fmtDate(e.ts?.split('T')[0]||'')} ${e.ts?.split('T')[1]?.slice(0,5)||''}</div>
-      <div><span class="audit-action audit-${e.action}">${e.action}</span></div>
-      <div style="min-width:90px;font-size:12px;color:var(--text2)">${e.entidad||'—'} ${e.entidadId?'#'+e.entidadId:''}</div>
-      <div style="flex:1;font-size:12px;color:var(--text2)">${e.resumen||''}</div>
-      <div style="font-size:11px;color:var(--text3);white-space:nowrap">${(e.user||'').split('@')[0]}</div>
+      <div><span class="audit-action audit-${escapeAttr(e.action)}">${escapeHTML(e.action)}</span></div>
+      <div style="min-width:90px;font-size:12px;color:var(--text2)">${escapeHTML(e.entidad||'—')} ${e.entidadId?'#'+escapeHTML(e.entidadId):''}</div>
+      <div style="flex:1;font-size:12px;color:var(--text2)">${escapeHTML(e.resumen||'')}</div>
+      <div style="font-size:11px;color:var(--text3);white-space:nowrap">${escapeHTML((e.user||'').split('@')[0])}</div>
     </div>`).join('');
 }
 function filterAudit(v){auditFilter.search=v;renderAuditoria();}

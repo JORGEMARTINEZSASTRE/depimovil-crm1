@@ -53,6 +53,26 @@ async function findLinkedRecord(whatsapp, rol) {
   return null;
 }
 
+async function findInternalWhatsappUser(whatsapp) {
+  const variants = phoneVariants(whatsapp);
+  const { rows } = await pool.query(
+    `SELECT * FROM usuarios
+     WHERE regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
+       AND rol IN ('comercial', 'operaciones', 'superadmin', 'administrador')
+       AND status = $2
+     ORDER BY
+       CASE rol
+         WHEN 'comercial' THEN 1
+         WHEN 'operaciones' THEN 2
+         ELSE 3
+       END,
+       id ASC
+     LIMIT 1`,
+    [variants, 'activo']
+  );
+  return rows[0] || null;
+}
+
 async function findOrCreateWhatsappUser(whatsapp, rol) {
   rol = normalizeRole(rol);
   if (!LOGIN_ROLES.includes(rol)) return null;
@@ -65,6 +85,11 @@ async function findOrCreateWhatsappUser(whatsapp, rol) {
     [variants, rol, 'activo']
   );
   if (existing.length) return existing[0];
+
+  if (rol === 'operadora') {
+    const internalUser = await findInternalWhatsappUser(whatsapp);
+    if (internalUser) return internalUser;
+  }
 
   if (!['operadora', 'transportista'].includes(rol)) return null;
 
@@ -122,16 +147,53 @@ function cleanText(value, max = 500) {
   return String(value || '').trim().slice(0, max);
 }
 
+function fitVarchar(value, max) {
+  return String(value || '').trim().slice(0, max);
+}
+
+function nivelFromExperiencia(value) {
+  const text = String(value || '').trim();
+  if (!text) return 'Inicial';
+  if (/profesional|formadora|avanzada/i.test(text)) return 'Experta';
+  if (/más de 5|mas de 5|3 a 5/i.test(text)) return 'Avanzado';
+  if (/1 a 3|menos de 1/i.test(text)) return 'Intermedio';
+  return 'Inicial';
+}
+
 function buildOperadoraRegistroObs(payload) {
   const parts = [
     'Registro web de operadora pendiente de revisión administrativa.',
     `Cédula/DNI: ${payload.documento}`,
+    `Instagram: ${payload.instagram_usuario || 'Sin indicar'}`,
+    `Estética/Spa: ${payload.gabinete || 'Sin indicar'}`,
     `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
     `Tratamientos: ${(payload.tratamientos || []).join(', ') || 'Sin indicar'}${payload.tratamientos_otros ? ` | Otros: ${payload.tratamientos_otros}` : ''}`,
     `Lugares de trabajo: ${payload.lugares_trabajo || 'Sin indicar'}`,
     `Otros trabajos no estéticos: ${payload.trabajo_no_estetico ? (payload.trabajo_no_estetico_detalle || 'Sí') : 'No'}`
   ];
   return parts.join('\n');
+}
+
+function normalizeMetadata(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try { return JSON.parse(value); } catch (err) { return {}; }
+}
+
+async function guardarModuloRevision(client, usuarioId, row, modulo, estado, obs) {
+  const metadata = normalizeMetadata(row.metadata);
+  metadata.review_modulos = metadata.review_modulos || {};
+  metadata.review_modulos[modulo] = {
+    estado,
+    obs: obs || null,
+    actualizado_en: new Date().toISOString(),
+  };
+  await client.query(
+    `UPDATE usuarios
+     SET metadata=$1, revision_admin_obs=$2, updated_at=NOW()
+     WHERE id=$3`,
+    [metadata, obs || row.revision_admin_obs || null, usuarioId]
+  );
 }
 
 function mensajeCodigoLogin(codigo) {
@@ -182,12 +244,18 @@ async function notifyAdminNuevaOperadora(payload, operadoraId) {
 
     const mensaje = [
         'Nueva operadora registrada en DepiMóvil.',
-        `ID: ${operadoraId}`,
+        `ID: OP-${operadoraId}`,
         `Nombre: ${payload.nombre} ${payload.apellido}`,
         `WhatsApp: ${payload.whatsapp}`,
         `Ciudad: ${payload.ciudad}${payload.departamento ? ` / ${payload.departamento}` : ''}`,
         `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
-        'Estado: activa, pendiente de revisión administrativa.'
+        'Estado: pendiente de autorización administrativa.',
+        '',
+        'Podés responder por WhatsApp:',
+        `APROBAR OP-${operadoraId}`,
+        `PEDIR DOCS OP-${operadoraId} subir cédula frente y dorso`,
+        `OBSERVAR OP-${operadoraId} aclarar datos`,
+        `RECHAZAR OP-${operadoraId} motivo`
       ].join('\n');
 
     for (const telefono of telefonos) {
@@ -282,6 +350,35 @@ router.get('/me', auth, async (req, res) => {
 });
 
 /**
+ * PUT /api/auth/me — actualizar datos propios no sensibles
+ */
+router.put('/me', auth, async (req, res) => {
+  try {
+    const nombre = cleanText(req.body.nombre, 120);
+    if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+
+    const { rows } = await pool.query(
+      `UPDATE usuarios
+       SET nombre = $1, updated_at = NOW()
+       WHERE id = $2 AND status = 'activo'
+       RETURNING id, nombre, email, rol, operadora_id, transportista_id, whatsapp, status`,
+      [nombre, req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    await pool.query(
+      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+      ['UPDATE_PROFILE', 'usuario', req.user.id, 'Perfil propio actualizado', req.user.id, req.ip]
+    ).catch(() => {});
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+/**
  * POST /api/auth/whatsapp/request
  * Body: { whatsapp, rol }
  */
@@ -297,6 +394,9 @@ router.post('/whatsapp/request', async (req, res) => {
     const user = await findOrCreateWhatsappUser(whatsapp, rol);
     if (!user) {
       return res.status(404).json({ error: rol === 'transportista' ? 'Transportista no habilitado' : rol === 'operadora' ? 'Operadora no encontrada' : 'Usuario no encontrado o sin WhatsApp cargado' });
+    }
+    if (rol === 'operadora' && (user.requiere_revision_admin || ['pendiente', 'documentos_solicitados', 'contrato_pendiente', 'habilitacion_pendiente', 'observada'].includes(user.revision_admin_estado))) {
+      return res.status(403).json({ error: 'Tu alta está pendiente de autorización. Te avisamos por WhatsApp cuando quede habilitada.' });
     }
 
     const recent = await pool.query(
@@ -348,16 +448,20 @@ router.post('/whatsapp/verify', async (req, res) => {
     const { rows } = await pool.query(
       `SELECT
          s.id AS sesion_id, s.codigo_hash, s.attempts,
-         u.id AS user_id, u.nombre, u.email, u.rol, u.operadora_id, u.transportista_id, u.whatsapp
+         u.id AS user_id, u.nombre, u.email, u.rol, u.operadora_id, u.transportista_id, u.whatsapp,
+         u.requiere_revision_admin, u.revision_admin_estado
        FROM sesiones_whatsapp s
        JOIN usuarios u ON u.id = s.usuario_id
-       WHERE s.whatsapp=$1 AND s.rol_solicitado=$2 AND s.used_at IS NULL AND s.expires_at > NOW()
+       WHERE s.whatsapp=$1 AND s.rol_solicitado=$2 AND u.status = 'activo' AND s.used_at IS NULL AND s.expires_at > NOW()
        ORDER BY s.created_at DESC LIMIT 1`,
       [whatsapp, rol]
     );
     if (!rows.length) return res.status(401).json({ error: 'Código vencido o no solicitado' });
 
     const row = rows[0];
+    if (row.rol === 'operadora' && (row.requiere_revision_admin || ['pendiente', 'documentos_solicitados', 'contrato_pendiente', 'habilitacion_pendiente', 'observada'].includes(row.revision_admin_estado))) {
+      return res.status(403).json({ error: 'Tu alta está pendiente de autorización. Te avisamos por WhatsApp cuando quede habilitada.' });
+    }
     if (row.attempts >= 5) return res.status(429).json({ error: 'Demasiados intentos' });
     const valid = await bcrypt.compare(codigo, row.codigo_hash);
     if (!valid) {
@@ -400,6 +504,8 @@ router.post('/operadora/register', async (req, res) => {
       apellido: cleanText(req.body.apellido, 120),
       whatsapp: normalizeWhatsapp(req.body.whatsapp),
       documento: String(req.body.documento || '').replace(/\D/g, '').slice(0, 30),
+      instagram_usuario: cleanText(req.body.instagram_usuario, 120).replace(/^@+/, ''),
+      gabinete: cleanText(req.body.gabinete, 180),
       ciudad: cleanText(req.body.ciudad, 120),
       departamento: cleanText(req.body.departamento, 120),
       lugares_trabajo: cleanText(req.body.lugares_trabajo, 1000),
@@ -421,23 +527,47 @@ router.post('/operadora/register', async (req, res) => {
 
     const variants = phoneVariants(payload.whatsapp);
     const existingUser = await client.query(
-      `SELECT id FROM usuarios
-       WHERE rol = 'operadora' AND regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
+      `SELECT id, nombre, whatsapp, requiere_revision_admin, revision_admin_estado
+       FROM usuarios
+       WHERE rol = 'operadora'
+         AND status = 'activo'
+         AND operadora_id IS NOT NULL
+         AND regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
        LIMIT 1`,
       [variants]
     );
     if (existingUser.rows.length) {
-      return res.status(409).json({ error: 'Ese WhatsApp ya tiene usuario de operadora' });
+      const user = existingUser.rows[0];
+      if (user.requiere_revision_admin || ['pendiente', 'documentos_solicitados', 'observada', 'contrato_pendiente', 'habilitacion_pendiente'].includes(user.revision_admin_estado)) {
+        return res.json({
+          ok: true,
+          whatsapp: payload.whatsapp,
+          pendiente_autorizacion: true,
+          ya_registrada: true,
+        });
+      }
+      return res.json({
+        ok: true,
+        whatsapp: payload.whatsapp,
+        ya_habilitada: true,
+      });
     }
 
     const existingOp = await client.query(
-      `SELECT id FROM operadoras
+      `SELECT id, estado FROM operadoras
        WHERE regexp_replace(coalesce(whatsapp, telefono, ''), '[^0-9]', '', 'g') = ANY($1)
        LIMIT 1`,
       [variants]
     );
     if (existingOp.rows.length) {
-      return res.status(409).json({ error: 'Ese WhatsApp ya está registrado como operadora' });
+      if (!['inactiva', 'suspendida'].includes(existingOp.rows[0].estado)) {
+        return res.json({
+          ok: true,
+          whatsapp: payload.whatsapp,
+          ya_habilitada: true,
+        });
+      }
+      return res.status(409).json({ error: 'Ese WhatsApp ya tiene una ficha de operadora. Contactá a administración para reactivar el acceso.' });
     }
 
     const obs = buildOperadoraRegistroObs(payload);
@@ -452,22 +582,22 @@ router.post('/operadora/register', async (req, res) => {
       [
         payload.nombre,
         payload.apellido,
-        payload.tratamientos.includes('Peluquería') ? 'Peluquería' : '',
-        payload.ciudad,
-        payload.departamento,
+        fitVarchar(payload.gabinete || (payload.tratamientos.includes('Peluquería') ? 'Peluquería' : ''), 150),
+        fitVarchar(payload.ciudad, 100),
+        fitVarchar(payload.departamento, 60),
         'Uruguay',
         payload.whatsapp,
         null,
-        '',
+        fitVarchar(payload.instagram_usuario, 100) || null,
         'activa',
-        payload.experiencia || 'Inicial',
+        nivelFromExperiencia(payload.experiencia),
         obs,
-        payload.lugares_trabajo || null,
+        fitVarchar(payload.lugares_trabajo, 250) || null,
         'trabajo',
         JSON.stringify(payload.lugares_trabajo ? [{
           direccion: payload.lugares_trabajo,
-          localidad: payload.ciudad,
-          departamento: payload.departamento,
+          localidad: fitVarchar(payload.ciudad, 100),
+          departamento: fitVarchar(payload.departamento, 60),
           pais: 'Uruguay',
           referencia: '',
           tipo: 'trabajo',
@@ -489,15 +619,39 @@ router.post('/operadora/register', async (req, res) => {
       trabajo_no_estetico_detalle: payload.trabajo_no_estetico_detalle,
       documentos_identidad_requeridos: true
     };
-    const usuarioResult = await client.query(
-      `INSERT INTO usuarios (
-        nombre, email, password_hash, rol, whatsapp, operadora_id, registro_origen,
-        requiere_revision_admin, revision_admin_estado, metadata
-      )
-       VALUES ($1,$2,$3,'operadora',$4,$5,'registro_web_operadora',true,'pendiente',$6)
-       RETURNING id, nombre, email, rol, operadora_id, whatsapp`,
-      [`${payload.nombre} ${payload.apellido}`.trim(), email, passwordHash, payload.whatsapp, operadora.id, metadata]
+    const nombreUsuario = `${payload.nombre} ${payload.apellido}`.trim();
+    let usuarioResult;
+    const { rows: reusableUsers } = await client.query(
+      `SELECT id FROM usuarios
+       WHERE rol='operadora'
+         AND operadora_id IS NULL
+         AND regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
+       ORDER BY id DESC
+       LIMIT 1`,
+      [variants]
     );
+    if (reusableUsers.length) {
+      usuarioResult = await client.query(
+        `UPDATE usuarios
+         SET nombre=$1, email=$2, password_hash=$3, whatsapp=$4, operadora_id=$5,
+             registro_origen='registro_web_operadora', status='activo',
+             requiere_revision_admin=true, revision_admin_estado='pendiente',
+             revision_admin_obs=NULL, metadata=$6, updated_at=NOW()
+         WHERE id=$7
+         RETURNING id, nombre, email, rol, operadora_id, whatsapp`,
+        [nombreUsuario, email, passwordHash, payload.whatsapp, operadora.id, metadata, reusableUsers[0].id]
+      );
+    } else {
+      usuarioResult = await client.query(
+        `INSERT INTO usuarios (
+          nombre, email, password_hash, rol, whatsapp, operadora_id, registro_origen,
+          requiere_revision_admin, revision_admin_estado, metadata
+        )
+         VALUES ($1,$2,$3,'operadora',$4,$5,'registro_web_operadora',true,'pendiente',$6)
+         RETURNING id, nombre, email, rol, operadora_id, whatsapp`,
+        [nombreUsuario, email, passwordHash, payload.whatsapp, operadora.id, metadata]
+      );
+    }
     await client.query(
       'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, ip) VALUES ($1,$2,$3,$4,$5)',
       ['REGISTRO_OPERADORA', 'operadora', operadora.id, `${payload.nombre} ${payload.apellido} — ${payload.whatsapp}`, req.ip]
@@ -505,33 +659,12 @@ router.post('/operadora/register', async (req, res) => {
     await client.query('COMMIT');
 
     await notifyAdminNuevaOperadora(payload, operadora.id);
-    let codigoEnviado = false;
-    let codigoError = null;
-    try {
-      const { mensaje } = await crearSesionCodigoWhatsapp({
-        whatsapp: payload.whatsapp,
-        rol: 'operadora',
-        usuarioId: usuarioResult.rows[0].id,
-        ip: req.ip,
-        userAgent: req.headers['user-agent'] || '',
-      });
-      const envio = await enviarOEncolarWhatsapp({
-        telefono: payload.whatsapp,
-        mensaje,
-        tipo: 'codigo_login_operadora',
-        operadoraId: operadora.id,
-      });
-      codigoEnviado = envio.enviado;
-      codigoError = envio.error;
-    } catch (codeErr) {
-      codigoError = codeErr.message || 'No se pudo enviar el código';
-      console.error('Operadora register auto-code error:', codeErr);
-    }
     res.status(201).json({
       ok: true,
       whatsapp: payload.whatsapp,
-      codigo_enviado: codigoEnviado,
-      codigo_error: codigoError,
+      pendiente_autorizacion: true,
+      codigo_enviado: false,
+      codigo_error: null,
       operadora,
       user: publicUser(usuarioResult.rows[0])
     });
@@ -563,6 +696,7 @@ router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'
       LEFT JOIN operadoras o ON o.id = u.operadora_id
       WHERE u.rol = 'operadora'
         AND (u.registro_origen = 'registro_web_operadora' OR u.requiere_revision_admin = true)
+        AND COALESCE(u.revision_admin_estado, '') <> 'eliminada'
     `;
     if (estado) {
       params.push(estado);
@@ -579,7 +713,7 @@ router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'
 
 /**
  * POST /api/auth/operadoras/revision/:usuarioId
- * Acciones: aprobar, observar, rechazar, pedir_documentos, eliminar.
+ * Acciones: aprobar, observar, rechazar, pedir_documentos, pedir_contrato, pedir_habilitacion, acciones por módulo, eliminar.
  */
 router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const client = await pool.connect();
@@ -587,7 +721,11 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     const usuarioId = parseInt(req.params.usuarioId, 10);
     const accion = cleanText(req.body.accion, 40);
     const obs = cleanText(req.body.obs, 1000);
-    const acciones = ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'eliminar'];
+    const acciones = [
+      'aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion',
+      'aceptar_documentos', 'denegar_documentos', 'aceptar_contrato', 'denegar_contrato',
+      'aceptar_habilitacion', 'denegar_habilitacion', 'eliminar'
+    ];
     if (!usuarioId || !acciones.includes(accion)) {
       return res.status(400).json({ error: 'Acción inválida' });
     }
@@ -602,13 +740,46 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     if (!rows.length) return res.status(404).json({ error: 'Registro no encontrado' });
     const row = rows[0];
 
+    const moduloAcciones = {
+      aceptar_documentos: ['cedula', 'aceptada', 'documentos aceptados'],
+      denegar_documentos: ['cedula', 'denegada', 'documentos denegados'],
+      aceptar_contrato: ['contrato', 'aceptada', 'contrato aceptado'],
+      denegar_contrato: ['contrato', 'denegada', 'contrato denegado'],
+      aceptar_habilitacion: ['habilitacion', 'aceptada', 'habilitación aceptada'],
+      denegar_habilitacion: ['habilitacion', 'denegada', 'habilitación denegada'],
+    };
+    if (moduloAcciones[accion]) {
+      const [modulo, estadoModulo, detalle] = moduloAcciones[accion];
+      await client.query('BEGIN');
+      await guardarModuloRevision(client, usuarioId, row, modulo, estadoModulo, obs);
+      await client.query(
+        'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+        [`REV_${accion.toUpperCase()}`.slice(0, 20), 'operadora', row.operadora_id || usuarioId, obs || detalle, req.user.id, req.ip]
+      );
+      await client.query('COMMIT');
+      return res.json({ ok: true, modulo, estado: estadoModulo });
+    }
+
     if (!row.operadora_id) {
       if (accion === 'aprobar') {
         return res.status(400).json({ error: 'No se puede aprobar: el pedido no tiene ficha de operadora vinculada' });
       }
       await client.query('BEGIN');
       if (accion === 'eliminar') {
-        await client.query('DELETE FROM usuarios WHERE id = $1 AND rol = $2', [usuarioId, 'operadora']);
+        const deletedEmail = `eliminado.${usuarioId}.${Date.now()}@deleted.depimovil.local`;
+        await client.query(
+          `UPDATE usuarios
+           SET whatsapp = NULL,
+               email = $1,
+               status = 'inactivo',
+               requiere_revision_admin = false,
+               revision_admin_estado = 'eliminada',
+               revision_admin_obs = $2,
+               operadora_id = NULL,
+               updated_at = NOW()
+           WHERE id = $3 AND rol = 'operadora'`,
+          [deletedEmail, obs || 'Pedido de alta sin ficha de operadora eliminado', usuarioId]
+        );
         await client.query(
           'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
           ['REV_HUERF_DEL', 'usuario', usuarioId, obs || 'Pedido de alta sin ficha de operadora eliminado', req.user.id, req.ip]
@@ -619,7 +790,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
       const nuevoEstadoHuerfano = accion === 'rechazar'
         ? 'rechazada'
         : (accion === 'observar' ? 'observada' : 'documentos_solicitados');
-      const nuevoStatusHuerfano = accion === 'rechazar' ? 'suspendido' : row.status;
+      const nuevoStatusHuerfano = accion === 'rechazar' ? 'inactivo' : row.status;
       await client.query(
         `UPDATE usuarios
          SET requiere_revision_admin = $1,
@@ -643,14 +814,23 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
       observar: 'observada',
       rechazar: 'rechazada',
       pedir_documentos: 'documentos_solicitados',
+      pedir_contrato: 'contrato_pendiente',
+      pedir_habilitacion: 'habilitacion_pendiente',
       eliminar: 'eliminada'
     };
     if (accion === 'eliminar') {
       return res.status(400).json({ error: 'Este pedido tiene ficha vinculada. Rechazalo o cambiá el estado de la operadora.' });
     }
-    const requiereRevision = ['observar', 'pedir_documentos'].includes(accion);
+    const requiereRevision = ['observar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion);
     await client.query('BEGIN');
     const portalToken = await ensurePortalToken(client, row.operadora_id, row.portal_token);
+    if (accion === 'pedir_documentos') {
+      await guardarModuloRevision(client, usuarioId, row, 'cedula', 'pedida', obs);
+    } else if (accion === 'pedir_contrato') {
+      await guardarModuloRevision(client, usuarioId, row, 'contrato', 'pedida', obs);
+    } else if (accion === 'pedir_habilitacion') {
+      await guardarModuloRevision(client, usuarioId, row, 'habilitacion', 'pedida', obs);
+    }
     await client.query(
       `UPDATE usuarios
        SET requiere_revision_admin = $1,
@@ -664,20 +844,25 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
       await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['suspendida', row.operadora_id]);
     } else if (accion === 'aprobar') {
       await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['activa', row.operadora_id]);
+      await client.query('UPDATE usuarios SET status = $1, updated_at = NOW() WHERE id = $2', ['activo', usuarioId]);
     }
     await client.query(
       'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
-      [`REVISION_${accion.toUpperCase()}`, 'operadora', row.operadora_id, obs || estadoMap[accion], req.user.id, req.ip]
+      [`REV_${accion.toUpperCase()}`.slice(0, 20), 'operadora', row.operadora_id, obs || estadoMap[accion], req.user.id, req.ip]
     );
     await client.query('COMMIT');
 
     const wa = row.whatsapp || row.op_whatsapp;
-    if (wa && ['observar', 'rechazar', 'pedir_documentos'].includes(accion)) {
+    if (wa && ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion)) {
       const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${portalToken}`;
+      const contratoUrl = `${portalUrl}#contratos`;
       const mensajeMap = {
+        aprobar: `Tu alta de DepiMóvil fue autorizada. Ya podés ingresar con tu WhatsApp y pedir el código de acceso.`,
         observar: `DepiMóvil revisó tu registro y necesita aclarar algunos datos.${obs ? `\n\nObservación: ${obs}` : ''}`,
         rechazar: `DepiMóvil revisó tu registro y por ahora no quedó aprobado.${obs ? `\n\nMotivo: ${obs}` : ''}`,
-        pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${obs ? `\n\nNota: ${obs}` : ''}\n\nSubilos acá: ${portalUrl}`
+        pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${obs ? `\n\nNota: ${obs}` : ''}\n\nSubilos acá: ${portalUrl}`,
+        pedir_contrato: `DepiMóvil necesita que firmes digitalmente el contrato de alquiler para completar tu alta o confirmar tu alquiler.${obs ? `\n\nNota: ${obs}` : ''}\n\nFirmalo acá: ${contratoUrl}`,
+        pedir_habilitacion: `DepiMóvil necesita completar tu habilitación técnica antes de dejar tu alta finalizada.${obs ? `\n\nNota: ${obs}` : ''}`
       };
       await enviarMensaje(wa, mensajeMap[accion]);
     }
@@ -708,6 +893,9 @@ router.post('/register', auth, requireRole('superadmin'), async (req, res) => {
 
     if (!LOGIN_ROLES.includes(rol)) {
       return res.status(400).json({ error: 'Rol inválido' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
 
     // Verificar email único
@@ -748,7 +936,8 @@ router.put('/password', auth, async (req, res) => {
       return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
     }
 
-    const { rows } = await pool.query('SELECT password_hash FROM usuarios WHERE id = $1', [req.user.id]);
+    const { rows } = await pool.query('SELECT password_hash FROM usuarios WHERE id = $1 AND status = $2', [req.user.id, 'activo']);
+    if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
     const valid = await bcrypt.compare(current_password, rows[0].password_hash);
     if (!valid) {
       return res.status(401).json({ error: 'Contraseña actual incorrecta' });
@@ -756,6 +945,10 @@ router.put('/password', auth, async (req, res) => {
 
     const hash = await bcrypt.hash(new_password, 12);
     await pool.query('UPDATE usuarios SET password_hash = $1, updated_at = NOW() WHERE id = $2', [hash, req.user.id]);
+    await pool.query(
+      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+      ['PASSWORD_CHANGE', 'usuario', req.user.id, 'Contraseña propia actualizada', req.user.id, req.ip]
+    ).catch(() => {});
 
     res.json({ message: 'Contraseña actualizada' });
   } catch (err) {

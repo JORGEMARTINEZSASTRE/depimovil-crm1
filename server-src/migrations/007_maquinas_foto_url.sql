@@ -1,0 +1,2 @@
+ALTER TABLE maquinas
+  ADD COLUMN IF NOT EXISTS foto_url TEXT;

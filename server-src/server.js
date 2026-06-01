@@ -50,6 +50,8 @@ const loginLimiter = rateLimit({
   message: { error: 'Demasiados intentos de login' },
 });
 app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/whatsapp/request', loginLimiter);
+app.use('/api/auth/whatsapp/verify', loginLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '5mb' }));
@@ -62,6 +64,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/operadoras', require('./routes/operadoras'));
 app.use('/api/portal', require('./routes/portal'));
 app.use('/api/maquinas', require('./routes/maquinas'));
+app.use('/api/mantenimientos', require('./routes/mantenimientos'));
 app.use('/api/reservas', require('./routes/reservas'));
 app.use('/api/pagos', require('./routes/pagos'));
 app.use('/api/finanzas', require('./routes/finanzas'));
@@ -71,6 +74,7 @@ app.use('/api/transportistas', require('./routes/transportistas'));
 app.use('/api/webhook/whatsapp', require('./routes/whatsapp'));
 app.use('/api/contratos', require('./routes/contratos'));
 app.use('/api/permisos', require('./routes/permisos'));
+app.use('/api/automatizaciones', require('./routes/automatizaciones'));
 
 // Health check
 app.get('/api/health', (req, res) => {

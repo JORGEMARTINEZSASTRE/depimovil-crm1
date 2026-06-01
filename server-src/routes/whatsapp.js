@@ -26,6 +26,51 @@ const { auth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Por seguridad, el webhook entrante queda en modo escucha salvo activación explícita.
+function inboundMode() {
+  return String(process.env.WA_INBOUND_MODE || 'listen').toLowerCase();
+}
+
+function autoReplyEnabled() {
+  return ['true', '1', 'si', 'sí', 'yes'].includes(String(process.env.WA_AUTO_REPLY || 'false').toLowerCase());
+}
+
+function isBotMode() {
+  return inboundMode() === 'bot' && autoReplyEnabled();
+}
+
+async function ensureWhatsappCrmTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_messages (
+      id SERIAL PRIMARY KEY,
+      provider VARCHAR(50) DEFAULT 'meta',
+      provider_message_id VARCHAR(200),
+      direction VARCHAR(20) NOT NULL DEFAULT 'inbound',
+      phone VARCHAR(50) NOT NULL,
+      phone_norm VARCHAR(30) NOT NULL,
+      operadora_id INTEGER REFERENCES operadoras(id) ON DELETE SET NULL,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+      message_type VARCHAR(50),
+      body TEXT,
+      intent VARCHAR(100),
+      score_delta INTEGER DEFAULT 0,
+      raw_payload JSONB,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_whatsapp_messages_provider_id ON whatsapp_messages(provider_message_id) WHERE provider_message_id IS NOT NULL');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_phone_norm ON whatsapp_messages(phone_norm, created_at DESC)');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_phone_norm VARCHAR(30)');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_score INTEGER NOT NULL DEFAULT 0');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS ultimo_contacto TIMESTAMP');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS intencion_whatsapp VARCHAR(100)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_leads_whatsapp_phone_norm ON leads(whatsapp_phone_norm)');
+}
+
+const whatsappTablesReady = ensureWhatsappCrmTables().catch(err => {
+  console.error('Error preparando tablas WhatsApp CRM:', err.message);
+});
+
 // ═══════════════════════════════════
 // CRM OUTBOUND SEND
 // ═══════════════════════════════════
@@ -137,6 +182,9 @@ router.get('/status', auth, requireRole('superadmin', 'operaciones', 'comercial'
     phone_id_configurado: !!metaPhoneId || !!evoUrl,
     token_configurado: !!metaToken || !!evoKey,
     verify_token_configurado: true,
+    inbound_mode: inboundMode(),
+    auto_reply_enabled: autoReplyEnabled(),
+    modo_seguro_escucha: !isBotMode(),
   });
 });
 
@@ -220,7 +268,10 @@ router.get('/', (req, res) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  const verifyToken = process.env.WA_VERIFY_TOKEN || 'depimovil-webhook-2026';
+  const verifyToken = process.env.WA_VERIFY_TOKEN;
+  if (!verifyToken) {
+    return res.status(403).send('Webhook no configurado');
+  }
 
   if (mode === 'subscribe' && token === verifyToken) {
     console.log('✅ Webhook verificado por Meta');
@@ -246,6 +297,7 @@ router.post('/', async (req, res) => {
     const msg = value.messages[0];
     const phone = msg.from; // Número de la operadora
     const messageType = msg.type;
+    const messageId = msg.id || null;
 
     // Extraer texto del mensaje
     let texto = '';
@@ -258,12 +310,17 @@ router.post('/', async (req, res) => {
            || msg.interactive?.list_reply?.id
            || '';
     } else {
-      // Audio, imagen, etc — no procesamos
-      await enviarMensaje(phone, '📝 Por ahora solo puedo procesar mensajes de texto. Escribime lo que necesitás.');
+      await registrarMensajeEntrante({ phone, texto: '', messageType, messageId, rawPayload: msg });
+      if (isBotMode()) {
+        await enviarMensaje(phone, '📝 Por ahora solo puedo procesar mensajes de texto. Escribime lo que necesitás.');
+      }
       return;
     }
 
     if (!texto) return;
+
+    await registrarMensajeEntrante({ phone, texto, messageType, messageId, rawPayload: msg });
+    if (!isBotMode()) return;
 
     // Procesar el mensaje
     await procesarMensaje(phone, texto);
@@ -279,6 +336,9 @@ router.post('/', async (req, res) => {
 async function procesarMensaje(phone, texto) {
   const input = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const session = getSession(phone);
+
+  const accionAdmin = await procesarRevisionOperadoraAdmin(phone, texto);
+  if (accionAdmin.procesado) return;
 
   // ─── Buscar operadora por teléfono ───
   const operadora = await buscarOperadora(phone);
@@ -628,6 +688,366 @@ async function enviarReservas(phone, op) {
 // ═══════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════
+function normalizeWhatsapp(input) {
+  let digits = String(input || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = '598' + digits.slice(1);
+  if (!digits.startsWith('598') && digits.length <= 9) digits = '598' + digits;
+  return '+' + digits;
+}
+
+function phoneVariants(whatsapp) {
+  const digits = normalizeWhatsapp(whatsapp).replace(/\D/g, '');
+  const variants = new Set([digits]);
+  if (digits.startsWith('598')) {
+    variants.add(digits.slice(3));
+    variants.add('0' + digits.slice(3));
+  }
+  return [...variants];
+}
+
+function normalizeWhatsappDigits(input) {
+  return normalizeWhatsapp(input).replace(/\D/g, '');
+}
+
+function inferirIntencionWhatsApp(texto) {
+  const input = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const reglas = [
+    { intent: 'cierre_pago', score: 40, tecnologia: null, words: ['sena', 'seña', 'pago', 'transferencia', 'comprobante', 'deposito'] },
+    { intent: 'reserva_caliente', score: 25, tecnologia: null, words: ['fecha', 'disponible', 'reservar', 'reserva', 'agenda', 'turno'] },
+    { intent: 'presupuesto', score: 20, tecnologia: null, words: ['precio', 'costo', 'cuanto sale', 'cuánto sale', 'presupuesto', 'tarifa'] },
+    { intent: 'logistica', score: 10, tecnologia: null, words: ['envio', 'envío', 'agencia', 'dac', 'retiro', 'llega', 'tracking'] },
+    { intent: 'depilacion_laser', score: 12, tecnologia: 'Depilación Láser', words: ['depilacion', 'depilación', 'laser', 'láser', 'soprano', 'ice', 'diodo'] },
+    { intent: 'nd_yag', score: 12, tecnologia: 'ND-YAG', words: ['tatuaje', 'hollywood peel', 'cejas', 'nd yag', 'nd-yag'] },
+    { intent: 'hifu', score: 12, tecnologia: 'HIFU', words: ['hifu', 'liposonix', 'flaccidez'] },
+    { intent: 'exilis', score: 12, tecnologia: 'EXILIS 360', words: ['exilis', 'radiofrecuencia'] },
+  ];
+  const match = reglas.find(r => r.words.some(w => input.includes(w.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))));
+  return match || { intent: 'mensaje_whatsapp', score: 5, tecnologia: null };
+}
+
+function temperaturaPorScore(score) {
+  if (score >= 45) return 'caliente';
+  if (score >= 20) return 'tibio';
+  return 'frio';
+}
+
+function estadoLeadPorIntencion(intencion, estadoActual) {
+  const estadosFinales = ['ganado', 'perdido', 'cliente_activa', 'reserva_confirmada'];
+  if (estadosFinales.includes(estadoActual)) return estadoActual;
+  const map = {
+    cierre_pago: 'pendiente_sena',
+    reserva_caliente: 'calificado',
+    presupuesto: 'presupuesto_enviado',
+    logistica: 'reserva_confirmada',
+    depilacion_laser: 'interesado',
+    nd_yag: 'interesado',
+    hifu: 'interesado',
+    exilis: 'interesado',
+  };
+  return map[intencion.intent] || estadoActual || 'nuevo';
+}
+
+async function buscarOperadoraPorTelefono(phone) {
+  const variants = phoneVariants(phone);
+  const { rows } = await pool.query(
+    `SELECT id, nombre, apellido, whatsapp, telefono
+     FROM operadoras
+     WHERE regexp_replace(coalesce(whatsapp, telefono, ''), '[^0-9]', '', 'g') = ANY($1)
+     ORDER BY id DESC
+     LIMIT 1`,
+    [variants]
+  );
+  return rows[0] || null;
+}
+
+async function buscarLeadPorTelefono(phone) {
+  const variants = phoneVariants(phone);
+  const { rows } = await pool.query(
+    `SELECT *
+     FROM leads
+     WHERE whatsapp_phone_norm = ANY($1)
+        OR regexp_replace(coalesce(telefono, ''), '[^0-9]', '', 'g') = ANY($1)
+     ORDER BY updated_at DESC NULLS LAST, id DESC
+     LIMIT 1`,
+    [variants]
+  );
+  return rows[0] || null;
+}
+
+function nombreContactoDesdePayload(rawPayload, phoneNorm) {
+  return rawPayload?.profile?.name || rawPayload?.contacts?.[0]?.profile?.name || `WhatsApp ${phoneNorm}`;
+}
+
+async function upsertLeadDesdeWhatsApp({ phone, texto, rawPayload, intencion }) {
+  const phoneNorm = normalizeWhatsappDigits(phone);
+  const operadora = await buscarOperadoraPorTelefono(phone);
+  let lead = await buscarLeadPorTelefono(phone);
+  const proxAccion = intencion.intent === 'reserva_caliente'
+    ? 'Responder consulta y validar fecha/equipo para reserva'
+    : intencion.intent === 'presupuesto'
+      ? 'Enviar o confirmar presupuesto'
+      : intencion.intent === 'cierre_pago'
+        ? 'Verificar seña/pago y avanzar cierre'
+        : 'Revisar conversación de WhatsApp y responder';
+  const nota = texto
+    ? `WhatsApp recibido (${intencion.intent}): ${texto}`.slice(0, 1200)
+    : `WhatsApp recibido (${intencion.intent}): mensaje ${rawPayload?.type || 'sin texto'}`;
+
+  if (!lead && !operadora) {
+    const nombre = nombreContactoDesdePayload(rawPayload, phoneNorm);
+    const { rows } = await pool.query(`
+      INSERT INTO leads (
+        nombre, telefono, canal, estado, temperatura, interes, tecnologia, obs,
+        prox_accion, whatsapp_phone_norm, whatsapp_score, ultimo_contacto, intencion_whatsapp
+      ) VALUES ($1,$2,'whatsapp',$3,$4,$5,$6,$7,$8,$9,$10,NOW(),$11)
+      RETURNING *
+    `, [
+      nombre,
+      normalizeWhatsapp(phone),
+      estadoLeadPorIntencion(intencion, 'nuevo'),
+      temperaturaPorScore(intencion.score),
+      texto || 'Contacto iniciado por WhatsApp',
+      intencion.tecnologia,
+      'Creado automáticamente desde webhook de WhatsApp en modo escucha',
+      proxAccion,
+      phoneNorm,
+      intencion.score,
+      intencion.intent,
+    ]);
+    lead = rows[0];
+    await pool.query(
+      `INSERT INTO audit_log (accion, entidad, entidad_id, detalle)
+       VALUES ('WA_LEAD_CREATED','lead',$1,$2)`,
+      [lead.id, `Nuevo lead WhatsApp ${normalizeWhatsapp(phone)} (${intencion.intent})`]
+    );
+  } else if (lead) {
+    const nuevoScore = Math.max(0, Number(lead.whatsapp_score || 0) + intencion.score);
+    const { rows } = await pool.query(`
+      UPDATE leads
+      SET whatsapp_phone_norm=$1,
+          whatsapp_score=$2,
+          ultimo_contacto=NOW(),
+          intencion_whatsapp=$3,
+          temperatura=$4,
+          tecnologia=COALESCE(tecnologia, $5),
+          estado=$6,
+          prox_accion=COALESCE($7, prox_accion),
+          updated_at=NOW()
+      WHERE id=$8
+      RETURNING *
+    `, [
+      phoneNorm,
+      nuevoScore,
+      intencion.intent,
+      temperaturaPorScore(nuevoScore),
+      intencion.tecnologia,
+      estadoLeadPorIntencion(intencion, lead.estado),
+      proxAccion,
+      lead.id,
+    ]);
+    lead = rows[0];
+  }
+
+  if (lead) {
+    await pool.query(`
+      INSERT INTO leads_notas (lead_id, tipo, texto, resultado, prox_accion, usuario_email)
+      VALUES ($1,'whatsapp',$2,$3,$4,'sistema-whatsapp')
+    `, [lead.id, nota, intencion.intent, proxAccion]);
+  }
+
+  if (operadora) {
+    await pool.query(
+      `INSERT INTO audit_log (accion, entidad, entidad_id, detalle)
+       VALUES ('WA_OPERATOR_CONTACT','operadora',$1,$2)`,
+      [operadora.id, `Mensaje WhatsApp asociado (${intencion.intent})`]
+    );
+  }
+
+  return { operadora, lead };
+}
+
+async function registrarMensajeEntrante({ phone, texto, messageType, messageId, rawPayload }) {
+  await whatsappTablesReady;
+  const phoneNorm = normalizeWhatsappDigits(phone);
+  if (!phoneNorm) return null;
+  if (messageId) {
+    const { rows: prev } = await pool.query(
+      'SELECT id FROM whatsapp_messages WHERE provider_message_id=$1 LIMIT 1',
+      [messageId]
+    );
+    if (prev.length) return prev[0];
+  }
+  const intencion = inferirIntencionWhatsApp(texto);
+  const asociaciones = await upsertLeadDesdeWhatsApp({ phone, texto, rawPayload, intencion });
+
+  try {
+    const { rows } = await pool.query(`
+      INSERT INTO whatsapp_messages (
+        provider, provider_message_id, direction, phone, phone_norm,
+        operadora_id, lead_id, message_type, body, intent, score_delta, raw_payload
+      ) VALUES ('meta',$1,'inbound',$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      ON CONFLICT (provider_message_id) WHERE provider_message_id IS NOT NULL DO NOTHING
+      RETURNING *
+    `, [
+      messageId,
+      normalizeWhatsapp(phone),
+      phoneNorm,
+      asociaciones.operadora?.id || null,
+      asociaciones.lead?.id || null,
+      messageType || 'unknown',
+      texto || null,
+      intencion.intent,
+      intencion.score,
+      rawPayload ? JSON.stringify(rawPayload) : null,
+    ]);
+    return rows[0] || null;
+  } catch (err) {
+    console.error('registrarMensajeEntrante error:', err.message);
+    return null;
+  }
+}
+
+function cleanAdminObs(value) {
+  return String(value || '').trim().slice(0, 1000);
+}
+
+function parseRevisionOperadoraCommand(texto) {
+  const raw = String(texto || '').trim();
+  const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const match = normalized.match(/^(aprobar|apruebo|autorizar|autorizo|rechazar|observar|observada|docs|documentos|pedir\s+docs|pedir\s+documentos)\s+(?:op|operadora)?[-#\s]*(\d+)(?:\s+([\s\S]+))?$/i);
+  if (!match) return null;
+  const cmd = match[1].toLowerCase().replace(/\s+/g, ' ');
+  const operadoraId = parseInt(match[2], 10);
+  const obs = cleanAdminObs(match[3]);
+  const accion = {
+    aprobar: 'aprobar',
+    apruebo: 'aprobar',
+    autorizar: 'aprobar',
+    autorizo: 'aprobar',
+    rechazar: 'rechazar',
+    observar: 'observar',
+    observada: 'observar',
+    docs: 'pedir_documentos',
+    documentos: 'pedir_documentos',
+    'pedir docs': 'pedir_documentos',
+    'pedir documentos': 'pedir_documentos',
+  }[cmd];
+  if (!accion || !operadoraId) return null;
+  return { accion, operadoraId, obs };
+}
+
+async function buscarAdminPorWhatsapp(phone) {
+  const variants = phoneVariants(phone);
+  const { rows } = await pool.query(
+    `SELECT id, nombre, email, whatsapp, rol
+     FROM usuarios
+     WHERE rol IN ('superadmin','administrador','operaciones')
+       AND status = 'activo'
+       AND regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
+     ORDER BY rol = 'superadmin' DESC, id ASC
+     LIMIT 1`,
+    [variants]
+  );
+  return rows[0] || null;
+}
+
+async function procesarRevisionOperadoraAdmin(phone, texto) {
+  const command = parseRevisionOperadoraCommand(texto);
+  if (!command) return { procesado: false };
+
+  const admin = await buscarAdminPorWhatsapp(phone);
+  if (!admin) {
+    await enviarMensaje(phone, 'No puedo ejecutar esa autorización: tu WhatsApp no está cargado como administrador u operaciones en DepiMóvil.');
+    return { procesado: true };
+  }
+
+  const estadoMap = {
+    aprobar: 'aprobada',
+    observar: 'observada',
+    rechazar: 'rechazada',
+    pedir_documentos: 'documentos_solicitados',
+  };
+  const accionLabel = {
+    aprobar: 'aprobada',
+    observar: 'observada',
+    rechazar: 'rechazada',
+    pedir_documentos: 'con documentos solicitados',
+  };
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `SELECT
+         u.id AS usuario_id, u.status AS usuario_status, u.whatsapp AS usuario_whatsapp,
+         u.revision_admin_estado, u.operadora_id,
+         o.id AS operadora_id_real, o.nombre, o.apellido, o.whatsapp AS op_whatsapp,
+         o.portal_token
+       FROM usuarios u
+       JOIN operadoras o ON o.id = u.operadora_id
+       WHERE o.id = $1 AND u.rol = 'operadora'
+       ORDER BY u.id DESC
+       LIMIT 1`,
+      [command.operadoraId]
+    );
+    if (!rows.length) {
+      await client.query('ROLLBACK');
+      await enviarMensaje(phone, `No encontré una operadora vinculada a OP-${command.operadoraId}.`);
+      return { procesado: true };
+    }
+
+    const row = rows[0];
+    const requiereRevision = ['observar', 'pedir_documentos'].includes(command.accion);
+    await client.query(
+      `UPDATE usuarios
+       SET requiere_revision_admin = $1,
+           revision_admin_estado = $2,
+           revision_admin_obs = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [requiereRevision, estadoMap[command.accion], command.obs || null, row.usuario_id]
+    );
+    if (command.accion === 'aprobar') {
+      await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['activa', row.operadora_id_real]);
+      await client.query('UPDATE usuarios SET status = $1, updated_at = NOW() WHERE id = $2', ['activo', row.usuario_id]);
+    } else if (command.accion === 'rechazar') {
+      await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['suspendida', row.operadora_id_real]);
+      await client.query('UPDATE usuarios SET status = $1, updated_at = NOW() WHERE id = $2', ['inactivo', row.usuario_id]);
+    }
+    await client.query(
+      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id) VALUES ($1,$2,$3,$4,$5)',
+      [`WA_REVISION_${command.accion.toUpperCase()}`, 'operadora', row.operadora_id_real, command.obs || estadoMap[command.accion], admin.id]
+    );
+    await client.query('COMMIT');
+
+    const nombre = `${row.nombre || ''} ${row.apellido || ''}`.trim() || `OP-${row.operadora_id_real}`;
+    await enviarMensaje(phone, `Listo. ${nombre} quedó ${accionLabel[command.accion]}.`);
+
+    const waOperadora = row.usuario_whatsapp || row.op_whatsapp;
+    if (waOperadora) {
+      const portalUrl = row.portal_token ? `https://crm.depimovil.live/portal.html?token=${row.portal_token}` : '';
+      const mensajes = {
+        aprobar: `Tu alta de DepiMóvil fue autorizada. Ya podés ingresar con tu WhatsApp y el código de acceso.`,
+        observar: `DepiMóvil revisó tu registro y necesita aclarar algunos datos.${command.obs ? `\n\nObservación: ${command.obs}` : ''}`,
+        rechazar: `DepiMóvil revisó tu registro y por ahora no quedó aprobado.${command.obs ? `\n\nMotivo: ${command.obs}` : ''}`,
+        pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${command.obs ? `\n\nNota: ${command.obs}` : ''}${portalUrl ? `\n\nSubilos acá: ${portalUrl}` : ''}`,
+      };
+      await enviarMensaje(waOperadora, mensajes[command.accion]);
+    }
+
+    return { procesado: true };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('WA admin revision error:', err);
+    await enviarMensaje(phone, 'No pude procesar la autorización. Revisá el ID y probá de nuevo.');
+    return { procesado: true };
+  } finally {
+    client.release();
+  }
+}
+
 async function buscarOperadora(phone) {
   // Limpiar número: sacar +, espacios, guiones
   const clean = phone.replace(/[^0-9]/g, '');

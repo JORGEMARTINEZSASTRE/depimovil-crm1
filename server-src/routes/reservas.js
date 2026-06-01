@@ -1,8 +1,9 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
 const { encolar } = require('../utils/wa_queue');
+const { emitAutomationEvent } = require('../utils/automation_engine');
 
 const router = express.Router();
 
@@ -28,6 +29,29 @@ async function generarCodigoEnvio(client) {
   return `ENV-${String(n).padStart(3, '0')}`;
 }
 
+async function ensureReservaHistorial(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS reserva_historial (
+      id SERIAL PRIMARY KEY,
+      reserva_id INTEGER REFERENCES reservas(id) ON DELETE CASCADE,
+      estado_previo VARCHAR(50),
+      estado_nuevo VARCHAR(50),
+      motivo TEXT,
+      usuario_id INTEGER,
+      usuario_email VARCHAR(150),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  await client.query('ALTER TABLE reserva_historial ADD COLUMN IF NOT EXISTS estado_previo VARCHAR(50)');
+  await client.query('ALTER TABLE reserva_historial ADD COLUMN IF NOT EXISTS estado_nuevo VARCHAR(50)');
+  await client.query('ALTER TABLE reserva_historial ADD COLUMN IF NOT EXISTS motivo TEXT');
+  await client.query('ALTER TABLE reserva_historial ADD COLUMN IF NOT EXISTS usuario_id INTEGER');
+  await client.query('ALTER TABLE reserva_historial ADD COLUMN IF NOT EXISTS usuario_email VARCHAR(150)');
+  await client.query('ALTER TABLE reserva_historial ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW()');
+}
+
+ensureReservaHistorial(pool).catch(err => console.error('Error preparando tabla reserva_historial:', err.message));
+
 function dateOnly(value) {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString().split('T')[0];
@@ -40,6 +64,205 @@ function addDays(dateValue, days) {
   const d = new Date(`${base}T12:00:00`);
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];
+}
+
+const ESTADOS_RESERVA_BLOQUEANTES = ['solicitud_recibida', 'pendiente_aprobacion', 'aprobada', 'confirmada'];
+const ESTADOS_MAQUINA_NO_ALQUILABLE = ['mantenimiento', 'fuera_servicio', 'en_viaje'];
+
+function rangoReserva({ tipo, fecha_jornada, fecha_inicio, fecha_fin }) {
+  const inicio = tipo === 'jornada'
+    ? dateOnly(fecha_jornada || fecha_inicio)
+    : dateOnly(fecha_inicio || fecha_jornada);
+  const fin = tipo === 'jornada'
+    ? inicio
+    : dateOnly(fecha_fin || fecha_inicio || fecha_jornada);
+  return { inicio, fin };
+}
+
+function rangoBloqueado({ tipo, fecha_jornada, fecha_inicio, fecha_fin, bloque_logistico }) {
+  const rango = rangoReserva({ tipo, fecha_jornada, fecha_inicio, fecha_fin });
+  if (!rango.inicio || !rango.fin) return { ...rango, bloqueDesde: null, bloqueHasta: null };
+  return {
+    ...rango,
+    bloqueDesde: bloque_logistico ? addDays(rango.inicio, -2) : rango.inicio,
+    bloqueHasta: bloque_logistico ? addDays(rango.fin, 2) : rango.fin,
+  };
+}
+
+function rangosSeCruzan(a, b) {
+  return !!(a?.bloqueDesde && a?.bloqueHasta && b?.bloqueDesde && b?.bloqueHasta &&
+    a.bloqueDesde <= b.bloqueHasta && a.bloqueHasta >= b.bloqueDesde);
+}
+
+async function validarReservaOperativa(client, {
+  maquina_id,
+  tipo,
+  fecha_jornada,
+  fecha_inicio,
+  fecha_fin,
+  bloque_logistico,
+  excluirReservaId,
+}) {
+  const maquinaId = parseInt(maquina_id, 10);
+  if (!maquinaId) {
+    return { ok: false, status: 400, error: 'maquina_id es obligatorio' };
+  }
+
+  const { rows: maquinas } = await client.query(
+    `SELECT id, codigo, nombre, estado, tipo_operativo
+     FROM maquinas
+     WHERE id = $1
+     FOR UPDATE`,
+    [maquinaId]
+  );
+  if (!maquinas.length) {
+    return { ok: false, status: 404, error: 'Máquina no encontrada' };
+  }
+  const maquina = maquinas[0];
+  if (maquina.tipo_operativo === 'solo_venta') {
+    return { ok: false, status: 409, error: 'Máquina marcada como solo venta: no disponible para alquiler' };
+  }
+  if (ESTADOS_MAQUINA_NO_ALQUILABLE.includes(maquina.estado)) {
+    return {
+      ok: false,
+      status: 409,
+      error: `La máquina ${maquina.codigo || maquina.id} — ${maquina.nombre} no se puede reservar porque está en estado "${maquina.estado}"`,
+    };
+  }
+
+  const tipoReserva = tipo || 'jornada';
+  const nuevoRango = rangoBloqueado({
+    tipo: tipoReserva,
+    fecha_jornada,
+    fecha_inicio,
+    fecha_fin,
+    bloque_logistico: !!bloque_logistico,
+  });
+  if (!nuevoRango.inicio || !nuevoRango.fin) {
+    return { ok: false, status: 400, error: tipoReserva === 'jornada' ? 'fecha_jornada es obligatoria' : 'fecha_inicio y fecha_fin son obligatorias' };
+  }
+  if (nuevoRango.fin < nuevoRango.inicio) {
+    return { ok: false, status: 400, error: 'La fecha de fin no puede ser anterior a la fecha de inicio' };
+  }
+
+  const params = [maquinaId, ESTADOS_RESERVA_BLOQUEANTES];
+  let excluirSql = '';
+  if (excluirReservaId) {
+    params.push(parseInt(excluirReservaId, 10));
+    excluirSql = `AND r.id <> $${params.length}`;
+  }
+
+  const { rows: reservas } = await client.query(`
+    SELECT r.id, r.codigo, r.estado, r.tipo, r.fecha_jornada, r.fecha_inicio, r.fecha_fin,
+           r.bloque_logistico, o.nombre AS op_nombre, o.apellido AS op_apellido
+    FROM reservas r
+    LEFT JOIN operadoras o ON o.id = r.operadora_id
+    WHERE r.maquina_id = $1
+      AND r.estado = ANY($2)
+      ${excluirSql}
+    FOR UPDATE OF r
+  `, params);
+
+  const conflicto = reservas.find(r => rangosSeCruzan(nuevoRango, rangoBloqueado(r)));
+  if (conflicto) {
+    const rangoExistente = rangoBloqueado(conflicto);
+    const op = [conflicto.op_nombre, conflicto.op_apellido].filter(Boolean).join(' ');
+    return {
+      ok: false,
+      status: 409,
+      error: `Conflicto de disponibilidad: ${maquina.codigo || maquina.id} — ${maquina.nombre} ya está bloqueada por ${conflicto.codigo || `reserva #${conflicto.id}`} (${rangoExistente.bloqueDesde} a ${rangoExistente.bloqueHasta}${op ? `, ${op}` : ''})`,
+    };
+  }
+
+  return { ok: true, maquina, rango: nuevoRango };
+}
+
+function normalizarCiudad(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizarTextoPrecio(value) {
+  return normalizarCiudad(value).replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function precioReservaParaOperadora(client, operadoraId, maquinaId) {
+  const { rows } = await client.query(`
+    SELECT o.equipos_alquila,
+           m.codigo AS maquina_codigo,
+           m.nombre AS maquina_nombre,
+           m.categoria AS maquina_categoria
+    FROM operadoras o
+    CROSS JOIN maquinas m
+    WHERE o.id=$1 AND m.id=$2
+  `, [operadoraId, maquinaId]);
+  if (!rows.length) return null;
+  const row = rows[0];
+  const tarifas = parseJsonArray(row.equipos_alquila);
+  const claves = [
+    normalizarTextoPrecio(row.maquina_nombre),
+    normalizarTextoPrecio(row.maquina_categoria),
+    normalizarTextoPrecio(row.maquina_codigo),
+  ].filter(Boolean);
+  const tarifa = tarifas.find(t => {
+    const equipo = normalizarTextoPrecio(t.equipo || t.nombre || t.categoria);
+    if (!equipo) return false;
+    return claves.some(k => equipo.includes(k) || k.includes(equipo));
+  });
+  const valor = parseFloat(tarifa?.valor);
+  return Number.isFinite(valor) && valor > 0 ? valor : null;
+}
+
+function localidadesOperadora(row) {
+  const values = [row?.operadora_ciudad, row?.ciudad, row?.localidad];
+  parseJsonArray(row?.direcciones_entrega).forEach(d => {
+    values.push(d.localidad, d.ciudad, d.departamento);
+  });
+  return Array.from(new Set(values.map(normalizarCiudad).filter(Boolean)));
+}
+
+async function validarCiudadReserva(client, operadoraId, maquinaId) {
+  const { rows } = await client.query(`
+    SELECT o.ciudad AS operadora_ciudad,
+           o.direcciones_entrega,
+           m.ubicacion AS maquina_ciudad,
+           (COALESCE(m.es_viajera, FALSE) OR COALESCE(m.tipo_operativo, 'viajera') = 'viajera' OR COALESCE(m.tipo_operativo, 'viajera') = 'alquiler') AS es_viajera,
+           COALESCE(m.tipo_operativo, 'alquiler') AS tipo_operativo,
+           m.ciudad_base
+    FROM operadoras o
+    CROSS JOIN maquinas m
+    WHERE o.id = $1 AND m.id = $2
+  `, [operadoraId, maquinaId]);
+  if (!rows.length) {
+    return { ok: false, status: 404, error: 'Operadora o máquina no encontrada' };
+  }
+  const row = rows[0];
+  if (row.tipo_operativo === 'solo_venta') {
+    return { ok: false, status: 409, error: 'Máquina marcada como solo venta: no disponible para alquiler' };
+  }
+  const opLocalidades = localidadesOperadora(row);
+  const maqCiudad = normalizarCiudad(row.tipo_operativo === 'base_ciudad' ? (row.ciudad_base || row.maquina_ciudad) : row.maquina_ciudad);
+  if (!opLocalidades.length) {
+    return { ok: false, status: 409, error: 'La operadora no tiene localidades/direcciones declaradas para alquilar máquinas' };
+  }
+  if (!maqCiudad || !opLocalidades.includes(maqCiudad)) {
+    return { ok: false, status: 409, error: 'Máquina no disponible para las localidades declaradas por la operadora' };
+  }
+  return { ok: true };
 }
 
 async function crearEnvioAutomaticoSiCorresponde(client, reservaId, usuarioEmail = 'sistema') {
@@ -196,6 +419,8 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.transportista_id) return res.json([]);
       params.push(req.user.transportista_id);
       where.push(`EXISTS (SELECT 1 FROM envios e WHERE e.reserva_id = r.id AND e.transportista_id = $${params.length})`);
+    } else if (!isOpsRole(req.user.rol)) {
+      return res.json([]);
     }
     let query = `
       SELECT r.*
@@ -232,6 +457,8 @@ router.get('/:id', auth, async (req, res) => {
     } else if (req.user.rol === 'transportista') {
       params.push(req.user.transportista_id || 0);
       query += ` AND EXISTS (SELECT 1 FROM envios e WHERE e.reserva_id = reservas.id AND e.transportista_id = $${params.length})`;
+    } else if (!isOpsRole(req.user.rol)) {
+      return res.status(403).json({ error: 'Sin permisos para reservas' });
     }
     const { rows } = await pool.query(query, params);
     if (!rows.length) return res.status(404).json({ error: 'Reserva no encontrada' });
@@ -245,7 +472,7 @@ router.get('/:id', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // POST /api/reservas — crear nueva
 // ─────────────────────────────────────────────
-router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), async (req, res) => {
+router.post('/', auth, async (req, res) => {
   const {
     operadora_id, maquina_id, tipo, estado,
     fecha_jornada, fecha_inicio, fecha_fin,
@@ -253,7 +480,17 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
     monto, moneda, notas
   } = req.body;
 
-  if (!operadora_id || !maquina_id) {
+  if (!isOpsRole(req.user.rol) && !isOperadoraRole(req.user.rol)) {
+    return res.status(403).json({ error: 'Sin permisos para crear reservas' });
+  }
+
+  const operadoraIdFinal = isOperadoraRole(req.user.rol)
+    ? parseInt(req.user.operadora_id || 0, 10)
+    : parseInt(operadora_id, 10);
+  const estadoFinal = isOperadoraRole(req.user.rol) ? 'solicitud_recibida' : (estado || 'solicitud_recibida');
+  const bloqueoFinal = isOperadoraRole(req.user.rol) ? false : (bloque_logistico || false);
+
+  if (!operadoraIdFinal || !maquina_id) {
     return res.status(400).json({ error: 'operadora_id y maquina_id son obligatorios' });
   }
 
@@ -262,6 +499,27 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
     await client.query('BEGIN');
 
     const codigo = await generarCodigo(client);
+    const ciudadOk = await validarCiudadReserva(client, operadoraIdFinal, parseInt(maquina_id));
+    if (!ciudadOk.ok) {
+      await client.query('ROLLBACK');
+      return res.status(ciudadOk.status || 400).json({ error: ciudadOk.error });
+    }
+    const disponibilidadOk = await validarReservaOperativa(client, {
+      maquina_id,
+      tipo: tipo || 'jornada',
+      fecha_jornada,
+      fecha_inicio,
+      fecha_fin,
+      bloque_logistico: bloqueoFinal,
+    });
+    if (!disponibilidadOk.ok) {
+      await client.query('ROLLBACK');
+      return res.status(disponibilidadOk.status || 400).json({ error: disponibilidadOk.error });
+    }
+    const montoFinal = isOperadoraRole(req.user.rol)
+      ? (await precioReservaParaOperadora(client, operadoraIdFinal, parseInt(maquina_id, 10)) || 0)
+      : (parseFloat(monto) || 0);
+    const monedaFinal = isOperadoraRole(req.user.rol) ? 'UYU' : (moneda || 'UYU');
 
     const { rows } = await client.query(`
       INSERT INTO reservas (
@@ -273,12 +531,12 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
       RETURNING *
     `, [
       codigo,
-      parseInt(operadora_id), parseInt(maquina_id),
-      tipo || 'jornada', estado || 'solicitud_recibida',
+      operadoraIdFinal, parseInt(maquina_id),
+      tipo || 'jornada', estadoFinal,
       fecha_jornada || null,
       fecha_inicio || null, fecha_fin || null,
-      dept_logistica || null, bloque_logistico || false,
-      parseFloat(monto) || 0, moneda || 'UYU', notas || null
+      dept_logistica || null, bloqueoFinal,
+      montoFinal, monedaFinal, notas || null
     ]);
 
     const reserva = rows[0];
@@ -294,6 +552,24 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'comercial'), as
     `, [req.user.id, req.user.email, 'CREATE', 'reserva', reserva.id, codigo]);
 
     await crearEnvioAutomaticoSiCorresponde(client, reserva.id, req.user.email);
+    await emitAutomationEvent(client, {
+      event: 'booking.created',
+      entity: 'reserva',
+      entityId: reserva.id,
+      dedupeKey: `booking.created:reserva:${reserva.id}`,
+      payload: { reserva },
+      user: req.user,
+    });
+    if (reserva.estado === 'confirmada') {
+      await emitAutomationEvent(client, {
+        event: 'booking.confirmed',
+        entity: 'reserva',
+        entityId: reserva.id,
+        dedupeKey: `booking.confirmed:reserva:${reserva.id}`,
+        payload: { reserva },
+        user: req.user,
+      });
+    }
 
     await client.query('COMMIT');
 
@@ -321,12 +597,36 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
     monto, moneda, notas
   } = req.body;
 
+  const client = await pool.connect();
   try {
-    const { rows: prev } = await pool.query('SELECT estado FROM reservas WHERE id=$1', [req.params.id]);
-    if (!prev.length) return res.status(404).json({ error: 'Reserva no encontrada' });
-    const estadoPrevio = prev[0].estado;
+    await client.query('BEGIN');
 
-    const { rows } = await pool.query(`
+    const { rows: prev } = await client.query('SELECT estado FROM reservas WHERE id=$1 FOR UPDATE', [req.params.id]);
+    if (!prev.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
+    const estadoPrevio = prev[0].estado;
+    const ciudadOk = await validarCiudadReserva(client, parseInt(operadora_id), parseInt(maquina_id));
+    if (!ciudadOk.ok) {
+      await client.query('ROLLBACK');
+      return res.status(ciudadOk.status || 400).json({ error: ciudadOk.error });
+    }
+    const disponibilidadOk = await validarReservaOperativa(client, {
+      maquina_id,
+      tipo: tipo || 'jornada',
+      fecha_jornada,
+      fecha_inicio,
+      fecha_fin,
+      bloque_logistico: bloque_logistico || false,
+      excluirReservaId: req.params.id,
+    });
+    if (!disponibilidadOk.ok) {
+      await client.query('ROLLBACK');
+      return res.status(disponibilidadOk.status || 400).json({ error: disponibilidadOk.error });
+    }
+
+    const { rows } = await client.query(`
       UPDATE reservas SET
         operadora_id=$1, maquina_id=$2, tipo=$3, estado=$4,
         fecha_jornada=$5, fecha_inicio=$6, fecha_fin=$7,
@@ -343,38 +643,46 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
     ]);
 
     if (estado && estado !== estadoPrevio) {
-      await pool.query(`
+      await client.query(`
         INSERT INTO reserva_historial (reserva_id, estado_previo, estado_nuevo, motivo, usuario_id, usuario_email)
         VALUES ($1,$2,$3,$4,$5,$6)
       `, [req.params.id, estadoPrevio, estado, 'Edición de reserva', req.user.id, req.user.email]);
-      notificarWA(parseInt(req.params.id), estado, null).catch(() => {});
     }
 
     if (rows[0].estado === 'confirmada') {
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        await crearEnvioAutomaticoSiCorresponde(client, req.params.id, req.user.email);
-        await client.query('COMMIT');
-      } catch (autoErr) {
-        await client.query('ROLLBACK');
-        console.error('PUT /api/reservas/:id envio auto error:', autoErr.message);
-      } finally {
-        client.release();
+      await crearEnvioAutomaticoSiCorresponde(client, req.params.id, req.user.email);
+      if (estado && estado !== estadoPrevio) {
+        await emitAutomationEvent(client, {
+          event: 'booking.confirmed',
+          entity: 'reserva',
+          entityId: parseInt(req.params.id, 10),
+          dedupeKey: `booking.confirmed:reserva:${req.params.id}`,
+          payload: { reserva: rows[0], estadoPrevio },
+          user: req.user,
+        });
       }
+    }
+
+    await client.query('COMMIT');
+
+    if (estado && estado !== estadoPrevio) {
+      notificarWA(parseInt(req.params.id), estado, null).catch(() => {});
     }
 
     res.json(rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('PUT /api/reservas/:id error:', err);
     res.status(500).json({ error: 'Error al actualizar reserva' });
+  } finally {
+    client.release();
   }
 });
 
 // ─────────────────────────────────────────────
 // PATCH /api/reservas/:id/estado — cambio de estado
 // ─────────────────────────────────────────────
-router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones', 'comercial'), async (req, res) => {
+router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const { estado, motivo } = req.body;
   if (!estado) return res.status(400).json({ error: 'estado es requerido' });
   if (!motivo) return res.status(400).json({ error: 'motivo es requerido' });
@@ -398,6 +706,21 @@ router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones', 'come
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'El estado es igual al actual' });
     }
+    if (ESTADOS_RESERVA_BLOQUEANTES.includes(estado)) {
+      const disponibilidadOk = await validarReservaOperativa(client, {
+        maquina_id: prev[0].maquina_id,
+        tipo: prev[0].tipo,
+        fecha_jornada: prev[0].fecha_jornada,
+        fecha_inicio: prev[0].fecha_inicio,
+        fecha_fin: prev[0].fecha_fin,
+        bloque_logistico: prev[0].bloque_logistico,
+        excluirReservaId: req.params.id,
+      });
+      if (!disponibilidadOk.ok) {
+        await client.query('ROLLBACK');
+        return res.status(disponibilidadOk.status || 400).json({ error: disponibilidadOk.error });
+      }
+    }
 
     const { rows } = await client.query(
       'UPDATE reservas SET estado=$1, updated_at=NOW() WHERE id=$2 RETURNING *',
@@ -415,6 +738,16 @@ router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones', 'come
     `, [req.user.id, req.user.email, 'ESTADO', 'reserva', req.params.id, `${estadoPrevio} → ${estado}: ${motivo}`]);
 
     await crearEnvioAutomaticoSiCorresponde(client, req.params.id, req.user.email);
+    if (estado === 'confirmada') {
+      await emitAutomationEvent(client, {
+        event: 'booking.confirmed',
+        entity: 'reserva',
+        entityId: parseInt(req.params.id, 10),
+        dedupeKey: `booking.confirmed:reserva:${req.params.id}`,
+        payload: { reserva: rows[0], estadoPrevio },
+        user: req.user,
+      });
+    }
 
     await client.query('COMMIT');
 

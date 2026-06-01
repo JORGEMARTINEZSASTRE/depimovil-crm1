@@ -8,14 +8,20 @@ function switchLoginMode(mode){
   const whatsappPanel=document.getElementById('loginWhatsappPanel');
   const tabAdmin=document.getElementById('tabLoginAdmin');
   const tabWhatsapp=document.getElementById('tabLoginWhatsapp');
-  const demoBox=document.getElementById('loginDemoBox');
   const err=document.getElementById('loginError');
   if(adminPanel) adminPanel.style.display = mode === 'admin' ? '' : 'none';
   if(whatsappPanel) whatsappPanel.style.display = mode === 'whatsapp' ? '' : 'none';
   if(tabAdmin) tabAdmin.classList.toggle('active', mode === 'admin');
   if(tabWhatsapp) tabWhatsapp.classList.toggle('active', mode === 'whatsapp');
-  if(demoBox) demoBox.style.display = mode === 'admin' ? '' : 'none';
   if(err) err.style.display = 'none';
+}
+
+function configureLoginEntry(){
+  const params=new URLSearchParams(window.location.search);
+  const internal=params.get('admin')==='1'||window.location.hash==='#admin';
+  const tabs=document.getElementById('loginTabs');
+  if(tabs) tabs.style.display=internal?'':'none';
+  switchLoginMode(internal?'admin':'whatsapp');
 }
 
 async function doLogin(){
@@ -117,6 +123,8 @@ async function submitOperadoraRegistro(){
     apellido:document.getElementById('regOpApellido').value.trim(),
     whatsapp:document.getElementById('regOpWhatsapp').value.trim(),
     documento:document.getElementById('regOpDocumento').value.replace(/\D/g,''),
+    instagram_usuario:document.getElementById('regOpInstagram').value.trim(),
+    gabinete:document.getElementById('regOpEstetica').value.trim(),
     ciudad:document.getElementById('regOpCiudad').value.trim(),
     departamento:document.getElementById('regOpDepartamento').value.trim(),
     lugares_trabajo:document.getElementById('regOpLugares').value.trim(),
@@ -139,7 +147,14 @@ async function submitOperadoraRegistro(){
     const rol=document.getElementById('waLoginRol');
     if(rol) rol.value='operadora';
     document.getElementById('waLoginPhone').value=data.whatsapp||payload.whatsapp;
-    if(data.codigo_enviado){
+    document.getElementById('waCodeGroup').style.display='none';
+    document.getElementById('waVerifyBtn').style.display='none';
+    document.getElementById('waRequestBtn').textContent='Pedir código por WhatsApp';
+    if(data.ya_habilitada){
+      showToast('✅ Ya estás dada de alta. Pedí el código por WhatsApp para ingresar.');
+    }else if(data.pendiente_autorizacion){
+      showToast('✅ Registro recibido. Te avisamos por WhatsApp cuando administración lo autorice.');
+    }else if(data.codigo_enviado){
       document.getElementById('waCodeGroup').style.display='';
       document.getElementById('waVerifyBtn').style.display='';
       document.getElementById('waRequestBtn').textContent='Reenviar código';

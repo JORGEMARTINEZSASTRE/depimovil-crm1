@@ -13,29 +13,34 @@ function openPerfilModal(){
   document.getElementById('perfilRolDisplay').innerHTML=`<span class="badge badge-blue">${roles[currentUser.rol]||currentUser.rol}</span>`;
   openModal('modalPerfil');
 }
-function savePerfil(){
+async function savePerfil(){
   const nuevoNombre=gv('perfilNombre').trim();
   const passActual=gv('perfilPassActual');
   const passNueva=gv('perfilPassNueva');
   const passConf=gv('perfilPassConfirm');
   if(!nuevoNombre){showToast('⚠️ El nombre no puede estar vacío','warn');return;}
-  const users=DB.get('users')||[];
-  const idx=users.findIndex(u=>u.id===currentUser.id);
-  if(idx<0){showToast('❌ Usuario no encontrado','warn');return;}
-  users[idx].nombre=nuevoNombre;
-  if(passNueva||passActual){
-    if(users[idx].pass!==passActual){showToast('❌ Contraseña actual incorrecta','warn');return;}
-    if(passNueva.length<5){showToast('⚠️ Nueva contraseña: mínimo 5 caracteres','warn');return;}
+  if(passNueva||passActual||passConf){
+    if(!passActual){showToast('⚠️ Ingresá la contraseña actual','warn');return;}
+    if(passNueva.length<8){showToast('⚠️ Nueva contraseña: mínimo 8 caracteres','warn');return;}
     if(passNueva!==passConf){showToast('❌ Las contraseñas nuevas no coinciden','warn');return;}
-    users[idx].pass=passNueva;
-    showToast('✅ Nombre y contraseña actualizados');
-  } else {
-    showToast('✅ Nombre actualizado');
   }
-  DB.set('users',users);
-  currentUser=users[idx];
-  document.getElementById('userName').textContent=currentUser.nombre;
-  document.getElementById('userAvatar').textContent=currentUser.nombre.charAt(0).toUpperCase();
-  auditLog('UPDATE','usuario',currentUser.id,'Perfil actualizado');
-  closeModal('modalPerfil');
+
+  try{
+    const updated=await api('/api/auth/me',{method:'PUT',body:JSON.stringify({nombre:nuevoNombre})});
+    currentUser={...currentUser,nombre:updated.nombre};
+    if(passNueva){
+      await api('/api/auth/password',{method:'PUT',body:JSON.stringify({
+        current_password:passActual,
+        new_password:passNueva
+      })});
+      showToast('✅ Nombre y contraseña actualizados');
+    }else{
+      showToast('✅ Nombre actualizado');
+    }
+    document.getElementById('userName').textContent=currentUser.nombre;
+    document.getElementById('userAvatar').textContent=currentUser.nombre.charAt(0).toUpperCase();
+    closeModal('modalPerfil');
+  }catch(e){
+    showToast('❌ '+(e.message||'No se pudo actualizar el perfil'),'error');
+  }
 }

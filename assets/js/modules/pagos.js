@@ -72,7 +72,9 @@ function renderPagos(){
     const ms = !q || p.codigo.toLowerCase().includes(q)
       || (op&&(op.nombre+' '+op.apellido).toLowerCase().includes(q))
       || (res&&res.codigo.toLowerCase().includes(q));
-    return ms && (!pagoFilter.estado || p.estado===pagoFilter.estado);
+    const estadoOk = !pagoFilter.estado
+      || (pagoFilter.estado==='pendientes' ? ['pendiente','sena_pendiente'].includes(p.estado) : p.estado===pagoFilter.estado);
+    return ms && estadoOk;
   }).sort((a,b)=>b.id-a.id);
 
   const tbody = document.getElementById('pagosTableBody');
