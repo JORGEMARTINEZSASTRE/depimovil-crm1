@@ -242,7 +242,8 @@ function startApp(){
   updateLeadsBadge();
   if(typeof updateRevisionOperadorasBadge==='function') updateRevisionOperadorasBadge();
   if(typeof applyRoleUI==='function') applyRoleUI();
-  navigate((typeof canView==='function'&&canView('dashboard'))?'dashboard':'envios');
+  const handledHash = typeof openEvaluacionFromHash === 'function' && openEvaluacionFromHash();
+  if(!handledHash) navigate((typeof canView==='function'&&canView('dashboard'))?'dashboard':'envios');
   // Chequeo periódico de sesión (cada 2 minutos)
   if(window._sessionCheckInterval) clearInterval(window._sessionCheckInterval);
   window._sessionCheckInterval=setInterval(async()=>{

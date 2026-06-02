@@ -299,6 +299,51 @@ async function ensurePortalToken(client, operadoraId, currentToken) {
   return token;
 }
 
+const HABILITACION_TESTS = {
+  'Láser Depilación': 'depilacion-definitiva-basico',
+  'laser depilacion': 'depilacion-definitiva-basico',
+  'láser depilación': 'depilacion-definitiva-basico',
+  laser_diodo: 'depilacion-definitiva-basico',
+  soprano_ice: 'depilacion-definitiva-basico',
+  'Pressoterapia': 'presoterapia-basico',
+  pressoterapia: 'presoterapia-basico',
+};
+
+function normalizeCategoryText(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function testIdForCategoria(categoria) {
+  const raw = String(categoria || '').trim();
+  if (!raw) return '';
+  if (HABILITACION_TESTS[raw]) return HABILITACION_TESTS[raw];
+  const normalized = normalizeCategoryText(raw);
+  return HABILITACION_TESTS[normalized] || '';
+}
+
+async function resolveHabilitacionTest(client, operadoraId, requestedCategoria) {
+  const requestedTest = testIdForCategoria(requestedCategoria);
+  if (requestedTest) return { categoria: requestedCategoria, testId: requestedTest };
+  const { rows } = await client.query(
+    `SELECT DISTINCT m.categoria
+     FROM reservas r
+     JOIN maquinas m ON m.id = r.maquina_id
+     WHERE r.operadora_id = $1
+       AND m.categoria IS NOT NULL
+       AND m.categoria <> ''
+       AND r.estado IN ('aprobada','confirmada','solicitud_recibida','pendiente_aprobacion','activa')
+     ORDER BY m.categoria
+     LIMIT 8`,
+    [operadoraId]
+  );
+  const match = rows.map(r => r.categoria).find(c => testIdForCategoria(c));
+  return match ? { categoria: match, testId: testIdForCategoria(match) } : { categoria: requestedCategoria || '', testId: '' };
+}
+
 /**
  * POST /api/auth/login
  * Body: { email, password }
@@ -747,6 +792,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     const usuarioId = parseInt(req.params.usuarioId, 10);
     const accion = cleanText(req.body.accion, 40);
     const obs = cleanText(req.body.obs, 1000);
+    const categoriaHabilitacion = cleanText(req.body.categoria_habilitacion || req.body.categoria || '', 120);
     const acciones = [
       'aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion',
       'aceptar_documentos', 'denegar_documentos', 'aceptar_contrato', 'denegar_contrato',
@@ -850,12 +896,16 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     const requiereRevision = ['observar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion);
     await client.query('BEGIN');
     const portalToken = await ensurePortalToken(client, row.operadora_id, row.portal_token);
+    const habilitacionTest = accion === 'pedir_habilitacion'
+      ? await resolveHabilitacionTest(client, row.operadora_id, categoriaHabilitacion)
+      : { categoria: '', testId: '' };
     if (accion === 'pedir_documentos') {
       await guardarModuloRevision(client, usuarioId, row, 'cedula', 'pedida', obs);
     } else if (accion === 'pedir_contrato') {
       await guardarModuloRevision(client, usuarioId, row, 'contrato', 'pedida', obs);
     } else if (accion === 'pedir_habilitacion') {
-      await guardarModuloRevision(client, usuarioId, row, 'habilitacion', 'pedida', obs);
+      const detalleHab = [habilitacionTest.categoria ? `Test: ${habilitacionTest.categoria}` : '', obs].filter(Boolean).join(' — ');
+      await guardarModuloRevision(client, usuarioId, row, 'habilitacion', 'pedida', detalleHab);
     }
     await client.query(
       `UPDATE usuarios
@@ -883,13 +933,17 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     if (wa && ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion)) {
       const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${portalToken}`;
       const contratoUrl = `${portalUrl}#contratos`;
+      const testUrl = habilitacionTest.testId
+        ? `${req.protocol}://${req.get('host')}/?ptoken=${portalToken}#test=${encodeURIComponent(habilitacionTest.testId)}`
+        : `${req.protocol}://${req.get('host')}/?ptoken=${portalToken}#materiales`;
+      const testLabel = habilitacionTest.categoria ? ` de ${habilitacionTest.categoria}` : '';
       const mensajeMap = {
         aprobar: `¡Tu alta en DepiMóvil fue autorizada! 🎉\n\nYa podés ingresar al sistema desde este link:\n${req.protocol}://${req.get('host')}/?ptoken=${portalToken}\n\nEste link es personal y te logueará automáticamente. Si tenés problemas, escribinos por acá.`,
         observar: `DepiMóvil revisó tu registro y necesita aclarar algunos datos.${obs ? `\n\nObservación: ${obs}` : ''}`,
         rechazar: `DepiMóvil revisó tu registro y por ahora no quedó aprobado.${obs ? `\n\nMotivo: ${obs}` : ''}`,
         pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${obs ? `\n\nNota: ${obs}` : ''}\n\nSubilos acá: ${portalUrl}`,
         pedir_contrato: `DepiMóvil necesita que firmes digitalmente el contrato de alquiler para completar tu alta o confirmar tu alquiler.${obs ? `\n\nNota: ${obs}` : ''}\n\nFirmalo acá: ${contratoUrl}`,
-        pedir_habilitacion: `DepiMóvil necesita completar tu habilitación técnica antes de dejar tu alta finalizada.${obs ? `\n\nNota: ${obs}` : ''}`
+        pedir_habilitacion: `DepiMóvil necesita completar tu habilitación técnica${testLabel} antes de dejar tu alta finalizada.${obs ? `\n\nNota: ${obs}` : ''}\n\nEntrá acá y completá las preguntas del test:\n${testUrl}`
       };
       const envio = await enviarOEncolarWhatsapp({
         telefono: wa,

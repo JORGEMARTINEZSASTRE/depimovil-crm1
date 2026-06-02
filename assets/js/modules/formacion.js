@@ -348,6 +348,19 @@ function saveEvaluacionLaser(){
   return saveEvaluacionTecnica();
 }
 
+function openEvaluacionFromHash(){
+  const hash = String(window.location.hash || '');
+  const match = hash.match(/^#test=([^&]+)/);
+  if(!match) return false;
+  const evaluacionId = decodeURIComponent(match[1] || '');
+  const evaluacion = getEvaluacionById(evaluacionId);
+  if(!evaluacion) return false;
+  if(typeof navigate === 'function') navigate('materiales');
+  window.history.replaceState({},'',window.location.pathname + window.location.search);
+  setTimeout(function(){ openEvaluacionModal(evaluacionId); }, 250);
+  return true;
+}
+
 function openMaterialModal(id){
   document.getElementById('modalMaterialTitle').textContent = id ? 'Editar Material' : 'Nuevo Material';
   if(id){

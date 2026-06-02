@@ -149,6 +149,13 @@ function renderModuloRevisionCard(row, modulo, titulo, descripcion, fallbackOk, 
   </div>`;
 }
 
+function pedirHabilitacionCategoria(){
+  const opciones = ['Láser Depilación','Pressoterapia','Radiofrecuencia / HIFU','Electroestimulación'];
+  const valor = prompt('¿Qué habilitación/test debe completar? Opciones: '+opciones.join(', '), opciones[0]);
+  if(valor === null) return null;
+  return valor.trim();
+}
+
 function renderRevisionModulos(row){
   if(!row.operadora_id){
     return `<div class="docs-detail-card" style="margin-top:12px">
@@ -364,6 +371,8 @@ async function guardarRevisionModulo(modulo, accionModulo){
   };
   const accion = accionMap[modulo]?.[accionModulo];
   if(!accion) return;
+  const categoriaHabilitacion = accion === 'pedir_habilitacion' ? pedirHabilitacionCategoria() : '';
+  if(accion === 'pedir_habilitacion' && categoriaHabilitacion === null) return;
   try{
     if(modulo === 'habilitacion' && accionModulo === 'aceptar'){
       const categoria = prompt('Categoría habilitada:', 'Láser Depilación');
@@ -379,7 +388,7 @@ async function guardarRevisionModulo(modulo, accionModulo){
     }
     await api('/api/auth/operadoras/revision/' + revisionOpsActual.usuario_id, {
       method:'POST',
-      body:JSON.stringify({accion, obs})
+      body:JSON.stringify({accion, obs, categoria_habilitacion:categoriaHabilitacion})
     });
     showToast('✅ Módulo actualizado');
     await loadAllData();
@@ -419,10 +428,12 @@ async function guardarRevisionOperadora(accion){
   };
   if(!confirm('¿Confirmás ' + labels[accion] + '?')) return;
   const obs = gv('revisionObs').trim();
+  const categoriaHabilitacion = accion === 'pedir_habilitacion' ? pedirHabilitacionCategoria() : '';
+  if(accion === 'pedir_habilitacion' && categoriaHabilitacion === null) return;
   try{
     const data = await api('/api/auth/operadoras/revision/' + revisionOpsActual.usuario_id, {
       method:'POST',
-      body:JSON.stringify({accion, obs})
+      body:JSON.stringify({accion, obs, categoria_habilitacion:categoriaHabilitacion})
     });
     const waMsg = data?.whatsapp
       ? (data.whatsapp.enviado ? ' WhatsApp enviado.' : ' WhatsApp quedó en cola.')
