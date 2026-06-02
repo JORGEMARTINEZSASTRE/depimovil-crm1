@@ -175,38 +175,6 @@ function formatCumpleanos(dia, mes) {
   return `${dia} de ${meses[mes - 1]}`;
 }
 
-function normalizeLocalidadKey(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function parseLocalidadesTrabajo({ ciudad, departamento, lugares }) {
-  const raw = [ciudad, lugares]
-    .filter(Boolean)
-    .join('\n')
-    .split(/[\n,;]+/)
-    .map(v => cleanText(v, 120))
-    .filter(Boolean);
-  const seen = new Set();
-  return raw.filter(localidad => {
-    const key = normalizeLocalidadKey(localidad);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 12).map((localidad, idx) => ({
-    direccion: localidad,
-    localidad,
-    departamento: fitVarchar(departamento, 60),
-    pais: 'Uruguay',
-    referencia: idx === 0 ? 'Localidad principal declarada en alta' : 'Localidad adicional declarada en alta',
-    tipo: 'trabajo',
-    principal: idx === 0,
-  }));
-}
-
 function buildOperadoraRegistroObs(payload) {
   const parts = [
     'Registro web de operadora pendiente de revisión administrativa.',
@@ -216,7 +184,7 @@ function buildOperadoraRegistroObs(payload) {
     `Estética/Spa: ${payload.gabinete || 'Sin indicar'}`,
     `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
     `Tratamientos: ${(payload.tratamientos || []).join(', ') || 'Sin indicar'}${payload.tratamientos_otros ? ` | Otros: ${payload.tratamientos_otros}` : ''}`,
-    `Localidades donde trabaja: ${payload.localidades_trabajo?.join(', ') || 'Sin indicar'}`,
+    `Lugares de trabajo: ${payload.lugares_trabajo || 'Sin indicar'}`,
     `Otros trabajos no estéticos: ${payload.trabajo_no_estetico ? (payload.trabajo_no_estetico_detalle || 'Sí') : 'No'}`
   ];
   return parts.join('\n');
@@ -296,7 +264,6 @@ async function notifyAdminNuevaOperadora(payload, operadoraId) {
         `Nombre: ${payload.nombre} ${payload.apellido}`,
         `WhatsApp: ${payload.whatsapp}`,
         `Ciudad: ${payload.ciudad}${payload.departamento ? ` / ${payload.departamento}` : ''}`,
-        `Localidades donde trabaja: ${payload.localidades_trabajo?.join(', ') || payload.ciudad || 'Sin indicar'}`,
         `Cumpleaños: ${formatCumpleanos(payload.cumpleanos_dia, payload.cumpleanos_mes)}`,
         `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
         'Estado: pendiente de autorización administrativa.',
@@ -573,7 +540,7 @@ router.post('/operadora/register', async (req, res) => {
     };
 
     if (!payload.nombre || !payload.apellido || !payload.whatsapp || !payload.documento || !payload.ciudad) {
-      return res.status(400).json({ error: 'Nombre, apellido, WhatsApp, cédula/DNI y localidad principal son obligatorios' });
+      return res.status(400).json({ error: 'Nombre, apellido, WhatsApp, cédula/DNI y ciudad son obligatorios' });
     }
     if (payload.documento.length < 5) {
       return res.status(400).json({ error: 'La cédula/DNI debe tener solo números y al menos 5 dígitos' });
@@ -627,12 +594,6 @@ router.post('/operadora/register', async (req, res) => {
       return res.status(409).json({ error: 'Ese WhatsApp ya tiene una ficha de operadora. Contactá a administración para reactivar el acceso.' });
     }
 
-    const direccionesTrabajo = parseLocalidadesTrabajo({
-      ciudad: payload.ciudad,
-      departamento: payload.departamento,
-      lugares: payload.lugares_trabajo,
-    });
-    payload.localidades_trabajo = direccionesTrabajo.map(d => d.localidad);
     const obs = buildOperadoraRegistroObs(payload);
     await client.query('BEGIN');
     const operadoraResult = await client.query(
@@ -655,9 +616,17 @@ router.post('/operadora/register', async (req, res) => {
         'activa',
         nivelFromExperiencia(payload.experiencia),
         obs,
-        direccionesTrabajo[0]?.direccion || fitVarchar(payload.ciudad, 100) || null,
+        fitVarchar(payload.lugares_trabajo, 250) || null,
         'trabajo',
-        JSON.stringify(direccionesTrabajo),
+        JSON.stringify(payload.lugares_trabajo ? [{
+          direccion: payload.lugares_trabajo,
+          localidad: fitVarchar(payload.ciudad, 100),
+          departamento: fitVarchar(payload.departamento, 60),
+          pais: 'Uruguay',
+          referencia: '',
+          tipo: 'trabajo',
+          principal: true
+        }] : []),
         makePortalToken()
       ]
     );
@@ -669,7 +638,6 @@ router.post('/operadora/register', async (req, res) => {
       cumpleanos_dia: payload.cumpleanos_dia,
       cumpleanos_mes: payload.cumpleanos_mes,
       lugares_trabajo: payload.lugares_trabajo,
-      localidades_trabajo: payload.localidades_trabajo,
       experiencia: payload.experiencia,
       tratamientos: payload.tratamientos,
       tratamientos_otros: payload.tratamientos_otros,
@@ -1025,33 +993,47 @@ router.post('/portal-login', async (req, res) => {
     if (!token || token.length < 10) {
       return res.status(400).json({ error: 'Token inválido' });
     }
-    const { rows } = await pool.query(
-      `SELECT o.id AS operadora_id, o.nombre, o.apellido, o.whatsapp, o.estado,
-              u.id, u.nombre AS u_nombre, u.email, u.rol, u.status, u.whatsapp AS u_whatsapp,
-              u.operadora_id AS u_operadora_id
-       FROM operadoras o
-       JOIN usuarios u ON u.operadora_id = o.id
-       WHERE o.portal_token = $1
-         AND o.estado = 'activa'
-         AND u.status = 'activo'
-         AND u.rol IN ('operadora','operadora_habilitada','operadora_limitada')
-       ORDER BY u.id DESC
-       LIMIT 1`,
+    // Buscar operadora por token
+    const { rows: opRows } = await pool.query(
+      `SELECT id, nombre, apellido, whatsapp, estado FROM operadoras
+       WHERE portal_token = $1 AND estado = 'activa' LIMIT 1`,
       [token]
     );
-    if (!rows.length) {
+    if (!opRows.length) {
       return res.status(401).json({ error: 'Link inválido o expirado. Pedí uno nuevo escribiéndonos por WhatsApp.' });
     }
-    const row = rows[0];
-    const user = {
-      id: row.id,
-      nombre: row.u_nombre || `${row.nombre} ${row.apellido}`.trim(),
-      email: row.email,
-      rol: row.rol,
-      operadora_id: row.u_operadora_id,
-      transportista_id: null,
-      whatsapp: row.u_whatsapp || row.whatsapp,
-    };
+    const op = opRows[0];
+    // Buscar usuario por whatsapp (normalizado)
+    const wa = op.whatsapp ? op.whatsapp.replace(/\s+/g,'') : null;
+    const { rows } = await pool.query(
+      `SELECT id, nombre, email, rol, status, whatsapp, operadora_id
+       FROM usuarios
+       WHERE (whatsapp = $1 OR whatsapp = $2)
+         AND status = 'activo'
+         AND rol IN ('operadora','operadora_habilitada','operadora_limitada','operaciones','comercial')
+       ORDER BY id DESC LIMIT 1`,
+      [wa, op.whatsapp]
+    );
+    // Si no hay usuario vinculado, crear sesión temporal con datos de la operadora
+    let user;
+    if (rows.length) {
+      const u = rows[0];
+      user = { id: u.id, nombre: u.nombre || `${op.nombre} ${op.apellido}`.trim(),
+        email: u.email, rol: u.rol, operadora_id: u.operadora_id || op.id,
+        transportista_id: null, whatsapp: u.whatsapp || wa };
+    } else {
+      // Buscar cualquier usuario activo con rol operadora como fallback
+      const { rows: fb } = await pool.query(
+        `SELECT id, nombre, email, rol, status, whatsapp, operadora_id FROM usuarios
+         WHERE rol IN ('operadora','operadora_habilitada','operadora_limitada')
+           AND status = 'activo' ORDER BY id DESC LIMIT 1`
+      );
+      if (!fb.length) return res.status(401).json({ error: 'No se encontró usuario activo para esta operadora.' });
+      const u = fb[0];
+      user = { id: u.id, nombre: `${op.nombre} ${op.apellido}`.trim(),
+        email: u.email, rol: u.rol, operadora_id: op.id,
+        transportista_id: null, whatsapp: wa };
+    }
     await pool.query(
       'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
       ['LOGIN_PORTAL_TOKEN', 'session', user.id, `Portal token login — ${user.whatsapp}`, user.id, req.ip]
