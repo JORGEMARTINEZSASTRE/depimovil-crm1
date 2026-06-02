@@ -183,7 +183,8 @@ function renderRevisionOperadorasRows(){
   const estado = revisionOpsFilter.estado;
   const rows = revisionOpsCache.filter(function(r){
     const md = revMetadata(r);
-    const hay = [r.nombre, r.apellido, r.usuario_nombre, r.whatsapp, r.ciudad, r.departamento, r.usuario_email, md.documento]
+    const localidades = revisionLocalidadesLabel(md);
+    const hay = [r.nombre, r.apellido, r.usuario_nombre, r.whatsapp, r.ciudad, r.departamento, localidades, r.usuario_email, md.documento]
       .filter(Boolean).join(' ').toLowerCase();
     if(q && !hay.includes(q)) return false;
     if(estado && r.revision_admin_estado !== estado) return false;
@@ -196,6 +197,7 @@ function renderRevisionOperadorasRows(){
   tbody.innerHTML = rows.map(function(r){
     const md = revMetadata(r);
     const tratamientos = [md.tratamientos || [], md.tratamientos_otros || ''].flat().filter(Boolean).join(', ');
+    const localidades = revisionLocalidadesLabel(md);
     const nombre = `${r.nombre || r.usuario_nombre || ''} ${r.apellido || ''}`.trim() || 'Pedido sin nombre';
     const sinFicha = !r.operadora_id;
     return `<tr>
@@ -207,6 +209,7 @@ function renderRevisionOperadorasRows(){
       <td>
         <span>${fmtDate(r.usuario_created_at)}</span>
         <div class="docs-line">${revEsc(r.ciudad || 'Sin ciudad')}${r.departamento ? ' · ' + revEsc(r.departamento) : ''}</div>
+        <div class="docs-line">Trabaja en: ${revEsc(localidades)}</div>
       </td>
       <td>
         <span>${revEsc(md.experiencia || r.nivel || '—')}</span>
