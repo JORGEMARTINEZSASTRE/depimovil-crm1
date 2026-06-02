@@ -48,7 +48,7 @@ const VIEW_PERMISSIONS={
   superadmin:['*'],
   administrador:['*'],
   operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','materiales'],
-  comercial:['dashboard','whatsapp','leads','lead-ficha','embudo'],
+  comercial:['dashboard','whatsapp'],
   operadora_habilitada:['dashboard','reservas','reserva-ficha','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
   operadora:['dashboard','maquinas','maquina-ficha','materiales'],
   operadora_limitada:['dashboard','materiales'],
@@ -133,7 +133,7 @@ function applyRoleUI(){
   document.body.dataset.accessRole=role;
 }
 function canEdit(){return currentUser&&isOpsRole(currentUser.rol);}
-function canEditLead(){return currentUser&&(isOpsRole(currentUser.rol)||currentUser.rol==='comercial');}
+function canEditLead(){return currentUser&&isAdminRole(currentUser.rol);}
 function isSuperAdmin(){return currentUser&&isAdminRole(currentUser.rol);}
 function gv(id){const el=document.getElementById(id);return el?el.value:'';}
 function sv(id,val){const el=document.getElementById(id);if(el)el.value=val;}

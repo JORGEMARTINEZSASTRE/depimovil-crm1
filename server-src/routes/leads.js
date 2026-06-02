@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOpsRole } = require('../middleware/auth');
+const { auth, requireRole, isAdminRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -157,7 +157,7 @@ async function ensureTable() {
 ensureTable().catch(err => console.error('Error creando tablas leads:', err.message));
 
 function canEditLead(user) {
-  return ['superadmin', 'administrador', 'operaciones', 'comercial'].includes(user?.rol);
+  return isAdminRole(user?.rol);
 }
 
 // ─────────────────────────────────────────────
@@ -260,7 +260,7 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const { rows: prev } = await pool.query('SELECT estado, operadora_id, convertido_en, convertido_por FROM leads WHERE id=$1', [req.params.id]);
     if (!prev.length) return res.status(404).json({ error: 'Lead no encontrado' });
-    if (!isOpsRole(req.user.rol) && (
+    if (!isAdminRole(req.user.rol) && (
       operadora_id ||
       convertido_en ||
       convertido_por ||
