@@ -883,7 +883,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
       const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${portalToken}`;
       const contratoUrl = `${portalUrl}#contratos`;
       const mensajeMap = {
-        aprobar: `Tu alta de DepiMóvil fue autorizada. Ya podés ingresar con tu WhatsApp y pedir el código de acceso.`,
+        aprobar: `¡Tu alta en DepiMóvil fue autorizada! 🎉\n\nYa podés ingresar al sistema desde este link:\n${req.protocol}://${req.get('host')}/?ptoken=${portalToken}\n\nEste link es personal y te logueará automáticamente. Si tenés problemas, escribinos por acá.`,
         observar: `DepiMóvil revisó tu registro y necesita aclarar algunos datos.${obs ? `\n\nObservación: ${obs}` : ''}`,
         rechazar: `DepiMóvil revisó tu registro y por ahora no quedó aprobado.${obs ? `\n\nMotivo: ${obs}` : ''}`,
         pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${obs ? `\n\nNota: ${obs}` : ''}\n\nSubilos acá: ${portalUrl}`,
@@ -978,6 +978,55 @@ router.put('/password', auth, async (req, res) => {
 
     res.json({ message: 'Contraseña actualizada' });
   } catch (err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+/**
+ * POST /api/auth/portal-login
+ * Login directo via portal_token (link enviado por WA al aprobar operadora)
+ * Body: { token }
+ */
+router.post('/portal-login', async (req, res) => {
+  try {
+    const token = String(req.body.token || '').replace(/[^a-f0-9]/gi, '').slice(0, 64);
+    if (!token || token.length < 10) {
+      return res.status(400).json({ error: 'Token inválido' });
+    }
+    const { rows } = await pool.query(
+      `SELECT o.id AS operadora_id, o.nombre, o.apellido, o.whatsapp, o.estado,
+              u.id, u.nombre AS u_nombre, u.email, u.rol, u.status, u.whatsapp AS u_whatsapp,
+              u.operadora_id AS u_operadora_id
+       FROM operadoras o
+       JOIN usuarios u ON u.operadora_id = o.id
+       WHERE o.portal_token = $1
+         AND o.estado = 'activa'
+         AND u.status = 'activo'
+         AND u.rol IN ('operadora','operadora_habilitada','operadora_limitada')
+       ORDER BY u.id DESC
+       LIMIT 1`,
+      [token]
+    );
+    if (!rows.length) {
+      return res.status(401).json({ error: 'Link inválido o expirado. Pedí uno nuevo escribiéndonos por WhatsApp.' });
+    }
+    const row = rows[0];
+    const user = {
+      id: row.id,
+      nombre: row.u_nombre || `${row.nombre} ${row.apellido}`.trim(),
+      email: row.email,
+      rol: row.rol,
+      operadora_id: row.u_operadora_id,
+      transportista_id: null,
+      whatsapp: row.u_whatsapp || row.whatsapp,
+    };
+    await pool.query(
+      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+      ['LOGIN_PORTAL_TOKEN', 'session', user.id, `Portal token login — ${user.whatsapp}`, user.id, req.ip]
+    ).catch(() => {});
+    res.json({ token: generateToken(user), user: publicUser(user) });
+  } catch (err) {
+    console.error('Portal login error:', err);
     res.status(500).json({ error: 'Error interno' });
   }
 });
