@@ -64,6 +64,16 @@ async function ensureWhatsappCrmTables() {
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_score INTEGER NOT NULL DEFAULT 0');
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS ultimo_contacto TIMESTAMP');
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS intencion_whatsapp VARCHAR(100)');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS apellido VARCHAR(200)');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS gabinete VARCHAR(200)');
+  await pool.query("ALTER TABLE leads ADD COLUMN IF NOT EXISTS pais VARCHAR(100) DEFAULT 'Uruguay'");
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS interes TEXT');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS tecnologia VARCHAR(200)');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS prox_accion TEXT');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS prox_fecha DATE');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS operadora_id INTEGER REFERENCES operadoras(id) ON DELETE SET NULL');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS convertido_en TIMESTAMP');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS convertido_por VARCHAR(200)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_leads_whatsapp_phone_norm ON leads(whatsapp_phone_norm)');
 }
 
@@ -288,42 +298,23 @@ router.post('/', async (req, res) => {
   res.sendStatus(200);
 
   try {
-    const entry = req.body?.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
+    const mensajes = extractIncomingMessages(req.body);
+    if (!mensajes.length) return; // No es un mensaje entrante (puede ser status update)
 
-    if (!value?.messages?.length) return; // No es un mensaje (puede ser status update)
+    for (const incoming of mensajes) {
+      if (!incoming.phone) continue;
+      await registrarMensajeEntrante(incoming);
 
-    const msg = value.messages[0];
-    const phone = msg.from; // Número de la operadora
-    const messageType = msg.type;
-    const messageId = msg.id || null;
-
-    // Extraer texto del mensaje
-    let texto = '';
-    if (messageType === 'text') {
-      texto = msg.text.body.trim();
-    } else if (messageType === 'interactive') {
-      // Respuesta a botón o lista
-      texto = msg.interactive?.button_reply?.title 
-           || msg.interactive?.list_reply?.title 
-           || msg.interactive?.list_reply?.id
-           || '';
-    } else {
-      await registrarMensajeEntrante({ phone, texto: '', messageType, messageId, rawPayload: msg });
-      if (isBotMode()) {
-        await enviarMensaje(phone, '📝 Por ahora solo puedo procesar mensajes de texto. Escribime lo que necesitás.');
+      if (!incoming.texto) {
+        if (isBotMode()) {
+          await enviarMensaje(incoming.phone, '📝 Por ahora solo puedo procesar mensajes de texto. Escribime lo que necesitás.');
+        }
+        continue;
       }
-      return;
+
+      if (!isBotMode()) continue;
+      await procesarMensaje(incoming.phone, incoming.texto);
     }
-
-    if (!texto) return;
-
-    await registrarMensajeEntrante({ phone, texto, messageType, messageId, rawPayload: msg });
-    if (!isBotMode()) return;
-
-    // Procesar el mensaje
-    await procesarMensaje(phone, texto);
 
   } catch (err) {
     console.error('❌ Error procesando webhook WA:', err);
@@ -688,6 +679,78 @@ async function enviarReservas(phone, op) {
 // ═══════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════
+function extractIncomingMessages(payload) {
+  return [
+    ...extractMetaMessages(payload),
+    ...extractEvolutionMessages(payload),
+  ];
+}
+
+function extractMetaMessages(payload) {
+  const value = payload?.entry?.[0]?.changes?.[0]?.value;
+  if (!value?.messages?.length) return [];
+  return value.messages.map(msg => {
+    const messageType = msg.type || 'unknown';
+    let texto = '';
+    if (messageType === 'text') {
+      texto = msg.text?.body?.trim() || '';
+    } else if (messageType === 'interactive') {
+      texto = msg.interactive?.button_reply?.title
+           || msg.interactive?.list_reply?.title
+           || msg.interactive?.list_reply?.id
+           || '';
+    } else {
+      texto = msg.image?.caption || msg.video?.caption || msg.document?.caption || '';
+    }
+    return {
+      provider: 'meta',
+      phone: msg.from,
+      texto,
+      messageType,
+      messageId: msg.id || null,
+      rawPayload: msg,
+    };
+  });
+}
+
+function extractEvolutionMessages(payload) {
+  const event = String(payload?.event || '').toLowerCase();
+  if (event && event !== 'messages.upsert') return [];
+  const items = Array.isArray(payload?.data) ? payload.data : (payload?.data ? [payload.data] : []);
+  return items.map(item => {
+    const key = item?.key || {};
+    const remoteJid = String(key.remoteJid || item?.remoteJid || '');
+    if (!remoteJid || remoteJid.endsWith('@g.us') || key.fromMe) return null;
+    const phone = remoteJid.split('@')[0];
+    const msg = item?.message || {};
+    const messageType = item?.messageType || Object.keys(msg)[0] || 'unknown';
+    const texto = extractEvolutionText(msg, item).trim();
+    return {
+      provider: 'evolution',
+      phone,
+      texto,
+      messageType,
+      messageId: key.id || item?.id || null,
+      rawPayload: item,
+    };
+  }).filter(Boolean);
+}
+
+function extractEvolutionText(msg, item) {
+  return msg.conversation
+      || msg.extendedTextMessage?.text
+      || msg.imageMessage?.caption
+      || msg.videoMessage?.caption
+      || msg.documentMessage?.caption
+      || msg.buttonsResponseMessage?.selectedDisplayText
+      || msg.buttonsResponseMessage?.selectedButtonId
+      || msg.listResponseMessage?.title
+      || msg.listResponseMessage?.singleSelectReply?.selectedRowId
+      || msg.templateButtonReplyMessage?.selectedDisplayText
+      || item?.message?.conversation
+      || '';
+}
+
 function normalizeWhatsapp(input) {
   let digits = String(input || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -868,7 +931,7 @@ async function upsertLeadDesdeWhatsApp({ phone, texto, rawPayload, intencion }) 
   return { operadora, lead };
 }
 
-async function registrarMensajeEntrante({ phone, texto, messageType, messageId, rawPayload }) {
+async function registrarMensajeEntrante({ provider = 'meta', phone, texto, messageType, messageId, rawPayload }) {
   await whatsappTablesReady;
   const phoneNorm = normalizeWhatsappDigits(phone);
   if (!phoneNorm) return null;
@@ -887,10 +950,11 @@ async function registrarMensajeEntrante({ phone, texto, messageType, messageId, 
       INSERT INTO whatsapp_messages (
         provider, provider_message_id, direction, phone, phone_norm,
         operadora_id, lead_id, message_type, body, intent, score_delta, raw_payload
-      ) VALUES ('meta',$1,'inbound',$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      ) VALUES ($1,$2,'inbound',$3,$4,$5,$6,$7,$8,$9,$10,$11)
       ON CONFLICT (provider_message_id) WHERE provider_message_id IS NOT NULL DO NOTHING
       RETURNING *
     `, [
+      provider,
       messageId,
       normalizeWhatsapp(phone),
       phoneNorm,

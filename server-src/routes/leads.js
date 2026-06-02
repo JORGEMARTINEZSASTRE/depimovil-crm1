@@ -114,6 +114,11 @@ async function ensureTable() {
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_score INTEGER NOT NULL DEFAULT 0');
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS ultimo_contacto TIMESTAMP');
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS intencion_whatsapp VARCHAR(100)');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS apellido VARCHAR(200)');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS gabinete VARCHAR(200)');
+  await pool.query("ALTER TABLE leads ADD COLUMN IF NOT EXISTS pais VARCHAR(100) DEFAULT 'Uruguay'");
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS interes TEXT');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS tecnologia VARCHAR(200)');
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS prox_accion TEXT');
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS prox_fecha DATE');
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS operadora_id INTEGER REFERENCES operadoras(id) ON DELETE SET NULL');
