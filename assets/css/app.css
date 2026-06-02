@@ -147,6 +147,8 @@ input,select,textarea{font-family:inherit}
 .kfi-row-total{border-top:1px solid var(--border);margin-top:6px;padding-top:8px;}
 .kfi-label{color:var(--text2);}
 .kfi-val{font-weight:600;}
+.sc-wa{border-left:3px solid #25d366;background:rgba(37,211,102,0.04);}
+.sc-wa .sc-tipo{color:#25d366;}
 .dashboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
 .dash-card h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
