@@ -879,6 +879,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     await client.query('COMMIT');
 
     const wa = row.whatsapp || row.op_whatsapp;
+    let whatsapp = null;
     if (wa && ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion)) {
       const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${portalToken}`;
       const contratoUrl = `${portalUrl}#contratos`;
@@ -890,10 +891,19 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
         pedir_contrato: `DepiMóvil necesita que firmes digitalmente el contrato de alquiler para completar tu alta o confirmar tu alquiler.${obs ? `\n\nNota: ${obs}` : ''}\n\nFirmalo acá: ${contratoUrl}`,
         pedir_habilitacion: `DepiMóvil necesita completar tu habilitación técnica antes de dejar tu alta finalizada.${obs ? `\n\nNota: ${obs}` : ''}`
       };
-      await enviarMensaje(wa, mensajeMap[accion]);
+      const envio = await enviarOEncolarWhatsapp({
+        telefono: wa,
+        mensaje: mensajeMap[accion],
+        tipo: `revision_operadora_${accion}`,
+        operadoraId: row.operadora_id,
+      });
+      whatsapp = {
+        enviado: envio.enviado,
+        error: envio.error,
+      };
     }
 
-    res.json({ ok: true, estado: estadoMap[accion], portal_token: portalToken });
+    res.json({ ok: true, estado: estadoMap[accion], portal_token: portalToken, whatsapp });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Revision action error:', err);

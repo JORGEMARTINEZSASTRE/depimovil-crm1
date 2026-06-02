@@ -320,17 +320,13 @@ function copyText(text){
 
 async function guardarRevisionOperadora(accion){
   if(!revisionOpsActual) return;
+  if(accion === 'pedir_faltantes') accion = 'pedir_documentos';
   if(accion === 'aprobar' && !revisionOpsActual.operadora_id){
     showToast('⚠️ No se puede aprobar: este pedido no tiene ficha de operadora vinculada','warn');
     return;
   }
   if(accion === 'pedir_contrato' && !revisionOpsActual.operadora_id){
     showToast('⚠️ No se puede pedir contrato: este pedido no tiene ficha de operadora vinculada','warn');
-    return;
-  }
-  if(accion === 'pedir_faltantes'){
-    const obs = gv('revisionObs').trim();
-    await pedirFaltantesOperadora(revisionOpsActual.operadora_id, obs);
     return;
   }
   const labels = {
@@ -344,11 +340,14 @@ async function guardarRevisionOperadora(accion){
   if(!confirm('¿Confirmás ' + labels[accion] + '?')) return;
   const obs = gv('revisionObs').trim();
   try{
-    await api('/api/auth/operadoras/revision/' + revisionOpsActual.usuario_id, {
+    const data = await api('/api/auth/operadoras/revision/' + revisionOpsActual.usuario_id, {
       method:'POST',
       body:JSON.stringify({accion, obs})
     });
-    showToast('✅ Revisión actualizada');
+    const waMsg = data?.whatsapp
+      ? (data.whatsapp.enviado ? ' WhatsApp enviado.' : ' WhatsApp quedó en cola.')
+      : '';
+    showToast('✅ Revisión actualizada.' + waMsg);
     closeModal('modalRevisionOperadora');
     await renderRevisionOperadoras();
     await loadAllData();
