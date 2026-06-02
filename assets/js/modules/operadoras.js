@@ -36,6 +36,98 @@ function opActividadLabel(o){
   if(Number.isNaN(time.getTime()))return fmtDate(raw);
   return time.toLocaleDateString('es-UY');
 }
+function opDocsLocal(id){
+  const docs=(DB.get('documentos_operadora')||[]).filter(d=>parseInt(d.operadora_id)===parseInt(id));
+  return {
+    todos:docs,
+    cedulaFrente:docs.some(d=>d.tipo==='cedula'),
+    cedulaDorso:docs.some(d=>d.tipo==='cedula_dorso'),
+    contratos:docs.filter(d=>d.tipo==='contrato')
+  };
+}
+function opTieneContratoFirmado(id){
+  const docs=opDocsLocal(id);
+  if(docs.contratos.length)return true;
+  return (DB.get('contratos')||[]).some(c=>parseInt(c.operadoraId)===parseInt(id)&&(c.estado==='firmado'||c.firmado||c.firmadoEn));
+}
+function opHabilitacionesActivas(id){
+  return (DB.get('habilitaciones')||[]).filter(h=>parseInt(h.operadoraId)===parseInt(id)&&['activa','activo'].includes(h.estado));
+}
+function op360Estado(o){
+  const id=parseInt(o.id);
+  const docs=opDocsLocal(id);
+  const reservas=(DB.get('reservas')||[]).filter(r=>parseInt(r.operadoraId)===id);
+  const pagos=(DB.get('pagos')||[]).filter(p=>parseInt(p.operadoraId)===id);
+  const envios=(DB.get('envios')||[]).filter(e=>parseInt(e.operadoraId)===id);
+  const habs=opHabilitacionesActivas(id);
+  const datosOk=!!(o.nombre&&o.apellido&&(o.whatsapp||o.telefono)&&o.ciudad&&o.departamento);
+  const direcciones=(Array.isArray(o.direccionesEntrega)&&o.direccionesEntrega.length)||o.direccionEntrega;
+  const docsOk=docs.cedulaFrente&&docs.cedulaDorso;
+  const contratoOk=opTieneContratoFirmado(id);
+  const habOk=habs.length>0;
+  const deuda=pagos.some(p=>['deuda_vencida','sena_pendiente','pendiente'].includes(p.estado));
+  const checks=[
+    {key:'datos',label:'Datos básicos',ok:datosOk,detalle:datosOk?'Contacto y ubicación completos':'Falta contacto, ciudad o departamento'},
+    {key:'localidades',label:'Localidades / entrega',ok:!!direcciones,detalle:direcciones?'Dirección o localidad de trabajo cargada':'Falta dirección o localidades de trabajo'},
+    {key:'documentos',label:'Cédula / DNI',ok:docsOk,detalle:docsOk?'Frente y dorso cargados':'Falta frente o dorso de cédula/DNI'},
+    {key:'contrato',label:'Contrato',ok:contratoOk,detalle:contratoOk?'Contrato firmado registrado':'Falta firma de contrato'},
+    {key:'habilitacion',label:'Habilitación',ok:habOk,detalle:habOk?habs.map(h=>h.categoria||'Habilitación').join(', '):'Falta habilitación técnica'},
+    {key:'pagos',label:'Pagos',ok:!deuda,detalle:deuda?'Tiene pagos pendientes o deuda':'Sin deuda marcada'}
+  ];
+  const completos=checks.filter(c=>c.ok).length;
+  const porcentaje=Math.round((completos/checks.length)*100);
+  const faltante=checks.find(c=>!c.ok);
+  let accion='Lista para operar';
+  let accionHtml='<span class="badge badge-green">Sin acción urgente</span>';
+  if(faltante?.key==='datos'||faltante?.key==='localidades'){
+    accion='Completar ficha';
+    accionHtml=`<button class="action-btn" onclick="openOpModal(${id})">Completar ficha</button>`;
+  }else if(faltante?.key==='documentos'){
+    accion='Pedir documentos';
+    accionHtml=canEdit()?`<button class="action-btn" onclick="pedirFaltantesOperadora(${id})">Pedir documentos</button>`:'<span class="badge badge-yellow">Documentos pendientes</span>';
+  }else if(faltante?.key==='contrato'){
+    accion='Pedir firma de contrato';
+    accionHtml='<button class="action-btn" onclick="navigate(\'revision-operadoras\')">Ir a revisión</button>';
+  }else if(faltante?.key==='habilitacion'){
+    accion='Registrar habilitación';
+    accionHtml=canEdit()?`<button class="action-btn" onclick="openHabilitacionModal(${id})">Registrar habilitación</button>`:'<span class="badge badge-yellow">Habilitación pendiente</span>';
+  }else if(faltante?.key==='pagos'){
+    accion='Revisar pagos';
+    accionHtml='<button class="action-btn" onclick="navigate(\'pagos\')">Ver pagos</button>';
+  }
+  return {checks,completos,porcentaje,accion,accionHtml,reservas,pagos,envios,habs};
+}
+function renderOp360Panel(o){
+  const st=op360Estado(o);
+  const color=st.porcentaje>=80?'var(--green)':(st.porcentaje>=50?'var(--yellow)':'var(--red)');
+  return `<div class="info-card full">
+    <h4>Estado 360 de la operadora</h4>
+    <div style="display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:18px;align-items:start">
+      <div>
+        <div style="font-size:34px;font-weight:800;color:${color};line-height:1">${st.porcentaje}%</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:${st.porcentaje}%;background:${color}"></div></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:8px">${st.completos}/${st.checks.length} puntos completos</div>
+        <div style="margin-top:12px;font-size:13px;color:var(--text)"><strong>Próximo paso:</strong> ${escapeHTML(st.accion)}</div>
+        <div style="margin-top:8px">${st.accionHtml}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">
+        ${st.checks.map(c=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:5px">
+            <strong style="font-size:12px;color:var(--text)">${escapeHTML(c.label)}</strong>
+            <span class="badge ${c.ok?'badge-green':'badge-yellow'}">${c.ok?'OK':'Pendiente'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.4">${escapeHTML(c.detalle)}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <span class="badge badge-blue">${st.reservas.length} reserva${st.reservas.length===1?'':'s'}</span>
+      <span class="badge badge-blue">${st.pagos.length} pago${st.pagos.length===1?'':'s'}</span>
+      <span class="badge badge-blue">${st.envios.length} envío${st.envios.length===1?'':'s'}</span>
+      <span class="badge badge-blue">${st.habs.length} ${st.habs.length===1?'habilitación':'habilitaciones'}</span>
+    </div>
+  </div>`;
+}
 function setOperadorasTableMode(minimo){
   const thead=document.querySelector('#view-operadoras table thead tr');
   if(thead){
@@ -208,6 +300,7 @@ function showOpFicha(id){
       </div>
     </div>
     <div class="ficha-grid">
+      ${renderOp360Panel(o)}
       <div class="info-card">
         <h4>📋 Datos Personales</h4>
         ${ir('Nombre completo',nombreCompleto)}${ir('Email',escapeHTML(o.email||'—'))}

@@ -176,6 +176,69 @@ function renderRevisionModulos(row){
   </div>`;
 }
 
+function revisionEstado360(row){
+  const md = revMetadata(row);
+  const docs = row.operadora_id
+    ? (DB.get('documentos_operadora') || []).filter(d => parseInt(d.operadora_id) === parseInt(row.operadora_id))
+    : [];
+  const datosOk = !!((row.nombre || row.usuario_nombre) && row.whatsapp && (row.ciudad || md.ciudad) && (row.departamento || md.departamento));
+  const localidades = Array.isArray(md.localidades_trabajo) ? md.localidades_trabajo : [];
+  const localidadesOk = localidades.length > 0 || !!md.lugares_trabajo || !!row.ciudad;
+  const docsOk = docs.some(d => d.tipo === 'cedula') && docs.some(d => d.tipo === 'cedula_dorso');
+  const contratoOk = docs.some(d => d.tipo === 'contrato') || (DB.get('contratos') || []).some(c => parseInt(c.operadoraId) === parseInt(row.operadora_id) && (c.estado === 'firmado' || c.firmado || c.firmadoEn));
+  const habs = row.operadora_id
+    ? (DB.get('habilitaciones') || []).filter(h => parseInt(h.operadoraId) === parseInt(row.operadora_id) && ['activa','activo'].includes(h.estado))
+    : [];
+  const checks = [
+    {key:'ficha', label:'Ficha vinculada', ok:!!row.operadora_id, accion:'No se puede aprobar hasta vincular o corregir la ficha.'},
+    {key:'datos', label:'Datos básicos', ok:datosOk, accion:'Completar nombre, WhatsApp, ciudad o departamento.'},
+    {key:'localidades', label:'Localidades', ok:localidadesOk, accion:'Confirmar dónde trabaja antes de aprobar.'},
+    {key:'documentos', label:'CI / DNI', ok:docsOk, accion:'Pedir documentos.'},
+    {key:'contrato', label:'Contrato', ok:contratoOk, accion:'Pedir firma de contrato.'},
+    {key:'habilitacion', label:'Habilitación', ok:habs.length>0, accion:'Pedir o registrar habilitación técnica.'}
+  ];
+  const faltante = checks.find(c => !c.ok);
+  const completos = checks.filter(c => c.ok).length;
+  const porcentaje = Math.round((completos / checks.length) * 100);
+  return {checks, faltante, completos, porcentaje, habs};
+}
+
+function renderRevisionRutaAprobacion(row){
+  const st = revisionEstado360(row);
+  const color = st.porcentaje >= 80 ? 'var(--green)' : (st.porcentaje >= 50 ? 'var(--yellow)' : 'var(--red)');
+  const next = st.faltante
+    ? `<span class="badge badge-yellow">${revEsc(st.faltante.accion)}</span>`
+    : '<span class="badge badge-green">Lista para aprobar</span>';
+  const quick = st.faltante?.key === 'documentos'
+    ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'pedir_documentos\')">Pedir documentos</button>'
+    : st.faltante?.key === 'contrato'
+      ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'pedir_contrato\')">Pedir contrato</button>'
+      : st.faltante?.key === 'habilitacion'
+        ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'pedir_habilitacion\')">Pedir habilitación</button>'
+        : st.faltante
+          ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'observar\')">Guardar observación</button>'
+          : '<button class="action-btn" onclick="guardarRevisionOperadora(\'aprobar\')">Aprobar ahora</button>';
+  return `<div class="docs-detail-card" style="margin-top:12px">
+    <div class="docs-detail-title" style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+      <span>Ruta de aprobación</span>
+      <span style="font-size:12px;color:${color};font-weight:800">${st.porcentaje}% completo</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" style="width:${st.porcentaje}%;background:${color}"></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:12px">
+      ${st.checks.map(c => `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+          <strong style="font-size:12px;color:var(--text)">${revEsc(c.label)}</strong>
+          <span class="badge ${c.ok?'badge-green':'badge-yellow'}">${c.ok?'OK':'Falta'}</span>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Próximo paso:</strong> ${next}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${quick}</div>
+    </div>
+  </div>`;
+}
+
 function renderRevisionOperadorasRows(){
   const tbody = document.getElementById('revisionOpsTableBody');
   if(!tbody) return;
@@ -255,6 +318,7 @@ function openRevisionOperadora(usuarioId){
         ${ir('Portal', portal ? `<button class="action-btn" onclick="copyText('${portal}')">Copiar link</button> <a class="action-btn" href="${portal}" target="_blank" rel="noopener">Abrir</a>` : '<span class="badge badge-gray">Sin token</span>')}
       </div>
     </div>
+    ${renderRevisionRutaAprobacion(row)}
     <div class="docs-detail-card" style="margin-top:12px">
       <div class="docs-detail-title">Actividad declarada</div>
       ${ir('Experiencia', revEsc(md.experiencia || row.nivel || '—'))}
