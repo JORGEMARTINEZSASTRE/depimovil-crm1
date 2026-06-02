@@ -299,8 +299,8 @@ function showLeadFicha(id){
         })()}
       </div>
     </div>`;
-  // Cargar notas desde API de forma async
-  renderNotasLead(id);
+  // Cargar notas desde API de forma async (delay para esperar DOM)
+  setTimeout(()=>renderNotasLead(id), 100);
 }
 
 async function renderNotasLead(leadId){
