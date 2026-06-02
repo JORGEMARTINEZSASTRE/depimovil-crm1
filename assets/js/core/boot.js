@@ -102,10 +102,10 @@ async function loadOpDocs(opId){
     h+='</div>';
     h+='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">';
     h+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📋 Contratos</div>';
-    if(!reservas.length){h+='<div style="font-size:12px;color:var(--text3)">Sin reservas activas</div>';}
-    else{var firmados=reservas.filter(function(r){return contratos.some(function(ct){return ct.maquina_id===r.maquinaId;});});h+='<span class="badge '+(firmados.length===reservas.length?'badge-green':'badge-yellow')+'">'+firmados.length+'/'+reservas.length+' firmados</span>';}
+    var contratoFirmado=contratos.find(function(ct){return ct.firmado_en||ct.archivo_url;});
+    h+=contratoFirmado?'<span class="badge badge-green">✓ Contrato marco firmado</span>':'<span class="badge badge-yellow">Contrato marco pendiente</span>';
     h+='</div></div>';
-    if(reservas.length){h+='<div style="margin-top:12px">';reservas.forEach(function(r){var maq=getMaq(r.maquinaId);var firmado=contratos.find(function(ct){return ct.maquina_id===r.maquinaId;});h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>⚙️ '+escapeHTML(maq?maq.nombre:'Máq #'+r.maquinaId)+' — '+escapeHTML(r.codigo)+'</span>'+(firmado?'<span class="badge badge-green">✓ Firmado '+new Date(firmado.firmado_en).toLocaleDateString('es-UY')+'</span>':'<span class="badge badge-red">✗ Sin firmar</span>')+'</div>';});h+='</div>';}
+    if(contratoFirmado&&contratoFirmado.firmado_en){h+='<div style="font-size:12px;color:var(--text3);margin-top:10px">Firmado '+new Date(contratoFirmado.firmado_en).toLocaleDateString('es-UY')+'. Aplica a todas las reservas y futuros alquileres.</div>';}
     body.innerHTML=h;
   }catch(e){if(body)body.innerHTML='<div style="font-size:12px;color:var(--text3)">No se pudieron cargar documentos.</div>';}
 }

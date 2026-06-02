@@ -324,11 +324,9 @@ function docsCedulaCompletos() {
 }
 
 function contratosPendientes() {
-  const reservas = DATA.reservas_activas || [];
   const contratos = DATA.contratos || [];
-  const marcoFirmado = contratos.some(c => !c.maquina_id && isContratoFirmado(c));
-  if (!reservas.length) return marcoFirmado ? 0 : 1;
-  return reservas.filter(r => !contratos.some(c => parseInt(c.maquina_id, 10) === parseInt(r.maquina_id, 10) && isContratoFirmado(c))).length;
+  const contratoFirmado = contratos.some(isContratoFirmado);
+  return contratoFirmado ? 0 : 1;
 }
 
 function renderGuide() {
@@ -347,7 +345,7 @@ function renderGuide() {
         </div>
         <div class="guide-step ${pendientesContrato ? 'missing' : 'ok'}">
           <span>Contratos</span><strong>${pendientesContrato ? pendientesContrato : 'OK'}</strong>
-          <small>${pendientesContrato ? 'Firma pendiente' : 'Firmas completas'}</small>
+          <small>${pendientesContrato ? 'Firma pendiente' : 'Contrato único firmado'}</small>
         </div>
         <div class="guide-step ${reservas.length ? 'warn' : ''}">
           <span>Reservas</span><strong>${reservas.length}</strong>
@@ -356,7 +354,7 @@ function renderGuide() {
       </div>
       <div class="quick-actions">
         ${!cedulaOk ? '<button class="btn btn-primary" onclick="scrollToPortalCard(\'cedulaCard\')">Subir cédula</button>' : ''}
-        ${pendientesContrato ? '<button class="btn btn-primary" onclick="scrollToPortalCard(\'contratosCard\')">Firmar contratos</button>' : ''}
+        ${pendientesContrato ? '<button class="btn btn-primary" onclick="scrollToPortalCard(\'contratosCard\')">Firmar contrato</button>' : ''}
       </div>
     </div>`;
 }
@@ -371,7 +369,7 @@ function renderReservasPanel() {
   const futuras  = reservas.filter(r => !['activa','confirmada','en_curso'].includes(r.estado));
 
   function maqCard(r, badge) {
-    const firmado = contratos.some(c => parseInt(c.maquina_id,10)===parseInt(r.maquina_id,10) && isContratoFirmado(c));
+    const firmado = contratos.some(isContratoFirmado);
     const foto = fileUrl(r.maquina_foto_url || '');
     const estado = estadoReservaLabel(r.estado);
     return `<div class="reservation-card">
@@ -383,7 +381,7 @@ function renderReservasPanel() {
           <span class="badge ${badge}">${estado}</span>
           ${firmado
             ? '<span class="badge ok">✅ Contrato firmado</span>'
-            : `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="openContrato(${parseInt(r.maquina_id,10)||0})">✍️ Firmar contrato</button>`}
+            : `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="openContrato(0)">✍️ Firmar contrato</button>`}
         </div>
       </div>
     </div>`;
@@ -605,39 +603,20 @@ function resetCedula() {
 // ══════════════════════════════════
 function renderContratos() {
   const body = document.getElementById('contratosBody');
-  const reservas = DATA.reservas_activas || [];
   const contratos = DATA.contratos || [];
-  const contratoMarco = contratos.find(c => !c.maquina_id && isContratoFirmado(c));
+  const contratoFirmado = contratos.find(isContratoFirmado);
 
-  if (!reservas.length) {
-    body.innerHTML = `
-      <div class="contract-item">
-        <div class="ci-left">
-          <div class="ci-name">📋 Contrato marco de alquiler</div>
-          <div class="ci-sub">Firma requerida para completar el alta y futuros alquileres</div>
-        </div>
-        ${contratoMarco
-          ? `<span class="status status-ok">✓ Firmado ${contratoFechaFirma(contratoMarco)}</span>`
-          : `<button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="openContrato(0)">✍️ Firmar</button>`
-        }
-      </div>`;
-    return;
-  }
-
-  body.innerHTML = reservas.map(r => {
-    const firmado = contratos.find(c => parseInt(c.maquina_id, 10) === parseInt(r.maquina_id, 10) && isContratoFirmado(c));
-    return `
-      <div class="contract-item">
-        <div class="ci-left">
-          <div class="ci-name">⚙️ ${escapeHTML(r.maquina_nombre || 'Máquina')} ${r.maquina_codigo ? '('+escapeHTML(r.maquina_codigo)+')' : ''}</div>
-          <div class="ci-sub">Reserva ${escapeHTML(r.codigo)}</div>
-        </div>
-        ${firmado
-          ? `<span class="status status-ok">✓ Firmado ${contratoFechaFirma(firmado)}</span>`
-          : `<button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="openContrato(${parseInt(r.maquina_id,10)||0})">✍️ Firmar</button>`
-        }
-      </div>`;
-  }).join('');
+  body.innerHTML = `
+    <div class="contract-item">
+      <div class="ci-left">
+        <div class="ci-name">📋 Contrato marco de alquiler</div>
+        <div class="ci-sub">Se firma una sola vez y aplica a reservas actuales y futuros alquileres</div>
+      </div>
+      ${contratoFirmado
+        ? `<span class="status status-ok">✓ Firmado ${contratoFechaFirma(contratoFirmado)}</span>`
+        : `<button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="openContrato(0)">✍️ Firmar</button>`
+      }
+    </div>`;
 }
 
 function openContrato(maqId) {
@@ -804,19 +783,15 @@ async function firmarContrato(maqId) {
   if (!btn) return;
   btn.disabled = true; btn.textContent = 'Enviando contrato firmado...';
   try {
-    const r = await fetch(`${API}/${TOKEN}/contrato/${maqId}`, {
+    const r = await fetch(`${API}/${TOKEN}/contrato/0`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ firma_data_url: FIRMA_DATA_URL })
     });
     if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
     const res = await r.json();
-    const maquinaId = parseInt(maqId, 10) || null;
-    const contratoFirmado = { id: res.contrato_id, maquina_id: maquinaId, estado: 'firmado', firmado_en: res.firmado_en };
-    DATA.contratos = (DATA.contratos || []).filter(c => {
-      const currentId = parseInt(c.maquina_id, 10) || null;
-      return currentId !== maquinaId;
-    });
+    const contratoFirmado = { id: res.contrato_id, maquina_id: null, estado: 'firmado', firmado_en: res.firmado_en };
+    DATA.contratos = (DATA.contratos || []).filter(c => !isContratoFirmado(c));
     DATA.contratos.push(contratoFirmado);
     renderGuide();
     renderReservasPanel();

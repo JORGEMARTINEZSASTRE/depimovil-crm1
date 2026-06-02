@@ -223,7 +223,7 @@ function renderRevisionRutaAprobacion(row){
       : st.faltante?.key === 'habilitacion'
         ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'pedir_habilitacion\')">Pedir habilitación</button>'
         : st.faltante
-          ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'observar\')">Guardar observación</button>'
+          ? ''
           : '<button class="action-btn" onclick="guardarRevisionOperadora(\'aprobar\')">Aprobar ahora</button>';
   return `<div class="docs-detail-card" style="margin-top:12px">
     <div class="docs-detail-title" style="display:flex;justify-content:space-between;gap:8px;align-items:center">

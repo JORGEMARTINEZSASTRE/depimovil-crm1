@@ -405,7 +405,7 @@ router.post('/:token/cedula', (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────
-// POST /api/portal/:token/contrato/:maquinaId — firmar contrato
+// POST /api/portal/:token/contrato/:maquinaId — firmar contrato marco
 // ─────────────────────────────────────────────
 router.post('/:token/contrato/:maquinaId', async (req, res) => {
   const client = await pool.connect();
@@ -413,7 +413,7 @@ router.post('/:token/contrato/:maquinaId', async (req, res) => {
     const op = await findOperadoraByToken(req.params.token);
     if (!op) return res.status(404).json({ error: 'Token inválido' });
 
-    const maquinaId = parseInt(req.params.maquinaId, 10) || 0;
+    const maquinaId = 0;
     const firmaDataUrl = normalizarFirmaDataUrl(req.body?.firma_data_url);
     if (!firmaDataUrl) {
       return res.status(400).json({ error: 'Dibujá tu firma antes de confirmar el contrato' });
@@ -441,15 +441,15 @@ router.post('/:token/contrato/:maquinaId', async (req, res) => {
     // Buscar contrato existente o crear uno
     await client.query('BEGIN');
     const { rows: existing } = await client.query(
-      'SELECT id FROM contratos WHERE operadora_id=$1 AND maquina_id IS NOT DISTINCT FROM $2 LIMIT 1',
-      [op.id, maquinaId || null]
+      'SELECT id FROM contratos WHERE operadora_id=$1 AND estado=$2 ORDER BY firmado_en DESC NULLS LAST, id DESC LIMIT 1',
+      [op.id, 'firmado']
     );
 
     let contratoId;
     const contratoContenido = buildContratoHtml({ op, maquina, reserva, firmaDataUrl });
     if (existing.length) {
       const { rows } = await client.query(
-        `UPDATE contratos SET estado='firmado', firmado_en=NOW(), contenido=$2, updated_at=NOW() WHERE id=$1 RETURNING id`,
+        `UPDATE contratos SET maquina_id=NULL, estado='firmado', firmado_en=NOW(), contenido=$2, updated_at=NOW() WHERE id=$1 RETURNING id`,
         [existing[0].id, contratoContenido]
       );
       contratoId = rows[0].id;
@@ -462,7 +462,7 @@ router.post('/:token/contrato/:maquinaId', async (req, res) => {
       contratoId = rows[0].id;
     }
     const contratoFile = writeContratoFile({ op, maquina, reserva, firmaDataUrl });
-    const contratoDoc = await saveContratoDocumento(client, { operadoraId: op.id, maquinaId, fileData: contratoFile });
+    const contratoDoc = await saveContratoDocumento(client, { operadoraId: op.id, maquinaId: null, fileData: contratoFile });
     await client.query('COMMIT');
 
     res.json({ ok: true, mensaje: 'Contrato firmado correctamente', contrato_id: contratoId, firmado_en: new Date().toISOString(), documento: contratoDoc, archivo_url: contratoFile.url });
