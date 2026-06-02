@@ -193,6 +193,27 @@ function doLogout(){
   document.getElementById('loginScreen').style.display='flex';
 }
 async function tryRestoreSession(){
+  // Auto-login por portal token (link enviado por WA al aprobar)
+  const params=new URLSearchParams(window.location.search);
+  const ptoken=params.get('ptoken');
+  if(ptoken){
+    try{
+      const data=await api('/api/auth/portal-login',{method:'POST',body:JSON.stringify({token:ptoken})});
+      TOKEN.set(data.token);
+      currentUser={id:data.user.id,nombre:data.user.nombre,email:data.user.email,
+        rol:data.user.rol,operadora_id:data.user.operadora_id,transportista_id:data.user.transportista_id,whatsapp:data.user.whatsapp};
+      // Limpiar token de la URL sin recargar
+      const url=new URL(window.location.href);
+      url.searchParams.delete('ptoken');
+      window.history.replaceState({},'',url.toString());
+      await loadAllData();
+      startApp();
+      return;
+    }catch(e){
+      const err=document.getElementById('loginError');
+      if(err){err.textContent='El link de acceso ya no es válido. Pedí uno nuevo escribiéndonos por WhatsApp.';err.style.display='block';}
+    }
+  }
   const token=TOKEN.get();if(!token)return;
   try{
     const data=await api('/api/auth/me');
