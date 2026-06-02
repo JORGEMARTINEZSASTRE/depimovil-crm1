@@ -246,6 +246,33 @@ router.get('/bootstrap', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Error interno' }); }
 });
 
+router.get('/kpis', async (req, res) => {
+  try {
+    const mes = req.query.mes || new Date().toISOString().slice(0, 7); // YYYY-MM
+    const [ingresos, egresos, pendientes, deudas, operadorasActivas, prospectos] = await Promise.all([
+      pool.query(`SELECT COALESCE(SUM(monto),0) AS total FROM caja_movimientos WHERE tipo='ingreso' AND estado='confirmado' AND TO_CHAR(fecha,'YYYY-MM')=$1`, [mes]),
+      pool.query(`SELECT COALESCE(SUM(monto),0) AS total FROM caja_movimientos WHERE tipo='egreso' AND estado='confirmado' AND TO_CHAR(fecha,'YYYY-MM')=$1`, [mes]),
+      pool.query(`SELECT COUNT(*) AS cnt, COALESCE(SUM(CASE WHEN moneda='UYU' THEN saldo_pendiente ELSE saldo_pendiente*45 END),0) AS monto FROM pagos WHERE estado IN ('pendiente','sena_pendiente')`),
+      pool.query(`SELECT COUNT(*) AS cnt, COALESCE(SUM(CASE WHEN moneda='UYU' THEN saldo_pendiente ELSE saldo_pendiente*45 END),0) AS monto FROM pagos WHERE estado='deuda_vencida'`),
+      pool.query(`SELECT COUNT(*) AS cnt FROM operadoras WHERE estado='activa'`),
+      pool.query(`SELECT COUNT(*) AS cnt FROM operadoras WHERE estado='prospecto'`),
+    ]);
+    res.json({
+      mes,
+      ingresos_mes: Number(ingresos.rows[0].total),
+      egresos_mes: Number(egresos.rows[0].total),
+      balance_mes: Number(ingresos.rows[0].total) - Number(egresos.rows[0].total),
+      pagos_pendientes: { count: Number(pendientes.rows[0].cnt), monto: Number(pendientes.rows[0].monto) },
+      deudas_vencidas: { count: Number(deudas.rows[0].cnt), monto: Number(deudas.rows[0].monto) },
+      operadoras_activas: Number(operadorasActivas.rows[0].cnt),
+      prospectos: Number(prospectos.rows[0].cnt),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 router.get('/caja/movimientos', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM caja_movimientos ORDER BY fecha DESC, id DESC');
