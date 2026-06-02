@@ -146,7 +146,7 @@ async function submitOperadoraRegistro(){
     trabajo_no_estetico_detalle:document.getElementById('regOpTrabajoExtra').value.trim()
   };
   if(!payload.nombre||!payload.apellido||!payload.whatsapp||!payload.documento||!payload.ciudad){
-    showToast('⚠️ Nombre, apellido, WhatsApp, cédula/DNI y ciudad son obligatorios','warn');
+    showToast('⚠️ Nombre, apellido, WhatsApp, cédula/DNI y localidad principal son obligatorios','warn');
     return;
   }
   if(!registroCumpleValido(payload.cumpleanos_dia,payload.cumpleanos_mes)){

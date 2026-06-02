@@ -175,6 +175,38 @@ function formatCumpleanos(dia, mes) {
   return `${dia} de ${meses[mes - 1]}`;
 }
 
+function normalizeLocalidadKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function parseLocalidadesTrabajo({ ciudad, departamento, lugares }) {
+  const raw = [ciudad, lugares]
+    .filter(Boolean)
+    .join('\n')
+    .split(/[\n,;]+/)
+    .map(v => cleanText(v, 120))
+    .filter(Boolean);
+  const seen = new Set();
+  return raw.filter(localidad => {
+    const key = normalizeLocalidadKey(localidad);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 12).map((localidad, idx) => ({
+    direccion: localidad,
+    localidad,
+    departamento: fitVarchar(departamento, 60),
+    pais: 'Uruguay',
+    referencia: idx === 0 ? 'Localidad principal declarada en alta' : 'Localidad adicional declarada en alta',
+    tipo: 'trabajo',
+    principal: idx === 0,
+  }));
+}
+
 function buildOperadoraRegistroObs(payload) {
   const parts = [
     'Registro web de operadora pendiente de revisión administrativa.',
@@ -184,7 +216,7 @@ function buildOperadoraRegistroObs(payload) {
     `Estética/Spa: ${payload.gabinete || 'Sin indicar'}`,
     `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
     `Tratamientos: ${(payload.tratamientos || []).join(', ') || 'Sin indicar'}${payload.tratamientos_otros ? ` | Otros: ${payload.tratamientos_otros}` : ''}`,
-    `Lugares de trabajo: ${payload.lugares_trabajo || 'Sin indicar'}`,
+    `Localidades donde trabaja: ${payload.localidades_trabajo?.join(', ') || 'Sin indicar'}`,
     `Otros trabajos no estéticos: ${payload.trabajo_no_estetico ? (payload.trabajo_no_estetico_detalle || 'Sí') : 'No'}`
   ];
   return parts.join('\n');
@@ -264,6 +296,7 @@ async function notifyAdminNuevaOperadora(payload, operadoraId) {
         `Nombre: ${payload.nombre} ${payload.apellido}`,
         `WhatsApp: ${payload.whatsapp}`,
         `Ciudad: ${payload.ciudad}${payload.departamento ? ` / ${payload.departamento}` : ''}`,
+        `Localidades donde trabaja: ${payload.localidades_trabajo?.join(', ') || payload.ciudad || 'Sin indicar'}`,
         `Cumpleaños: ${formatCumpleanos(payload.cumpleanos_dia, payload.cumpleanos_mes)}`,
         `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
         'Estado: pendiente de autorización administrativa.',
@@ -540,7 +573,7 @@ router.post('/operadora/register', async (req, res) => {
     };
 
     if (!payload.nombre || !payload.apellido || !payload.whatsapp || !payload.documento || !payload.ciudad) {
-      return res.status(400).json({ error: 'Nombre, apellido, WhatsApp, cédula/DNI y ciudad son obligatorios' });
+      return res.status(400).json({ error: 'Nombre, apellido, WhatsApp, cédula/DNI y localidad principal son obligatorios' });
     }
     if (payload.documento.length < 5) {
       return res.status(400).json({ error: 'La cédula/DNI debe tener solo números y al menos 5 dígitos' });
@@ -594,6 +627,12 @@ router.post('/operadora/register', async (req, res) => {
       return res.status(409).json({ error: 'Ese WhatsApp ya tiene una ficha de operadora. Contactá a administración para reactivar el acceso.' });
     }
 
+    const direccionesTrabajo = parseLocalidadesTrabajo({
+      ciudad: payload.ciudad,
+      departamento: payload.departamento,
+      lugares: payload.lugares_trabajo,
+    });
+    payload.localidades_trabajo = direccionesTrabajo.map(d => d.localidad);
     const obs = buildOperadoraRegistroObs(payload);
     await client.query('BEGIN');
     const operadoraResult = await client.query(
@@ -616,17 +655,9 @@ router.post('/operadora/register', async (req, res) => {
         'activa',
         nivelFromExperiencia(payload.experiencia),
         obs,
-        fitVarchar(payload.lugares_trabajo, 250) || null,
+        direccionesTrabajo[0]?.direccion || fitVarchar(payload.ciudad, 100) || null,
         'trabajo',
-        JSON.stringify(payload.lugares_trabajo ? [{
-          direccion: payload.lugares_trabajo,
-          localidad: fitVarchar(payload.ciudad, 100),
-          departamento: fitVarchar(payload.departamento, 60),
-          pais: 'Uruguay',
-          referencia: '',
-          tipo: 'trabajo',
-          principal: true
-        }] : []),
+        JSON.stringify(direccionesTrabajo),
         makePortalToken()
       ]
     );
@@ -638,6 +669,7 @@ router.post('/operadora/register', async (req, res) => {
       cumpleanos_dia: payload.cumpleanos_dia,
       cumpleanos_mes: payload.cumpleanos_mes,
       lugares_trabajo: payload.lugares_trabajo,
+      localidades_trabajo: payload.localidades_trabajo,
       experiencia: payload.experiencia,
       tratamientos: payload.tratamientos,
       tratamientos_otros: payload.tratamientos_otros,

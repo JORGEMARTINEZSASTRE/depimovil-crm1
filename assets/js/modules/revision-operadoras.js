@@ -49,6 +49,11 @@ function revisionCumpleanosLabel(md){
   return mes>=1&&mes<=12 ? `${dia} de ${meses[mes-1]}` : '—';
 }
 
+function revisionLocalidadesLabel(md){
+  const localidades=Array.isArray(md?.localidades_trabajo) ? md.localidades_trabajo : [];
+  return localidades.length ? localidades.join(', ') : (md?.lugares_trabajo || '—');
+}
+
 function filterRevisionOperadoras(v){
   revisionOpsFilter.search = v || '';
   renderRevisionOperadorasRows();
@@ -251,7 +256,7 @@ function openRevisionOperadora(usuarioId){
       <div class="docs-detail-title">Actividad declarada</div>
       ${ir('Experiencia', revEsc(md.experiencia || row.nivel || '—'))}
       ${ir('Tratamientos', revEsc([md.tratamientos || [], md.tratamientos_otros || ''].flat().filter(Boolean).join(', ') || '—'))}
-      ${ir('Lugares de trabajo', revEsc(md.lugares_trabajo || '—'))}
+      ${ir('Localidades donde trabaja', revEsc(revisionLocalidadesLabel(md)))}
       ${ir('Otros trabajos', md.trabajo_no_estetico ? revEsc(md.trabajo_no_estetico_detalle || 'Sí') : 'No')}
     </div>
     ${renderRevisionModulos(row)}
