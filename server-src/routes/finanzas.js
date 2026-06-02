@@ -246,6 +246,43 @@ router.get('/bootstrap', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Error interno' }); }
 });
 
+router.get('/caja/movimientos', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM caja_movimientos ORDER BY fecha DESC, id DESC');
+    res.json(rows.map(mapMovimiento));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+router.get('/caja/cuentas', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM caja_cuentas ORDER BY id');
+    res.json(rows.map(mapCuenta));
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+router.get('/caja/categorias', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM caja_categorias ORDER BY tipo, label');
+    res.json(rows.map(mapCategoria));
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+router.get('/caja/cierres', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM caja_cierres ORDER BY fecha_hasta DESC, id DESC');
+    res.json(rows.map(mapCierre));
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 router.post('/caja/movimientos', adminOnly, async (req, res) => {
   try {
     const b = req.body || {};
