@@ -11,56 +11,56 @@ function openNotaModal(leadId){
   sv('notaProxAccion', '');
   sv('notaProxFecha', '');
   sv('notaEstadoNuevo', '');
-  // Pre-fill proxima accion from lead if exists
   const l = getLead(leadId);
   if(l && l.proxAccion) sv('notaProxAccion', l.proxAccion);
   if(l && l.proxFecha)  sv('notaProxFecha', l.proxFecha);
   openModal('modalNota');
 }
 
-function saveNotaLead(){
-  const leadId   = parseInt(gv('notaLeadId'));
-  const texto    = gv('notaTexto').trim();
+async function saveNotaLead(){
+  const leadId  = parseInt(gv('notaLeadId'));
+  const texto   = gv('notaTexto').trim();
   if(!texto){showToast('⚠️ Escribí una nota antes de guardar','warn');return;}
 
-  const resultado   = gv('notaResultado').trim();
-  const proxAccion  = gv('notaProxAccion').trim();
-  const proxFecha   = gv('notaProxFecha');
+  const resultado  = gv('notaResultado').trim();
+  const proxAccion = gv('notaProxAccion').trim();
+  const proxFecha  = gv('notaProxFecha');
 
-  // Save seguimiento
-  const notas = DB.get('leads_notas')||[];
-  const newId = Math.max(0,...notas.map(n=>n.id))+1;
-  notas.push({
-    id:newId, leadId,
-    tipo:      gv('notaTipo'),
-    fecha:     gv('notaFecha')||today(),
-    texto,
-    resultado: resultado||null,
-    proxAccion: proxAccion||null,
-    proxFecha:  proxFecha||null,
-    usuario:   currentUser?.email||'—',
-    ts:        new Date().toISOString(),
-  });
-  DB.set('leads_notas', notas);
+  try{
+    await api('/api/leads/'+leadId+'/notas', {
+      method:'POST',
+      body: JSON.stringify({
+        tipo:      gv('notaTipo'),
+        texto,
+        resultado: resultado||null,
+        prox_accion: proxAccion||null,
+        prox_fecha:  proxFecha||null,
+      })
+    });
 
-  // Update lead's proxAccion / proxFecha if provided
-  if(proxAccion || proxFecha){
-    const leads = DB.get('leads')||[];
-    const idx   = leads.findIndex(l=>l.id===leadId);
-    if(idx>=0){
-      if(proxAccion) leads[idx].proxAccion = proxAccion;
-      if(proxFecha)  leads[idx].proxFecha  = proxFecha;
-      leads[idx].fechaUpdate = today();
-      DB.set('leads', leads);
+    // Actualizar proxAccion/proxFecha del lead si se ingresaron
+    if(proxAccion || proxFecha){
+      const leads = DB.get('leads')||[];
+      const idx = leads.findIndex(l=>l.id===leadId);
+      if(idx>=0){
+        if(proxAccion) leads[idx].proxAccion = proxAccion;
+        if(proxFecha)  leads[idx].proxFecha  = proxFecha;
+        DB.set('leads', leads);
+      }
+      await api('/api/leads/'+leadId, {method:'PATCH', body:JSON.stringify({
+        prox_accion: proxAccion||undefined,
+        prox_fecha:  proxFecha||undefined,
+      })}).catch(()=>{});
     }
+
+    // Cambiar estado si se seleccionó
+    const nuevoEstado = gv('notaEstadoNuevo');
+    if(nuevoEstado) cambiarEstadoLead(leadId, nuevoEstado);
+
+    closeModal('modalNota');
+    showToast('✅ Seguimiento registrado');
+    showLeadFicha(leadId);
+  }catch(e){
+    showToast('❌ Error al guardar nota: '+e.message,'error');
   }
-
-  // Change state if selected
-  const nuevoEstado = gv('notaEstadoNuevo');
-  if(nuevoEstado) cambiarEstadoLead(leadId, nuevoEstado);
-
-  auditLog('CREATE','lead_nota',newId,`Lead #${leadId} — ${gv('notaTipo')} — ${resultado||texto.slice(0,40)}`);
-  closeModal('modalNota');
-  showToast('✅ Seguimiento registrado');
-  showLeadFicha(leadId);
 }
