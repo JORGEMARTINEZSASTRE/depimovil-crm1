@@ -141,6 +141,12 @@ input,select,textarea{font-family:inherit}
 .stat-card h3{font-size:28px;font-weight:700;color:var(--text);margin-bottom:4px}
 .stat-card p{font-size:13px;color:var(--text2)}
 .stat-card .trend{font-size:11px;margin-top:6px;font-weight:600;}
+.kfi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;}
+.kfi-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;}
+.kfi-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;}
+.kfi-row-total{border-top:1px solid var(--border);margin-top:6px;padding-top:8px;}
+.kfi-label{color:var(--text2);}
+.kfi-val{font-weight:600;}
 .dashboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
 .dash-card h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
