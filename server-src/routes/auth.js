@@ -160,10 +160,26 @@ function nivelFromExperiencia(value) {
   return 'Inicial';
 }
 
+function normalizeCumpleanos(dia, mes) {
+  const d = parseInt(dia, 10);
+  const m = parseInt(mes, 10);
+  if (!d && !m) return { dia: null, mes: null, valido: true };
+  const maxDias = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const valido = d >= 1 && m >= 1 && m <= 12 && d <= maxDias[m - 1];
+  return { dia: valido ? d : null, mes: valido ? m : null, valido };
+}
+
+function formatCumpleanos(dia, mes) {
+  if (!dia || !mes) return 'Sin indicar';
+  const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+  return `${dia} de ${meses[mes - 1]}`;
+}
+
 function buildOperadoraRegistroObs(payload) {
   const parts = [
     'Registro web de operadora pendiente de revisión administrativa.',
     `Cédula/DNI: ${payload.documento}`,
+    `Cumpleaños: ${formatCumpleanos(payload.cumpleanos_dia, payload.cumpleanos_mes)}`,
     `Instagram: ${payload.instagram_usuario || 'Sin indicar'}`,
     `Estética/Spa: ${payload.gabinete || 'Sin indicar'}`,
     `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
@@ -248,6 +264,7 @@ async function notifyAdminNuevaOperadora(payload, operadoraId) {
         `Nombre: ${payload.nombre} ${payload.apellido}`,
         `WhatsApp: ${payload.whatsapp}`,
         `Ciudad: ${payload.ciudad}${payload.departamento ? ` / ${payload.departamento}` : ''}`,
+        `Cumpleaños: ${formatCumpleanos(payload.cumpleanos_dia, payload.cumpleanos_mes)}`,
         `Experiencia: ${payload.experiencia || 'Sin indicar'}`,
         'Estado: pendiente de autorización administrativa.',
         '',
@@ -504,6 +521,10 @@ router.post('/operadora/register', async (req, res) => {
       apellido: cleanText(req.body.apellido, 120),
       whatsapp: normalizeWhatsapp(req.body.whatsapp),
       documento: String(req.body.documento || '').replace(/\D/g, '').slice(0, 30),
+      ...(() => {
+        const cumple = normalizeCumpleanos(req.body.cumpleanos_dia, req.body.cumpleanos_mes);
+        return { cumpleanos_dia: cumple.dia, cumpleanos_mes: cumple.mes, cumpleanos_valido: cumple.valido };
+      })(),
       instagram_usuario: cleanText(req.body.instagram_usuario, 120).replace(/^@+/, ''),
       gabinete: cleanText(req.body.gabinete, 180),
       ciudad: cleanText(req.body.ciudad, 120),
@@ -523,6 +544,9 @@ router.post('/operadora/register', async (req, res) => {
     }
     if (payload.documento.length < 5) {
       return res.status(400).json({ error: 'La cédula/DNI debe tener solo números y al menos 5 dígitos' });
+    }
+    if (!payload.cumpleanos_valido) {
+      return res.status(400).json({ error: 'Indicá un cumpleaños válido con día y mes, sin año' });
     }
 
     const variants = phoneVariants(payload.whatsapp);
@@ -611,6 +635,8 @@ router.post('/operadora/register', async (req, res) => {
     const email = `operadora.${operadora.id}.${payload.whatsapp.replace(/\D/g, '')}@whatsapp.depimovil.local`;
     const metadata = {
       documento: payload.documento,
+      cumpleanos_dia: payload.cumpleanos_dia,
+      cumpleanos_mes: payload.cumpleanos_mes,
       lugares_trabajo: payload.lugares_trabajo,
       experiencia: payload.experiencia,
       tratamientos: payload.tratamientos,

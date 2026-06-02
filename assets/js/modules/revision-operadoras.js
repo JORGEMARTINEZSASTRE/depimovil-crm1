@@ -41,6 +41,14 @@ function badgeRevisionEstado(estado){
   return `<span class="badge ${cls[estado] || 'badge-gray'}">${label[estado] || estado || '—'}</span>`;
 }
 
+function revisionCumpleanosLabel(md){
+  const dia=parseInt(md?.cumpleanos_dia,10);
+  const mes=parseInt(md?.cumpleanos_mes,10);
+  if(!dia||!mes) return '—';
+  const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','setiembre','octubre','noviembre','diciembre'];
+  return mes>=1&&mes<=12 ? `${dia} de ${meses[mes-1]}` : '—';
+}
+
 function filterRevisionOperadoras(v){
   revisionOpsFilter.search = v || '';
   renderRevisionOperadorasRows();
@@ -228,6 +236,7 @@ function openRevisionOperadora(usuarioId){
         ${ir('Nombre', revEsc(nombre))}
         ${ir('WhatsApp', revEsc(row.whatsapp || '—'))}
         ${ir('Cédula / DNI', revEsc(md.documento || '—'))}
+        ${ir('Cumpleaños', revEsc(revisionCumpleanosLabel(md)))}
         ${ir('Ciudad', revEsc(row.ciudad || '—'))}
         ${ir('Departamento', revEsc(row.departamento || '—'))}
       </div>

@@ -114,6 +114,15 @@ function getCheckedValues(name){
   return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el=>el.value);
 }
 
+function registroCumpleValido(dia, mes){
+  if(!dia && !mes) return true;
+  const d=parseInt(dia,10);
+  const m=parseInt(mes,10);
+  if(!d||!m||m<1||m>12) return false;
+  const max=[31,29,31,30,31,30,31,31,30,31,30,31][m-1];
+  return d>=1&&d<=max;
+}
+
 async function submitOperadoraRegistro(){
   const err=document.getElementById('loginError');
   err.style.display='none';
@@ -123,6 +132,8 @@ async function submitOperadoraRegistro(){
     apellido:document.getElementById('regOpApellido').value.trim(),
     whatsapp:document.getElementById('regOpWhatsapp').value.trim(),
     documento:document.getElementById('regOpDocumento').value.replace(/\D/g,''),
+    cumpleanos_dia:document.getElementById('regOpCumpleDia').value.trim(),
+    cumpleanos_mes:document.getElementById('regOpCumpleMes').value,
     instagram_usuario:document.getElementById('regOpInstagram').value.trim(),
     gabinete:document.getElementById('regOpEstetica').value.trim(),
     ciudad:document.getElementById('regOpCiudad').value.trim(),
@@ -136,6 +147,10 @@ async function submitOperadoraRegistro(){
   };
   if(!payload.nombre||!payload.apellido||!payload.whatsapp||!payload.documento||!payload.ciudad){
     showToast('⚠️ Nombre, apellido, WhatsApp, cédula/DNI y ciudad son obligatorios','warn');
+    return;
+  }
+  if(!registroCumpleValido(payload.cumpleanos_dia,payload.cumpleanos_mes)){
+    showToast('⚠️ Indicá un cumpleaños válido con día y mes, sin año','warn');
     return;
   }
   btn.disabled=true;

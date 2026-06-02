@@ -79,6 +79,24 @@
         <div class="form-field"><label>Apellido</label><input type="text" id="regOpApellido" autocomplete="off"/></div>
         <div class="form-field"><label>WhatsApp</label><input type="tel" id="regOpWhatsapp" inputmode="tel" autocomplete="off"/></div>
         <div class="form-field"><label>Cédula / DNI</label><input type="text" id="regOpDocumento" placeholder="Ingresar números todo junto, sin puntos" inputmode="numeric"/></div>
+        <div class="form-field"><label>Día de cumpleaños</label><input type="number" id="regOpCumpleDia" min="1" max="31" inputmode="numeric" placeholder="Día"/></div>
+        <div class="form-field"><label>Mes de cumpleaños</label>
+          <select id="regOpCumpleMes">
+            <option value="">Seleccionar</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
         <div class="form-field"><label>Instagram</label><input type="text" id="regOpInstagram" autocomplete="off"/></div>
         <div class="form-field"><label>Nombre de la estética / spa</label><input type="text" id="regOpEstetica" autocomplete="off"/></div>
         <div class="form-field"><label>Ciudad / localidad</label><input type="text" id="regOpCiudad" autocomplete="off"/></div>
@@ -2133,11 +2151,11 @@
 
 <script data-cfasync="false" src="assets/js/core/storage-api.js?v=20260601-automation-tasks"></script>
 <script data-cfasync="false" src="assets/js/core/seed-data.js?v=20260526-no-demo-prod"></script>
-<script data-cfasync="false" src="assets/js/core/auth.js?v=20260527-login-operadoras"></script>
+<script data-cfasync="false" src="assets/js/core/auth.js?v=20260602-cumple-operadora"></script>
 <script data-cfasync="false" src="assets/js/core/navigation.js?v=20260527-certificaciones"></script>
 <script data-cfasync="false" src="assets/js/modules/dashboard.js?v=20260601-automation-tasks"></script>
 <script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260601-reserva-precio-rol"></script>
-<script data-cfasync="false" src="assets/js/modules/revision-operadoras.js?v=20260528-pedir-contrato"></script>
+<script data-cfasync="false" src="assets/js/modules/revision-operadoras.js?v=20260602-cumple-operadora"></script>
 <script data-cfasync="false" src="assets/js/modules/documentos.js?v=20260531-certificados"></script>
 <script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260601-incidencias-reserva"></script>
 <script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260601-ficha-maquina-visual"></script>
