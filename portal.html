@@ -4,6 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portal Operadora — DepiMóvil</title>
+<meta name="description" content="Portal de operadoras DepiMóvil para cargar documentos y enviar contratos firmados."/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="DepiMóvil CRM"/>
+<meta property="og:title" content="Portal de Operadora DepiMóvil"/>
+<meta property="og:description" content="Cargá documentos, revisá tu alta y enviá contratos firmados a DepiMóvil."/>
+<meta property="og:image" content="https://crm.depimovil.live/assets/img/depimovil-alta-operadoras-share.jpg?v=20260602-portal"/>
+<meta property="og:image:secure_url" content="https://crm.depimovil.live/assets/img/depimovil-alta-operadoras-share.jpg?v=20260602-portal"/>
+<meta property="og:image:type" content="image/jpeg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="DepiMóvil - Portal de operadora"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Portal de Operadora DepiMóvil"/>
+<meta name="twitter:description" content="Cargá documentos y enviá contratos firmados a DepiMóvil."/>
+<meta name="twitter:image" content="https://crm.depimovil.live/assets/img/depimovil-alta-operadoras-share.jpg?v=20260602-portal"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -115,6 +130,8 @@ a{color:var(--accent);text-decoration:none}
 .signature-panel{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin:14px 0}
 .signature-preview{min-height:72px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;background:rgba(255,255,255,.02);margin-top:10px}
 .signature-preview img{max-width:100%;max-height:88px}
+.signature-ready{border-color:rgba(82,196,138,.5);background:rgba(82,196,138,.08);color:var(--green)}
+.contract-submit-note{font-size:12px;color:var(--text2);margin:10px auto 0;max-width:420px;line-height:1.45}
 .signature-modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
 .signature-modal.open{display:flex}
 .signature-box{width:min(560px,100%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
@@ -694,8 +711,9 @@ function openContrato(maqId) {
     
     <div style="text-align:center;margin-top:20px">
       <button class="btn btn-primary" id="btnFirmar" disabled onclick="firmarContrato(${maqId})">
-        ✍️ Firmar Contrato Digitalmente
+        📤 Enviar contrato firmado
       </button>
+      <div class="contract-submit-note" id="contractSubmitNote">Después de dibujar la firma y aceptar los términos, tocá este botón para enviar el contrato firmado a DepiMóvil.</div>
     </div>`;
 }
 
@@ -773,7 +791,10 @@ function saveSignatureCanvas() {
   }
   FIRMA_DATA_URL = canvas.toDataURL('image/png');
   const preview = document.getElementById('signaturePreview');
-  if (preview) preview.innerHTML = `<img src="${FIRMA_DATA_URL}" alt="Firma dibujada"/>`;
+  if (preview) {
+    preview.classList.add('signature-ready');
+    preview.innerHTML = `<img src="${FIRMA_DATA_URL}" alt="Firma dibujada"/>`;
+  }
   closeSignatureDialog();
   checkCanSign();
 }
@@ -781,7 +802,7 @@ function saveSignatureCanvas() {
 async function firmarContrato(maqId) {
   const btn = document.getElementById('btnFirmar');
   if (!btn) return;
-  btn.disabled = true; btn.textContent = 'Firmando...';
+  btn.disabled = true; btn.textContent = 'Enviando contrato firmado...';
   try {
     const r = await fetch(`${API}/${TOKEN}/contrato/${maqId}`, {
       method: 'POST',
@@ -800,10 +821,10 @@ async function firmarContrato(maqId) {
     renderGuide();
     renderReservasPanel();
     renderContratos();
-    toast('✅ Contrato firmado correctamente');
+    toast('✅ Contrato firmado y enviado correctamente');
   } catch (e) {
     toast('❌ ' + e.message);
-    btn.disabled = false; btn.textContent = '✍️ Firmar Contrato Digitalmente';
+    btn.disabled = false; btn.textContent = '📤 Enviar contrato firmado';
   }
 }
 
