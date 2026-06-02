@@ -353,8 +353,48 @@ function renderDashboardOperadora(){
   `;
 }
 
+async function cargarKpisFinancieros(){
+  try{
+    const mes=new Date().toISOString().slice(0,7);
+    const data=await api('/api/finanzas/kpis?mes='+mes);
+    const el=document.getElementById('kpisFinancieros');
+    if(!el)return;
+    const fmt=n=>Number(n||0).toLocaleString('es-UY',{minimumFractionDigits:0,maximumFractionDigits:0});
+    const bal=Number(data.balance_mes||0);
+    const balColor=bal>=0?'#52c48a':'#e05c5c';
+    el.innerHTML=`
+      <div class="kfi-card">
+        <div class="kfi-title">💰 Resumen ${mes.replace('-','/')}</div>
+        <div class="kfi-row">
+          <span class="kfi-label">Ingresos</span>
+          <span class="kfi-val" style="color:#52c48a">$ ${fmt(data.ingresos_mes)}</span>
+        </div>
+        <div class="kfi-row">
+          <span class="kfi-label">Egresos</span>
+          <span class="kfi-val" style="color:#e05c5c">$ ${fmt(data.egresos_mes)}</span>
+        </div>
+        <div class="kfi-row kfi-row-total">
+          <span class="kfi-label">Balance</span>
+          <span class="kfi-val" style="color:${balColor};font-weight:700">$ ${fmt(bal)}</span>
+        </div>
+      </div>
+      <div class="kfi-card">
+        <div class="kfi-title">📋 Cobros</div>
+        <div class="kfi-row">
+          <span class="kfi-label">Pendientes</span>
+          <span class="kfi-val" style="color:#e0c05c">${data.pagos_pendientes.count} · $ ${fmt(data.pagos_pendientes.monto)}</span>
+        </div>
+        <div class="kfi-row">
+          <span class="kfi-label">Deudas vencidas</span>
+          <span class="kfi-val" style="color:#e05c5c">${data.deudas_vencidas.count} · $ ${fmt(data.deudas_vencidas.monto)}</span>
+        </div>
+      </div>`;
+  }catch(e){console.warn('KPIs financieros no disponibles',e);}
+}
+
 function renderDashboard(){
   if(isOperadoraUser()){ renderDashboardOperadora(); return; }
+  cargarKpisFinancieros();
   const ops=DB.get('operadoras')||[];
   const maqs=DB.get('maquinas')||[];
   const reservas=DB.get('reservas')||[];
