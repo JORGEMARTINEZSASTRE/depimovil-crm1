@@ -275,23 +275,7 @@ function showLeadFicha(id){
           📝 Notas de Seguimiento
           ${canEditLead()?`<button class="btn-add" style="font-size:12px;padding:6px 12px" onclick="openNotaModal(${l.id})">+ Nota</button>`:''}
         </h4>
-        ${(()=>{
-          const notas=(DB.get('leads_notas')||[]).filter(n=>n.leadId===l.id).sort((a,b)=>b.ts.localeCompare(a.ts));
-          if(!notas.length) return `<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin notas aún. Registrá el primer contacto con el botón + Nota.</div>`;
-          const tipoMap={llamada:'📞 llamada',whatsapp:'💬 WhatsApp',email:'✉️ email',reunion:'🤝 reunión',otro:'📌 otro'};
-          return notas.map(n=>`<div class="seguimiento-card">
-            <div class="sc-head">
-              <span class="sc-tipo sc-tipo-${n.tipo}">${tipoMap[n.tipo]||n.tipo}</span>
-              <span class="nc-date">${fmtDate(n.fecha)} — ${n.ts.split('T')[1]?.slice(0,5)||''}</span>
-            </div>
-            <div class="sc-nota">${escapeHTML(n.texto)}</div>
-            ${n.resultado ? `<div class="sc-resultado">✅ ${escapeHTML(n.resultado)}</div>` : ''}
-            ${(n.proxAccion||n.proxFecha) ? `<div class="sc-prox">📌 <strong>Próxima acción:</strong> ${escapeHTML(n.proxAccion||'—')}${n.proxFecha ? ` · <strong>${fmtDate(n.proxFecha)}</strong>` : ''}</div>` : ''}
-            <div class="sc-meta">
-              <span>👤 ${escapeHTML(n.usuario?.split('@')[0]||'—')}</span>
-            </div>
-          </div>`).join('');
-        })()}
+        <div id="notas-lead-${l.id}"><div style="color:var(--text3);font-size:13px;padding:8px 0">Cargando notas...</div></div>
       </div>
       <div class="info-card full">
         <h4>🕐 Historial de Estado</h4>
@@ -315,6 +299,43 @@ function showLeadFicha(id){
         })()}
       </div>
     </div>`;
+  // Cargar notas desde API de forma async
+  renderNotasLead(id);
+}
+
+async function renderNotasLead(leadId){
+  const container = document.getElementById('notas-lead-'+leadId);
+  if(!container) return;
+  try{
+    const notas = await api('/api/leads/'+leadId+'/notas');
+    const tipoMap={llamada:'📞 Llamada',whatsapp:'💬 WhatsApp',email:'✉️ Email',reunion:'🤝 Reunión',otro:'📌 Otro'};
+    if(!notas.length){
+      container.innerHTML=`<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin notas aún. Registrá el primer contacto con el botón + Nota.</div>`;
+      return;
+    }
+    container.innerHTML=notas.map(n=>{
+      // Extraer mensaje limpio para notas de WA
+      const esWA = n.tipo==='whatsapp';
+      const textoLimpio = n.texto
+        ? n.texto.replace(/^WhatsApp recibido \([^)]+\):\s*/i,'').trim()
+        : '';
+      const fecha = (n.created_at||n.ts||'').slice(0,10);
+      const hora  = (n.created_at||n.ts||'').slice(11,16);
+      const usuario = (n.usuario_email||n.usuario||'sistema').split('@')[0];
+      return `<div class="seguimiento-card${esWA?' sc-wa':''}">
+        <div class="sc-head">
+          <span class="sc-tipo sc-tipo-${n.tipo}">${tipoMap[n.tipo]||n.tipo}</span>
+          <span class="nc-date">${fmtDate(fecha)}${hora?' — '+hora:''}</span>
+        </div>
+        <div class="sc-nota">${escapeHTML(textoLimpio||n.texto||'')}</div>
+        ${n.resultado&&n.resultado!=='mensaje_whatsapp'?`<div class="sc-resultado">✅ ${escapeHTML(n.resultado)}</div>`:''}
+        ${(n.prox_accion&&n.prox_accion!=='Revisar conversación de WhatsApp y responder')||n.prox_fecha?`<div class="sc-prox">📌 <strong>Próxima acción:</strong> ${escapeHTML(n.prox_accion||'—')}${n.prox_fecha?` · <strong>${fmtDate(n.prox_fecha)}</strong>`:''}</div>`:''}
+        <div class="sc-meta"><span>👤 ${escapeHTML(usuario)}</span></div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    container.innerHTML=`<div style="color:var(--text3);font-size:13px">Error cargando notas.</div>`;
+  }
 }
 
 /* ── Modal alta/edición ── */
