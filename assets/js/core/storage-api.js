@@ -134,6 +134,26 @@ function mapHabilitacion(h){
     ts:h.ts||h.created_at||new Date().toISOString(),
   };
 }
+function normalizeOperadoraDoc(doc){
+  const d=doc||{};
+  const rawTipo=String(d.tipo||d.tipoDocumento||d.tipo_documento||'').toLowerCase().trim();
+  const frente=['cedula','cedula_frente','ci','ci_frente','dni','dni_frente','documento','documento_frente','frente'];
+  const dorso=['cedula_dorso','cedula_reverso','ci_dorso','ci_reverso','dni_dorso','dni_reverso','documento_dorso','documento_reverso','dorso','reverso'];
+  let tipo=rawTipo;
+  if(frente.includes(rawTipo)) tipo='cedula';
+  if(dorso.includes(rawTipo)) tipo='cedula_dorso';
+  return {
+    ...d,
+    id:d.id,
+    operadora_id:d.operadora_id||d.operadoraId||d.operadora||null,
+    maquina_id:d.maquina_id||d.maquinaId||null,
+    tipo,
+    archivo_url:d.archivo_url||d.archivoUrl||d.url||'',
+    firmado_en:d.firmado_en||d.firmadoEn||null,
+    created_at:d.created_at||d.createdAt||d.fecha||'',
+    updated_at:d.updated_at||d.updatedAt||d.created_at||d.createdAt||'',
+  };
+}
 function mapOperadora(o){
   const direcciones = Array.isArray(o.direcciones_entrega) ? o.direcciones_entrega : [];
   const equipos = Array.isArray(o.equipos_alquila) ? o.equipos_alquila : [];
@@ -274,7 +294,7 @@ async function loadAllData(){
     docsResults.forEach(function(r){
       if(r.status==='fulfilled'&&Array.isArray(r.value)) docs.push(...r.value);
     });
-    DB.set('documentos_operadora',docs);
+    DB.set('documentos_operadora',docs.map(normalizeOperadoraDoc));
   }catch(e){
     console.error('Error cargando datos:',e);
     showToast('⚠️ Error conectando con el servidor','warn');

@@ -332,6 +332,22 @@ function openRevisionOperadora(usuarioId){
       <textarea id="revisionObs" placeholder="Ej: subir cédula frente y dorso, aclarar dirección, corregir datos..." style="width:100%;min-height:90px">${revEsc(row.revision_admin_obs || '')}</textarea>
     </div>`;
   openModal('modalRevisionOperadora');
+  if(row.operadora_id && typeof startOpDocsAutoRefresh === 'function') startOpDocsAutoRefresh(row.operadora_id);
+}
+
+async function refreshRevisionOperadoraOpen(opId){
+  const modal = document.getElementById('modalRevisionOperadora');
+  if(!modal || !modal.classList.contains('open') || !revisionOpsActual || parseInt(revisionOpsActual.operadora_id) !== parseInt(opId)) return;
+  const obsEl = document.getElementById('revisionObs');
+  const obs = obsEl ? obsEl.value : '';
+  await cargarRevisionOperadoras().catch(function(){});
+  revisionOpsActual = revisionOpsCache.find(r => r.usuario_id === revisionOpsActual.usuario_id) || revisionOpsActual;
+  openRevisionOperadora(revisionOpsActual.usuario_id);
+  const nextObs = document.getElementById('revisionObs');
+  if(nextObs) nextObs.value = obs;
+  renderRevisionOperadorasRows();
+  renderRevisionOperadorasResumen();
+  updateRevisionOperadorasBadge();
 }
 
 async function guardarRevisionModulo(modulo, accionModulo){

@@ -100,7 +100,7 @@ function op360Estado(o){
 function renderOp360Panel(o){
   const st=op360Estado(o);
   const color=st.porcentaje>=80?'var(--green)':(st.porcentaje>=50?'var(--yellow)':'var(--red)');
-  return `<div class="info-card full">
+  return `<div class="info-card full" id="op360Panel_${o.id}">
     <h4>Estado 360 de la operadora</h4>
     <div style="display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:18px;align-items:start">
       <div>
@@ -366,6 +366,7 @@ function showOpFicha(id){
       ${renderCapPanel(o.id)}
     </div>`;
   loadOpDocs(o.id);
+  if(typeof startOpDocsAutoRefresh==='function')startOpDocsAutoRefresh(o.id);
 }
 function openOpModal(id){
   document.getElementById('modalOpTitle').textContent=id?'Editar Operadora':'Nueva Operadora';
