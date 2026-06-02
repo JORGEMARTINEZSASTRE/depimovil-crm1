@@ -1,0 +1,1292 @@
+<!-- MODAL OPERADORA -->
+<div class="modal-overlay" id="modalOp">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalOpTitle">Nueva Operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalOp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="opId"/>
+      <div class="form-grid">
+        <div class="form-field"><label>Nombre</label><input type="text" id="opNombre" autocomplete="off"/></div>
+        <div class="form-field"><label>Apellido</label><input type="text" id="opApellido" autocomplete="off"/></div>
+        <div class="form-field full"><label>Nombre del Gabinete / Negocio</label><input type="text" id="opGabinete" autocomplete="off"/></div>
+        <div class="form-field"><label>Ciudad</label><input type="text" id="opCiudad" autocomplete="off"/></div>
+        <div class="form-field"><label>Departamento</label><input type="text" id="opDepartamento" autocomplete="off"/></div>
+        <div class="form-field"><label>País</label><input type="text" id="opPais" value="Uruguay"/></div>
+        <div class="form-field"><label>WhatsApp</label><input type="tel" id="opWhatsapp"/></div>
+        <div class="form-field"><label>Usuario de Instagram</label><input type="text" id="opInstagram" placeholder="@usuario"/></div>
+        <div class="form-field full"><label>Email</label><input type="email" id="opEmail"/></div>
+        <div class="form-field"><label>Fecha de Alta</label><input type="date" id="opFechaAlta"/></div>
+        <div class="form-field"><label>Estado</label>
+          <select id="opEstado"><option value="prospecto">Prospecto</option><option value="activa">Activa</option>
+            <option value="inactiva">Inactiva</option><option value="suspendida">Suspendida</option></select></div>
+        <div class="form-field full"><label>Nivel de Experiencia</label>
+          <select id="opNivel"><option value="Inicial">Inicial</option><option value="Intermedio">Intermedio</option>
+            <option value="Avanzado">Avanzado</option><option value="Experta">Experta</option></select></div>
+        <div class="form-field full"><label>Direcciones de Entrega</label>
+          <textarea id="opDireccionesEntrega" placeholder="Una dirección por línea. Ej: Av. Italia 1234 | Montevideo | Montevideo | Uruguay | Timbre 2"></textarea></div>
+        <div class="form-field"><label>Tipo de Dirección</label>
+          <select id="opTipoDireccion">
+            <option value="trabajo">🏢 Lugar de trabajo</option>
+            <option value="domicilio">🏠 Domicilio particular</option>
+          </select></div>
+        <div class="form-field"><label>&nbsp;</label>
+          <div style="font-size:11px;color:var(--text3);padding-top:8px">📍 Si trabaja en dos lugares, cargá una dirección por línea.</div></div>
+        <div class="form-field full"><label>Equipos que alquila</label>
+          <textarea id="opEquiposAlquila" placeholder="Una línea por equipo. Ej: Soprano Titanium | 4500 | 2 | Incluye cabezal"></textarea></div>
+        <div class="form-field full"><label>Observaciones Internas</label>
+          <textarea id="opObs" placeholder="Notas internas…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalOp')">Cancelar</button>
+      <button class="btn-add" onclick="saveOperadora()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MÁQUINA -->
+<div class="modal-overlay" id="modalMaq">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalMaqTitle">Nueva Máquina</h3>
+      <button class="modal-close" onclick="closeModal('modalMaq')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="maqId"/>
+      <div class="form-grid">
+        <div class="form-field"><label>Código Interno</label><input type="text" id="maqCodigo"/></div>
+        <div class="form-field"><label>Nombre Comercial</label><input type="text" id="maqNombre"/></div>
+        <div class="form-field"><label>Categoría</label>
+          <select id="maqCategoria" onchange="onMaqCategoriaChange()">
+            <option>Láser Depilación</option><option>Radiofrecuencia / HIFU</option>
+            <option>IPL</option><option>Pressoterapia</option><option>Hidrofacial</option>
+            <option>Electroestimulación</option><option>Ultrasonido</option><option>Cavitación</option><option>Diodo + NDYAG</option><option>Otro</option>
+            <option value="__add">+ Agregar nueva categoría</option>
+          </select></div>
+        <div class="form-field" id="maqCategoriaNuevaField" style="display:none"><label>Nueva categoría</label><input type="text" id="maqCategoriaNueva" placeholder="Ej: Diodo + NDYAG"/></div>
+        <div class="form-field"><label>Uso operativo</label>
+          <select id="maqTipoOperativo" onchange="onMaqTipoOperativoChange()">
+            <option value="viajera">Viajera</option>
+            <option value="base_ciudad">Base + ciudad</option>
+            <option value="solo_venta">Solo venta</option>
+          </select></div>
+        <div class="form-field" id="maqCiudadBaseField"><label>Ciudad base</label><input type="text" id="maqCiudadBase" placeholder="Ej: Montevideo" autocomplete="off"/></div>
+        <div class="form-field"><label>Marca</label><input type="text" id="maqMarca"/></div>
+        <div class="form-field"><label>Modelo / Tipo</label><input type="text" id="maqModelo"/></div>
+        <div class="form-field"><label>Número de Serie</label><input type="text" id="maqSerie"/></div>
+        <div class="form-field"><label>País Base</label><input type="text" id="maqDeptBase" value="Uruguay"/></div>
+        <div class="form-field"><label>Ubicación Actual</label><input type="text" id="maqUbicacion"/></div>
+        <div class="form-field"><label>Estado</label>
+          <select id="maqEstado"><option value="disponible">Disponible</option>
+            <option value="reservada">Reservada</option><option value="mantenimiento">En Mantenimiento</option>
+            <option value="fuera_servicio">Fuera de Servicio</option>
+                  <option value="en_viaje">En Viaje de China</option></select></div>
+        <div class="form-field"><label>Último Mantenimiento</label><input type="date" id="maqUltMant"/></div>
+        <div class="form-field"><label>Próximo Mantenimiento</label><input type="date" id="maqProxMant"/></div>
+        <div class="form-field"><label>Ícono URL</label><input type="url" id="maqIconoUrl" placeholder="https://..."/></div>
+        <div class="form-field" style="display:none"><label>&nbsp;</label>
+          <label class="check-row"><input type="checkbox" id="maqEsViajera"/> Máquina viajera</label></div>
+        <div class="form-field full"><label>Foto para operadoras</label>
+          <div class="machine-photo-field">
+            <div class="machine-photo-preview" id="maqFotoPreview"><span>Sin foto</span></div>
+            <div style="flex:1;min-width:220px">
+              <input type="hidden" id="maqFotoUrl"/>
+              <input type="file" id="maqFotoFile" accept="image/jpeg,image/png,image/webp" onchange="previewMaquinaFoto(this.files[0])"/>
+              <div style="font-size:11px;color:var(--text3);margin-top:6px">JPG, PNG o WebP. Máximo 8 MB.</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-field full"><label>Observaciones Técnicas</label>
+          <textarea id="maqObs"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalMaq')">Cancelar</button>
+      <button class="btn-add" onclick="saveMaquina()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MANTENIMIENTO -->
+<div class="modal-overlay" id="modalMant">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Registrar Mantenimiento</h3>
+      <button class="modal-close" onclick="closeModal('modalMant')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Máquina <span style="color:var(--red)">*</span></label>
+          <select id="mantMaquinaId"></select>
+        </div>
+        <div class="form-field">
+          <label>Tipo servicio <span style="color:var(--red)">*</span></label>
+          <select id="mantTipo">
+            <option value="cambio_agua">Cambio de agua</option>
+            <option value="cambio_filtros">Cambio de filtros</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha realizado <span style="color:var(--red)">*</span></label>
+          <input type="date" id="mantFechaRealizado"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalMant')">Cancelar</button>
+      <button class="btn-add" onclick="saveMantenimiento()">💾 Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESERVA -->
+<div class="modal-overlay" id="modalRes">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalResTitle">Nueva Reserva</h3>
+      <button class="modal-close" onclick="closeModal('modalRes')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="resId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Asignación</div>
+        <div class="form-field full" id="resOperadoraField">
+          <label>Filtrar por Departamento</label>
+          <select id="resDeptoFilter" onchange="filterOperadorasReservaByDepto()" style="margin-bottom:8px;"><option value="">— Todos los departamentos —</option></select>
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="resOperadoraId" onchange="onResSelectionChange();setTimeout(filterMaquinasReservaByOperadora,100)">
+            <option value="">— Seleccionar operadora activa —</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Máquina <span style="color:var(--red)">*</span></label>
+          <select id="resMaquinaId" onchange="onResSelectionChange()">
+            <option value="">— Seleccionar máquina disponible —</option>
+          </select>
+        </div>
+        <div class="form-field full" id="resMaquinaPreviewWrap" style="display:none"></div>
+        <div class="form-section-title">Fechas</div>
+        <div class="form-field">
+          <label>Tipo de Reserva</label>
+          <select id="resTipo" onchange="onResTipoChange()">
+            <option value="jornada">Por Jornada</option>
+            <option value="semanal">Semanal</option>
+            <option value="mensual">Mensual</option>
+          </select>
+        </div>
+        <div class="form-field" id="resEstadoField">
+          <label>Estado Inicial</label>
+          <select id="resEstado">
+            <option value="solicitud_recibida">Solicitud Recibida</option>
+            <option value="pendiente_aprobacion">Pendiente Aprobación</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="cancelada">Cancelada</option>
+            <option value="reprogramada">Reprogramada</option>
+          </select>
+        </div>
+        <div class="form-field" id="campoJornada">
+          <label>Fecha de Jornada <span style="color:var(--red)">*</span></label>
+          <input type="date" id="resFechaJornada" oninput="onResSelectionChange()"/>
+        </div>
+        <div class="form-field" id="campoInicio" style="display:none">
+          <label>Fecha Inicio <span style="color:var(--red)">*</span></label>
+          <input type="date" id="resFechaInicio" oninput="autoCalcFechaFin(); onResSelectionChange()"/>
+        </div>
+        <div class="form-field" id="campoFin" style="display:none">
+          <label>Fecha Fin</label>
+          <input type="date" id="resFechaFin"/>
+        </div>
+        <!-- Disponibilidad -->
+        <div class="form-field full" id="resDisponibilidad" style="display:none">
+          <div id="resDisponibilidadMsg"></div>
+        </div>
+        <div class="form-field full" id="resAutomatizacion" style="display:none"></div>
+        <div class="form-section-title">Departamento y entrega</div>
+        <div class="form-field">
+          <label>Departamento de la reserva</label>
+          <select id="resDeptLogistica" onchange="onResSelectionChange()">
+            <option value="">— Sin asignar —</option>
+            <option>Montevideo</option><option>Canelones</option><option>Maldonado</option>
+            <option>Salto</option><option>Paysandú</option><option>Rivera</option>
+            <option>Artigas</option><option>Colonia</option><option>Soriano</option>
+            <option>Río Negro</option><option>Tacuarembó</option><option>Treinta y Tres</option>
+            <option>Cerro Largo</option><option>San José</option><option>Flores</option>
+            <option>Florida</option><option>Lavalleja</option><option>Rocha</option>
+            <option>Durazno</option><option>Argentina</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Bloqueo Logístico</label>
+          <select id="resBloqueLogistico" onchange="onResSelectionChange()">
+            <option value="false">No bloqueado</option>
+            <option value="true">Bloqueado (preparar envío)</option>
+          </select>
+        </div>
+        <div class="form-section-title">Tarifa</div>
+        <div class="form-field">
+          <label>Monto</label>
+          <input type="number" id="resMonto" placeholder="0" oninput="marcarPrecioReservaManual(); onResSelectionChange()"/>
+          <div id="resPrecioHint" class="docs-line" style="margin-top:6px"></div>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="resMoneda">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+            <option value="ARS">ARS</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones Internas</label>
+          <textarea id="resNotas" placeholder="Condiciones, acuerdos, detalles logísticos…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalRes')">Cancelar</button>
+      <button class="btn-add" onclick="saveReserva()">💾 Guardar Reserva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAMBIO ESTADO RESERVA -->
+<div class="modal-overlay" id="modalResEstado">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-head">
+      <h3>Cambiar Estado de Reserva</h3>
+      <button class="modal-close" onclick="closeModal('modalResEstado')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="resEstadoId"/>
+      <div id="resEstadoActualWrap" style="margin-bottom:16px;font-size:13px;color:var(--text2)">
+        Estado actual: <span id="resEstadoActualBadge"></span>
+      </div>
+      <div class="form-grid">
+        <div class="form-field full"><label>Nuevo Estado</label>
+          <select id="resEstadoNuevo">
+            <option value="solicitud_recibida">Solicitud Recibida</option>
+            <option value="pendiente_aprobacion">Pendiente de Aprobación</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="cancelada">Cancelada</option>
+            <option value="reprogramada">Reprogramada</option>
+          </select>
+        </div>
+        <div class="form-field full"><label>Motivo / Nota del cambio</label>
+          <textarea id="resEstadoMotivo" placeholder="Razón del cambio de estado…" style="min-height:70px"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalResEstado')">Cancelar</button>
+      <button class="btn-add" onclick="confirmarCambioEstadoRes()">✔ Confirmar cambio</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGO -->
+<div class="modal-overlay" id="modalPago">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalPagoTitle">Registrar Pago</h3>
+      <button class="modal-close" onclick="closeModal('modalPago')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pagoId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Vinculación</div>
+        <div class="form-field full">
+          <label>Reserva asociada <span style="color:var(--red)">*</span></label>
+          <select id="pagoReservaId" onchange="onPagoReservaChange()">
+            <option value="">— Seleccionar reserva —</option>
+          </select>
+        </div>
+        <div class="form-field full" id="pagoOpInfo" style="display:none">
+          <div style="padding:10px 14px;background:var(--surface2);border-radius:9px;border:1px solid var(--border);font-size:13px;color:var(--text2)" id="pagoOpInfoText"></div>
+        </div>
+        <div class="form-section-title">Cobro</div>
+        <div class="form-field">
+          <label>Tipo de Cobro</label>
+          <select id="pagoTipo">
+            <option value="mensualidad">Mensualidad</option>
+            <option value="jornada">Jornada</option>
+            <option value="por_envio">Por envío</option>
+            <option value="sena">Seña</option>
+            <option value="saldo">Saldo pendiente</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="pagoEstado">
+            <option value="pendiente">Pendiente</option>
+            <option value="sena_pendiente">Seña Pendiente</option>
+            <option value="sena_abonada">Seña Abonada</option>
+            <option value="validado">Validado</option>
+            <option value="rechazado">Rechazado</option>
+            <option value="deuda_vencida">Deuda Vencida</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Monto Total</label>
+          <input type="number" id="pagoMontoTotal" placeholder="0" oninput="calcSaldoPago()"/>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="pagoMoneda">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+            <option value="ARS">ARS</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Seña Requerida</label>
+          <input type="number" id="pagoSenaRequerida" placeholder="0" oninput="calcSaldoPago()"/>
+        </div>
+        <div class="form-field">
+          <label>Seña Abonada</label>
+          <input type="number" id="pagoSenaAbonada" placeholder="0" oninput="calcSaldoPago()"/>
+        </div>
+        <div class="form-field full" id="pagoSaldoWrap" style="display:none">
+          <div style="padding:10px 14px;background:var(--surface2);border-radius:9px;border:1px solid var(--border);font-size:13px" id="pagoSaldoText"></div>
+        </div>
+        <div class="form-field">
+          <label>Fecha de Pago</label>
+          <input type="date" id="pagoFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Comprobante (referencia/link)</label>
+          <input type="text" id="pagoComprobante" placeholder="N° transferencia, link, etc."/>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="pagoObs" placeholder="Notas sobre el pago…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalPago')">Cancelar</button>
+      <button class="btn-add" onclick="savePago()">💾 Guardar Pago</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGLA LOGÍSTICA -->
+<div class="modal-overlay" id="modalRegla">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <h3 id="modalReglaTitle">Editar Regla Logística</h3>
+      <button class="modal-close" onclick="closeModal('modalRegla')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="reglaDept"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Departamento</label>
+          <input type="text" id="reglaDeptLabel" readonly style="opacity:.6"/>
+        </div>
+        <div class="form-field full">
+          <label>Modalidad de bloqueo</label>
+          <select id="reglaMismoDia" onchange="onReglaMismoDiaChange()">
+            <option value="false">Bloqueo extendido (días antes + jornada + días después)</option>
+            <option value="true">Mismo día / Ágil (solo fecha de jornada)</option>
+          </select>
+        </div>
+        <div id="reglaExtendidoFields">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Días de bloqueo ANTES</label>
+              <input type="number" id="reglaDiasAntes" min="0" max="7" value="2"/>
+            </div>
+            <div class="form-field">
+              <label>Días de bloqueo DESPUÉS</label>
+              <input type="number" id="reglaDiasDespues" min="0" max="7" value="2"/>
+            </div>
+          </div>
+        </div>
+        <div class="form-field full">
+          <label>Activa</label>
+          <select id="reglaActiva">
+            <option value="true">Sí — aplica esta regla</option>
+            <option value="false">No — usa regla por defecto</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalRegla')">Cancelar</button>
+      <button class="btn-add" onclick="saveReglaLogistica()">💾 Guardar Regla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENVÍO -->
+<div class="modal-overlay" id="modalEnvio">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalEnvioTitle">Nuevo Envío</h3>
+      <button class="modal-close" onclick="closeModal('modalEnvio')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="envioId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Vinculación</div>
+        <div class="form-field full">
+          <label>Reserva <span style="color:var(--red)">*</span></label>
+          <select id="envioReservaId" onchange="onEnvioReservaChange()">
+            <option value="">— Seleccionar reserva —</option>
+          </select>
+        </div>
+        <div class="form-field full" id="envioInfoWrap" style="display:none">
+          <div style="padding:10px 14px;background:var(--surface2);border-radius:9px;border:1px solid var(--border);font-size:13px;color:var(--text2)" id="envioInfoText"></div>
+        </div>
+        <div class="form-section-title">Fechas</div>
+        <div class="form-field">
+          <label>Fecha Envío Estimada</label>
+          <input type="date" id="envioFechaEnvioEst"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha Envío Real</label>
+          <input type="date" id="envioFechaEnvioReal"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha Retiro Estimada</label>
+          <input type="date" id="envioFechaRetiroEst"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha Retiro Real</label>
+          <input type="date" id="envioFechaRetiroReal"/>
+        </div>
+        <div class="form-section-title">Logística</div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="envioEstado">
+            <option value="pendiente_envio">Pendiente Envío</option>
+            <option value="preparando">Preparando</option>
+            <option value="en_transito">En Tránsito</option>
+            <option value="entregado">Entregado</option>
+            <option value="retiro_pendiente">Retiro Pendiente</option>
+            <option value="retirado">Retirado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Transportista</label>
+          <input type="text" id="envioTransportista" placeholder="Nombre o empresa"/>
+        </div>
+        <div class="form-field full">
+          <label>N° de Seguimiento / Referencia</label>
+          <input type="text" id="envioTracking" placeholder="Ej: TRK-20260318-001"/>
+        </div>
+        <div class="form-field full">
+          <label>Dirección de Entrega</label>
+          <input type="text" id="envioDireccion" placeholder="Calle, ciudad, departamento"/>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="envioObs" placeholder="Instrucciones especiales, contacto en destino…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalEnvio')">Cancelar</button>
+      <button class="btn-add" onclick="saveEnvio()">💾 Guardar Envío</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PLANTILLA WHATSAPP -->
+<div class="modal-overlay" id="modalPlantilla">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head">
+      <h3 id="modalPlantillaTitle">Editar Plantilla</h3>
+      <button class="modal-close" onclick="closeModal('modalPlantilla')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="plantillaId"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Evento</label>
+          <input type="text" id="plantillaEvento" readonly style="opacity:.6"/>
+        </div>
+        <div class="form-field full">
+          <label>Activa</label>
+          <select id="plantillaActiva">
+            <option value="true">Sí — enviar automáticamente</option>
+            <option value="false">No — desactivada</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Mensaje</label>
+          <textarea id="plantillaMensaje" style="min-height:140px;font-family:monospace;font-size:13px"></textarea>
+        </div>
+        <div class="form-field full">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">Variables disponibles:</div>
+          <div>
+            <span class="var-chip">{{nombre}}</span>
+            <span class="var-chip">{{apellido}}</span>
+            <span class="var-chip">{{reserva}}</span>
+            <span class="var-chip">{{maquina}}</span>
+            <span class="var-chip">{{fecha}}</span>
+            <span class="var-chip">{{monto}}</span>
+            <span class="var-chip">{{estado}}</span>
+            <span class="var-chip">{{departamento}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalPlantilla')">Cancelar</button>
+      <button class="btn-add" onclick="savePlantilla()">💾 Guardar Plantilla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LEAD -->
+<div class="modal-overlay" id="modalLead">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalLeadTitle">Nuevo Lead</h3>
+      <button class="modal-close" onclick="closeModal('modalLead')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="leadId"/>
+      <div id="leadDuplicateWarn" style="display:none" class="alert-banner warn" style="margin-bottom:12px">
+        <span class="ab-icon">⚠️</span><div id="leadDuplicateMsg"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-section-title">Datos de Contacto</div>
+        <div class="form-field"><label>Nombre <span style="color:var(--red)">*</span></label>
+          <input type="text" id="leadNombre" placeholder="Ej: María"/></div>
+        <div class="form-field"><label>Apellido <span style="color:var(--red)">*</span></label>
+          <input type="text" id="leadApellido" placeholder="Ej: González"/></div>
+        <div class="form-field full"><label>Nombre del Gabinete / Negocio</label>
+          <input type="text" id="leadGabinete" placeholder="Ej: Beauty Studio MG"/></div>
+        <div class="form-field"><label>Ciudad</label>
+          <input type="text" id="leadCiudad" placeholder="Ej: Montevideo" autocomplete="off"/></div>
+        <div class="form-field"><label>Departamento</label>
+          <input type="text" id="leadDepartamento" placeholder="Ej: Montevideo" autocomplete="off"/></div>
+        <div class="form-field"><label>País</label>
+          <input type="text" id="leadPais" value="Uruguay"/></div>
+        <div class="form-field"><label>WhatsApp</label>
+          <input type="tel" id="leadWhatsapp" placeholder="+598 99 000 000"
+            oninput="checkDuplicadoLead()"/></div>
+        <div class="form-field"><label>Teléfono</label>
+          <input type="tel" id="leadTelefono" placeholder="+598 2 000 0000"/></div>
+        <div class="form-field full"><label>Email</label>
+          <input type="email" id="leadEmail" placeholder="lead@mail.com"
+            oninput="checkDuplicadoLead()"/></div>
+        <div class="form-section-title">Información Comercial</div>
+        <div class="form-field"><label>Fuente del Lead</label>
+          <select id="leadFuente">
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="whatsapp">WhatsApp directo</option>
+            <option value="referido">Referido</option>
+            <option value="web">Web / Google</option>
+            <option value="feria">Feria / Evento</option>
+            <option value="llamada">Llamada entrante</option>
+            <option value="otro">Otro</option>
+          </select></div>
+        <div class="form-field"><label>Estado Comercial</label>
+          <select id="leadEstado">
+            <option value="nuevo">Nuevo</option>
+            <option value="contactado">Contactado</option>
+            <option value="interesado">Interesado</option>
+            <option value="calificado">Calificado</option>
+            <option value="presupuesto_enviado">Presupuesto Enviado</option>
+            <option value="pendiente_respuesta">Pendiente Respuesta</option>
+            <option value="pendiente_sena">Pendiente Seña</option>
+            <option value="reserva_confirmada">Reserva Confirmada</option>
+            <option value="cliente_activa">Cliente Activa</option>
+            <option value="cliente_inactiva">Cliente Inactiva</option>
+            <option value="recuperacion">Recuperación</option>
+            <option value="seguimiento">Seguimiento</option>
+            <option value="ganado">Ganado</option>
+            <option value="perdido">Perdido</option>
+            <option value="reactivar_luego">Reactivar Luego</option>
+          </select></div>
+        <div class="form-field full"><label>Interés Principal</label>
+          <input type="text" id="leadInteres" placeholder="Ej: Alquilar láser depilación para su gabinete"/></div>
+        <div class="form-field full"><label>Tecnología Consultada</label>
+          <input type="text" id="leadTecnologia" placeholder="Ej: Soprano Ice, HIFU 12D, Pressoterapia…"/></div>
+        <div class="form-field full"><label>Observaciones Comerciales</label>
+          <textarea id="leadObs" placeholder="Notas sobre la conversación, interés, objeciones…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalLead')">Cancelar</button>
+      <button class="btn-add" onclick="saveLead()">💾 Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERFIL -->
+<div class="modal-overlay" id="modalPerfil">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-head">
+      <h3>👤 Mi Perfil</h3>
+      <button class="modal-close" onclick="closeModal('modalPerfil')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;
+        padding:16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+        <div class="avatar-lg" id="perfilAvatar">A</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)" id="perfilNombreDisplay">—</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px" id="perfilEmailDisplay">—</div>
+          <div style="margin-top:6px" id="perfilRolDisplay"></div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-section-title" style="margin-top:0">Editar Datos</div>
+        <div class="form-field full">
+          <label>Nombre completo</label>
+          <input type="text" id="perfilNombre" placeholder="Tu nombre"/>
+        </div>
+        <div class="form-field full">
+          <label>Email</label>
+          <input type="email" id="perfilEmail" readonly style="opacity:.6"/>
+        </div>
+        <div class="form-section-title">Cambiar Contraseña</div>
+        <div class="form-field full">
+          <label>Contraseña actual</label>
+          <input type="password" id="perfilPassActual" placeholder="••••••••"/>
+        </div>
+        <div class="form-field">
+          <label>Nueva contraseña</label>
+          <input type="password" id="perfilPassNueva" placeholder="••••••••"/>
+        </div>
+        <div class="form-field">
+          <label>Confirmar nueva</label>
+          <input type="password" id="perfilPassConfirm" placeholder="••••••••"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalPerfil')">Cancelar</button>
+      <button class="btn-add" onclick="savePerfil()">💾 Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- GLOBAL SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay" onclick="closeSearchIfBg(event)">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <span style="font-size:18px">🔍</span>
+      <input type="text" id="globalSearchInput" placeholder="Buscar operadora, máquina, reserva, pago…"
+             oninput="runGlobalSearch(this.value)" onkeydown="onSearchKey(event)" autocomplete="off"/>
+      <button onclick="closeSearch()" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px">✕</button>
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="search-hint">Escribí para buscar en toda la plataforma · Presioná <kbd style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:10px">ESC</kbd> para cerrar</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOTA DE SEGUIMIENTO -->
+<div class="modal-overlay" id="modalNota">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head">
+      <h3>📝 Registrar Seguimiento Comercial</h3>
+      <button class="modal-close" onclick="closeModal('modalNota')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="notaLeadId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Contacto realizado</div>
+        <div class="form-field">
+          <label>Tipo de gestión</label>
+          <select id="notaTipo">
+            <option value="llamada">📞 Llamada</option>
+            <option value="whatsapp">💬 WhatsApp</option>
+            <option value="email">✉️ Email</option>
+            <option value="reunion">🤝 Reunión</option>
+            <option value="presupuesto">📄 Envío de Presupuesto</option>
+            <option value="seguimiento">🔄 Seguimiento comercial</option>
+            <option value="recontacto">⏰ Recontacto futuro</option>
+            <option value="otro">📌 Otro</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha del contacto</label>
+          <input type="date" id="notaFecha"/>
+        </div>
+        <div class="form-field full">
+          <label>Nota / Resumen <span style="color:var(--red)">*</span></label>
+          <textarea id="notaTexto" placeholder="¿Qué se habló? ¿Qué se acordó? ¿Cuál fue el resultado?" style="min-height:80px"></textarea>
+        </div>
+        <div class="form-field full">
+          <label>Resultado del contacto</label>
+          <input type="text" id="notaResultado" placeholder="Ej: Interesada, pide reunión / No respondió / Envié cotización"/>
+        </div>
+        <div class="form-section-title">Próxima acción</div>
+        <div class="form-field full">
+          <label>Próxima acción comercial</label>
+          <input type="text" id="notaProxAccion" placeholder="Ej: Llamar para confirmar reunión / Enviar propuesta formal / Recontactar en 2 semanas"/>
+        </div>
+        <div class="form-field">
+          <label>Fecha de próxima acción</label>
+          <input type="date" id="notaProxFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Cambiar estado del lead (opcional)</label>
+          <select id="notaEstadoNuevo">
+            <option value="">— Sin cambio de estado —</option>
+            <option value="nuevo">🆕 Nuevo</option>
+            <option value="contactado">📞 Contactado</option>
+            <option value="interesado">👀 Interesado</option>
+            <option value="presupuesto_enviado">📄 Presupuesto Enviado</option>
+            <option value="seguimiento">🔄 Seguimiento</option>
+            <option value="ganado">🏆 Ganado</option>
+            <option value="perdido">❌ Perdido</option>
+            <option value="reactivar_luego">⏰ Reactivar Luego</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalNota')">Cancelar</button>
+      <button class="btn-add" onclick="saveNotaLead()">💾 Guardar Seguimiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MATERIAL -->
+<div class="modal-overlay" id="modalMaterial">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head">
+      <h3 id="modalMaterialTitle">Nuevo Material</h3>
+      <button class="modal-close" onclick="closeModal('modalMaterial')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="materialId"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Título <span style="color:var(--red)">*</span></label>
+          <input type="text" id="materialTitulo" placeholder="Ej: Manual de operación Soprano Ice"/>
+        </div>
+        <div class="form-field">
+          <label>Tipo</label>
+          <select id="materialTipo">
+            <option value="manual">📖 Manual</option>
+            <option value="video">🎬 Video</option>
+            <option value="guia">📋 Guía rápida</option>
+            <option value="protocolo">⚕️ Protocolo</option>
+            <option value="presentacion">📊 Presentación</option>
+            <option value="otro">📌 Otro</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Categoría / Equipo</label>
+          <select id="materialCategoria">
+            <option value="General">📋 General</option>
+            <option value="Láser Depilación">⚡ Láser Depilación</option>
+            <option value="Radiofrecuencia / HIFU">💜 Radiofrecuencia / HIFU</option>
+            <option value="Pressoterapia">🌊 Pressoterapia</option>
+            <option value="Electroestimulación">⚡ Electroestimulación</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Descripción breve</label>
+          <input type="text" id="materialDesc" placeholder="Ej: Guía completa de parámetros y protocolos de seguridad"/>
+        </div>
+        <div class="form-field full">
+          <label>Enlace / URL</label>
+          <input type="url" id="materialUrl" placeholder="https://drive.google.com/…"/>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="materialEstado">
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Obligatoriedad</label>
+          <select id="materialObligatorio">
+            <option value="obligatorio">⚠️ Obligatorio</option>
+            <option value="opcional">Opcional</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalMaterial')">Cancelar</button>
+      <button class="btn-add" onclick="saveMaterial()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAPACITACIÓN -->
+<div class="modal-overlay" id="modalCapacitacion">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-head">
+      <h3>📋 Registrar Capacitación</h3>
+      <button class="modal-close" onclick="closeModal('modalCapacitacion')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="capId"/>
+      <input type="hidden" id="capOperadoraId"/>
+      <div class="form-grid">
+        <div class="form-field full" id="capOpWrap">
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="capOpSelector"></select>
+        </div>
+        <div class="form-field">
+          <label>Categoría capacitada</label>
+          <select id="capCategoria">
+            <option value="General">📋 General / Inducción</option>
+            <option value="Láser Depilación">⚡ Láser Depilación</option>
+            <option value="Radiofrecuencia / HIFU">💜 Radiofrecuencia / HIFU</option>
+            <option value="Pressoterapia">🌊 Pressoterapia</option>
+            <option value="Electroestimulación">⚡ Electroestimulación</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha</label>
+          <input type="date" id="capFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Resultado</label>
+          <select id="capResultado">
+            <option value="aprobada">✅ Aprobada</option>
+            <option value="pendiente">⏳ Pendiente evaluación</option>
+            <option value="no_aprobada">❌ No aprobada</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Modalidad</label>
+          <select id="capModalidad">
+            <option value="presencial">Presencial</option>
+            <option value="virtual">Virtual / Online</option>
+            <option value="material">Autogestionada (material)</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="capObs" placeholder="Notas sobre la capacitación, áreas de mejora, etc."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCapacitacion')">Cancelar</button>
+      <button class="btn-add" onclick="saveCapacitacion()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EVALUACIÓN TÉCNICA -->
+<div class="modal-overlay" id="modalEvaluacion">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head">
+      <h3 id="evalTitulo">Evaluación Técnica</h3>
+      <button class="modal-close" onclick="closeModal('modalEvaluacion')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="evalId"/>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="evalOperadora"></select>
+        </div>
+        <div class="form-field full">
+          <div id="evalResumen" style="font-size:13px;color:var(--text2);line-height:1.45;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"></div>
+        </div>
+      </div>
+      <div id="evalPreguntas" style="margin-top:8px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalEvaluacion')">Cancelar</button>
+      <button class="btn-add" onclick="saveEvaluacionTecnica()">✅ Corregir y guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HABILITACIÓN -->
+<div class="modal-overlay" id="modalHabilitacion">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <h3>✅ Otorgar Habilitación Técnica</h3>
+      <button class="modal-close" onclick="closeModal('modalHabilitacion')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="habId"/>
+      <input type="hidden" id="habOperadoraId"/>
+      <div class="form-grid">
+        <div class="form-field full" id="habOpWrap">
+          <label>Operadora <span style="color:var(--red)">*</span></label>
+          <select id="habOpSelector"></select>
+        </div>
+        <div class="form-field full">
+          <label>Categoría habilitada <span style="color:var(--red)">*</span></label>
+          <select id="habCategoria">
+            <option value="Láser Depilación">⚡ Láser Depilación</option>
+            <option value="Radiofrecuencia / HIFU">💜 Radiofrecuencia / HIFU</option>
+            <option value="Pressoterapia">🌊 Pressoterapia</option>
+            <option value="Electroestimulación">⚡ Electroestimulación</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha de otorgamiento</label>
+          <input type="date" id="habFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="habEstado">
+            <option value="activa">✅ Activa</option>
+            <option value="suspendida">⏸ Suspendida</option>
+            <option value="vencida">⛔ Vencida</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="habObs" placeholder="Condiciones, restricciones, notas del responsable…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalHabilitacion')">Cancelar</button>
+      <button class="btn-add" onclick="saveHabilitacion()">✅ Otorgar Habilitación</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL CONTRATO DE ALQUILER -->
+<div id="modalContrato" class="modal-overlay">
+  <div class="modal-box" style="max-width:900px">
+    <div class="modal-head">
+      <h3>📋 Contrato de Alquiler</h3>
+      <button class="modal-close" onclick="closeModal('modalContrato')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="contrato-tabs">
+        <div class="contrato-tab active" onclick="switchContratoTab('form')">✏️ Editar</div>
+        <div class="contrato-tab" onclick="switchContratoTab('preview')">👁️ Vista Previa</div>
+      </div>
+
+      <!-- TAB FORMULARIO -->
+      <div id="contratoTabForm" class="contrato-form">
+        <div class="form-section-title">Datos del Arrendatario</div>
+        <div class="form-row">
+          <div><label>Operadora</label><select id="ctrOperadora" onchange="onCtrOperadoraChange()"><option value="">— Seleccionar —</option></select></div>
+        </div>
+        <div class="form-row">
+          <div><label>Nombre Completo</label><input id="ctrNombre" placeholder="Nombre y Apellido"></div>
+          <div><label>CI / RUT</label><input id="ctrCI" placeholder="Documento"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Domicilio</label><input id="ctrDomicilio" placeholder="Dirección completa"></div>
+          <div><label>Ciudad</label><input id="ctrCiudad" placeholder="Ciudad"></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Equipo en Alquiler</div>
+        <div class="form-row">
+          <div><label>Máquina</label><select id="ctrMaquina"><option value="">— Seleccionar —</option></select></div>
+          <div><label>N° Serie</label><input id="ctrSerial" placeholder="Serial del equipo" readonly></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Condiciones del Alquiler</div>
+        <div class="form-row">
+          <div><label>Fecha Inicio</label><input type="date" id="ctrFechaInicio"></div>
+          <div><label>Fecha Fin</label><input type="date" id="ctrFechaFin"></div>
+          <div><label>Duración</label><input id="ctrDuracion" placeholder="ej: 3 meses" readonly></div>
+        </div>
+        <div class="form-row">
+          <div><label>Monto Mensual</label><input type="number" id="ctrMonto" placeholder="0"></div>
+          <div><label>Moneda</label><select id="ctrMoneda"><option>UYU</option><option>USD</option></select></div>
+          <div><label>Forma de Pago</label><input id="ctrFormaPago" value="Transferencia bancaria"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Seña / Garantía</label><input type="number" id="ctrGarantia" placeholder="0"></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Documentación de Identidad</div>
+        <div class="form-row">
+          <div>
+            <label>Cédula frente</label>
+            <input type="file" id="ctrCedulaFrente" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="setContratoDocumento('frente', this.files[0])">
+            <div id="ctrCedulaFrenteInfo" class="file-hint">Sin archivo cargado</div>
+          </div>
+          <div>
+            <label>Cédula dorso</label>
+            <input type="file" id="ctrCedulaDorso" accept=".jpg,.jpeg,.png,.pdf,.webp" onchange="setContratoDocumento('dorso', this.files[0])">
+            <div id="ctrCedulaDorsoInfo" class="file-hint">Sin archivo cargado</div>
+          </div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Firma del Contrato</div>
+        <div class="form-row">
+          <div>
+            <label>Estado de firma</label>
+            <select id="ctrFirmado">
+              <option value="pendiente">Pendiente de firma</option>
+              <option value="firmado">Firmado por operadora</option>
+            </select>
+          </div>
+          <div><label>Fecha de firma</label><input type="date" id="ctrFechaFirma"></div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:16px">Términos Adicionales</div>
+        <div class="form-row">
+          <div><label>Observaciones / Cláusulas especiales</label><textarea id="ctrObs" placeholder="Condiciones adicionales del contrato..."></textarea></div>
+        </div>
+      </div>
+
+      <!-- TAB PREVIEW -->
+      <div id="contratoTabPreview" style="display:none">
+        <div id="contratoPreviewPrint" class="contrato-preview"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalContrato')">Cancelar</button>
+      <button class="btn-secondary" onclick="printContrato()">🖨️ Imprimir / PDF</button>
+      <button class="btn-add" onclick="saveContrato()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOCUMENTOS OPERADORA -->
+<div class="modal-overlay" id="modalDocumentos">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head">
+      <h3>🪪 Documentos de Operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalDocumentos')">✕</button>
+    </div>
+    <div class="modal-body" id="modalDocumentosBody"></div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalDocumentos')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REVISION OPERADORA -->
+<div class="modal-overlay" id="modalRevisionOperadora">
+  <div class="modal-box" style="max-width:820px">
+    <div class="modal-head">
+      <h3 id="modalRevisionTitle">Revisión de operadora</h3>
+      <button class="modal-close" onclick="closeModal('modalRevisionOperadora')">✕</button>
+    </div>
+    <div class="modal-body" id="modalRevisionBody"></div>
+    <div class="modal-foot revision-actions">
+      <button class="btn-secondary" onclick="closeModal('modalRevisionOperadora')">Cerrar</button>
+      <button class="btn-secondary" onclick="guardarRevisionOperadora('pedir_faltantes')">Pedir faltantes</button>
+      <button class="btn-secondary" onclick="guardarRevisionOperadora('observar')">Observar</button>
+      <button class="btn-danger" onclick="guardarRevisionOperadora('eliminar')">Eliminar pedido</button>
+      <button class="btn-danger" onclick="guardarRevisionOperadora('rechazar')">Rechazar</button>
+      <button class="btn-add" onclick="guardarRevisionOperadora('aprobar')">Aprobar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span class="toast-icon" id="toastIcon">✓</span><span id="toastMsg"></span></div>
+
+<!-- MODAL PROVEEDOR -->
+<div class="modal-overlay" id="modalProveedor">
+  <div class="modal-box" style="max-width:620px">
+    <div class="modal-head"><h3 id="modalProveedorTitle">Nuevo Proveedor</h3><button class="modal-close" onclick="closeModal('modalProveedor')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="proveedorId"/>
+      <div class="form-grid">
+        <div class="form-field full"><label>Nombre</label><input id="proveedorNombre" placeholder="Nombre del proveedor"/></div>
+        <div class="form-field"><label>Documento/RUT</label><input id="proveedorDocumento"/></div>
+        <div class="form-field"><label>Teléfono</label><input id="proveedorTelefono"/></div>
+        <div class="form-field full"><label>Dirección</label><input id="proveedorDireccion"/></div>
+        <div class="form-field full"><label>Observaciones</label><textarea id="proveedorObs"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modalProveedor')">Cancelar</button><button class="btn-add" onclick="saveProveedor()">💾 Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL COMPRA -->
+<div class="modal-overlay" id="modalCompra">
+  <div class="modal-box" style="max-width:780px">
+    <div class="modal-head"><h3 id="modalCompraTitle">Nueva Compra</h3><button class="modal-close" onclick="closeModal('modalCompra')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="compraId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Compra</div>
+        <div class="form-field"><label>Fecha</label><input type="date" id="compraFecha"/></div>
+        <div class="form-field"><label>Proveedor</label><select id="compraProveedor"></select></div>
+        <div class="form-field"><label>Categoría</label><select id="compraCategoria"><option value="repuestos">Repuestos</option><option value="insumos">Insumos</option><option value="servicio_tecnico">Servicio técnico</option><option value="limpieza">Puesta a punto de la máquina</option><option value="transporte">Transporte</option><option value="otros">Otros</option></select></div>
+        <div class="form-field"><label>Máquina</label><select id="compraMaquina"></select></div>
+        <div class="form-field"><label>Total</label><input type="number" id="compraTotal" min="0" step="0.01" oninput="calcCompraSaldo()"/></div>
+        <div class="form-field"><label>Moneda</label><select id="compraMoneda"><option value="UYU">UYU</option><option value="USD">USD</option></select></div>
+        <div class="form-field"><label>Pagado ahora</label><input type="number" id="compraPagado" min="0" step="0.01" oninput="calcCompraSaldo()"/></div>
+        <div class="form-field"><label>Cuenta de Caja</label><select id="compraCuenta"></select></div>
+        <div class="form-field"><label>Comprobante/Factura</label><input id="compraComprobante" placeholder="Nro, link o referencia"/></div>
+        <div class="form-field"><label>Servicio técnico / mant.</label><input id="compraServicio" placeholder="Referencia si aplica"/></div>
+        <div class="form-field full"><label>Concepto</label><input id="compraConcepto" placeholder="Ej: Cabezal, gel, reparación, traslado"/></div>
+        <div class="form-field full"><label>Observaciones</label><textarea id="compraObs"></textarea></div>
+        <div class="form-field full"><div id="compraSaldoWrap" class="alert-banner info" style="display:none;margin:0"></div></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modalCompra')">Cancelar</button><button class="btn-add" onclick="saveCompra()">💾 Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL VENTA MÁQUINA -->
+<div class="modal-overlay" id="modalVentaMaquina">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head"><h3 id="modalVentaMaquinaTitle">Nueva Venta de Máquina</h3><button class="modal-close" onclick="closeModal('modalVentaMaquina')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="ventaMaqId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Venta</div>
+        <div class="form-field"><label>Fecha</label><input type="date" id="ventaMaqFecha"/></div>
+        <div class="form-field"><label>Máquina</label><select id="ventaMaqMaquina"></select></div>
+        <div class="form-field full"><label>Comprador</label><input id="ventaMaqComprador" placeholder="Nombre de la persona/empresa compradora"/></div>
+        <div class="form-field"><label>Teléfono</label><input id="ventaMaqTelefono"/></div>
+        <div class="form-field"><label>Documento/RUT</label><input id="ventaMaqDocumento"/></div>
+        <div class="form-field"><label>Precio total</label><input type="number" id="ventaMaqTotal" min="0" step="0.01" oninput="calcVentaMaqSaldo()"/></div>
+        <div class="form-field"><label>Moneda</label><select id="ventaMaqMoneda"><option value="UYU">UYU</option><option value="USD">USD</option></select></div>
+        <div class="form-field"><label>Pago recibido ahora</label><input type="number" id="ventaMaqPago" min="0" step="0.01" oninput="calcVentaMaqSaldo()"/></div>
+        <div class="form-field"><label>Cuenta de Caja</label><select id="ventaMaqCuenta"></select></div>
+        <div class="form-field"><label>Comprobante</label><input id="ventaMaqComprobante" placeholder="Nro, link o referencia"/></div>
+        <div class="form-field full"><label>Observaciones</label><textarea id="ventaMaqObs"></textarea></div>
+        <div class="form-field full"><div id="ventaMaqSaldoWrap" class="alert-banner info" style="display:none;margin:0"></div></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-secondary" onclick="closeModal('modalVentaMaquina')">Cancelar</button><button class="btn-add" onclick="saveVentaMaquina()">💾 Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL CAJA -->
+<div class="modal-overlay" id="modalCaja">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head">
+      <h3 id="modalCajaTitle">Nuevo Movimiento de Caja</h3>
+      <button class="modal-close" onclick="closeModal('modalCaja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cajaId"/>
+      <div class="form-grid">
+        <div class="form-section-title">Movimiento</div>
+        <div class="form-field">
+          <label>Tipo</label>
+          <select id="cajaTipo" onchange="onCajaTipoChange()">
+            <option value="ingreso">Ingreso</option>
+            <option value="egreso">Egreso</option>
+            <option value="ajuste">Ajuste</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Estado</label>
+          <select id="cajaEstado">
+            <option value="pendiente">Pendiente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="anulado">Anulado</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha</label>
+          <input type="date" id="cajaFecha"/>
+        </div>
+        <div class="form-field">
+          <label>Cuenta / Medio</label>
+          <select id="cajaCuenta"></select>
+        </div>
+        <div class="form-field">
+          <label>Categoría</label>
+          <select id="cajaCategoria"></select>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="cajaMoneda">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Monto</label>
+          <input type="number" id="cajaMonto" min="0" step="0.01"/>
+        </div>
+        <div class="form-field">
+          <label>Comprobante</label>
+          <input type="text" id="cajaComprobante" placeholder="Nro, link o referencia"/>
+        </div>
+        <div class="form-section-title">Vínculos opcionales</div>
+        <div class="form-field">
+          <label>Operadora</label>
+          <select id="cajaOperadora"></select>
+        </div>
+        <div class="form-field">
+          <label>Reserva</label>
+          <select id="cajaReserva"></select>
+        </div>
+        <div class="form-field">
+          <label>Máquina</label>
+          <select id="cajaMaquina"></select>
+        </div>
+        <div class="form-field">
+          <label>Transportista / Proveedor</label>
+          <input type="text" id="cajaRelacionado" placeholder="Nombre si aplica"/>
+        </div>
+        <div class="form-field full">
+          <label>Concepto</label>
+          <input type="text" id="cajaConcepto" placeholder="Ej: Seña reserva, repuesto, transporte, adelanto venta"/>
+        </div>
+        <div class="form-field full">
+          <label>Observación</label>
+          <textarea id="cajaObs" placeholder="Detalle, motivo de ajuste o anulación"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCaja')">Cancelar</button>
+      <button class="btn-add" onclick="saveCajaMovimiento()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CIERRE CAJA -->
+<div class="modal-overlay" id="modalCierreCaja">
+  <div class="modal-box" style="max-width:720px">
+    <div class="modal-head">
+      <h3>Cierre de Caja</h3>
+      <button class="modal-close" onclick="closeModal('modalCierreCaja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Período</div>
+        <div class="form-field">
+          <label>Tipo de cierre</label>
+          <select id="cierreCajaPeriodo" onchange="onCierreCajaPeriodoChange()">
+            <option value="diario">Diario</option>
+            <option value="semanal">Semanal</option>
+            <option value="mensual">Mensual</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Desde</label><input type="date" id="cierreCajaDesde" onchange="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field"><label>Hasta</label><input type="date" id="cierreCajaHasta" onchange="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field">
+          <label>Cuenta</label>
+          <select id="cierreCajaCuenta" onchange="actualizarCierreCajaPreview()"></select>
+        </div>
+        <div class="form-field">
+          <label>Moneda</label>
+          <select id="cierreCajaMoneda" onchange="actualizarCierreCajaPreview()">
+            <option value="UYU">UYU</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Saldo contado</label><input type="number" id="cierreCajaContado" step="0.01" oninput="actualizarCierreCajaPreview()"/></div>
+        <div class="form-field full"><div id="cierreCajaPreview" class="alert-banner info"></div></div>
+        <div class="form-field full"><label>Observación</label><textarea id="cierreCajaObs" placeholder="Diferencias, comprobantes pendientes o aclaraciones"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalCierreCaja')">Cancelar</button>
+      <button class="btn-add" onclick="saveCierreCaja()">💾 Guardar cierre</button>
+    </div>
+  </div>
+</div>
