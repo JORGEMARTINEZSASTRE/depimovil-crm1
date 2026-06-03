@@ -17,6 +17,14 @@ function toIntOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+function normalizeTarifaText(v) {
+  return String(v || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 function dateOnly(v) {
   if (!v) return null;
   return String(v).slice(0, 10);
@@ -305,6 +313,99 @@ router.get('/maquina-tarifas', async (req, res) => {
   } catch (err) {
     console.error('GET /api/finanzas/maquina-tarifas error:', err);
     res.status(500).json({ error: 'Error al obtener precios de máquinas' });
+  }
+});
+
+router.post('/maquina-tarifas', requireRole('superadmin', 'administrador'), async (req, res) => {
+  try {
+    const b = req.body || {};
+    const equipo = String(b.equipo || '').trim();
+    const formato = String(b.formato || '').trim();
+    const localidad = String(b.localidad || '').trim();
+    const modalidad = String(b.modalidad || 'jornada').trim();
+    const precio = toNumber(b.precio);
+    if (!equipo || !localidad || !modalidad || precio <= 0) {
+      return res.status(400).json({ error: 'Equipo, zona, modalidad y precio son obligatorios' });
+    }
+    const { rows } = await pool.query(`
+      INSERT INTO maquina_tarifas (
+        equipo, formato, localidad, localidad_norm, modalidad, jornadas, precio, moneda,
+        condicion, inicio_suave, disparos_incluidos, excedente_precio, activa, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,TRUE,NOW())
+      ON CONFLICT (equipo, formato, localidad_norm, modalidad) DO UPDATE SET
+        localidad=EXCLUDED.localidad,
+        jornadas=EXCLUDED.jornadas,
+        precio=EXCLUDED.precio,
+        moneda=EXCLUDED.moneda,
+        condicion=EXCLUDED.condicion,
+        inicio_suave=EXCLUDED.inicio_suave,
+        disparos_incluidos=EXCLUDED.disparos_incluidos,
+        excedente_precio=EXCLUDED.excedente_precio,
+        activa=TRUE,
+        updated_at=NOW()
+      RETURNING *
+    `, [
+      equipo, formato, localidad, normalizeTarifaText(localidad), modalidad,
+      parseInt(b.jornadas, 10) || 1,
+      precio, b.moneda || 'UYU', b.condicion || '',
+      !!b.inicioSuave,
+      toIntOrNull(b.disparosIncluidos),
+      b.excedentePrecio === '' || b.excedentePrecio == null ? null : toNumber(b.excedentePrecio),
+    ]);
+    res.status(201).json(mapMaquinaTarifa(rows[0]));
+  } catch (err) {
+    console.error('POST /api/finanzas/maquina-tarifas error:', err);
+    res.status(500).json({ error: 'Error al guardar precio de máquina' });
+  }
+});
+
+router.put('/maquina-tarifas/:id', requireRole('superadmin', 'administrador'), async (req, res) => {
+  try {
+    const b = req.body || {};
+    const equipo = String(b.equipo || '').trim();
+    const formato = String(b.formato || '').trim();
+    const localidad = String(b.localidad || '').trim();
+    const modalidad = String(b.modalidad || 'jornada').trim();
+    const precio = toNumber(b.precio);
+    if (!equipo || !localidad || !modalidad || precio <= 0) {
+      return res.status(400).json({ error: 'Equipo, zona, modalidad y precio son obligatorios' });
+    }
+    const { rows } = await pool.query(`
+      UPDATE maquina_tarifas SET
+        equipo=$1, formato=$2, localidad=$3, localidad_norm=$4, modalidad=$5,
+        jornadas=$6, precio=$7, moneda=$8, condicion=$9, inicio_suave=$10,
+        disparos_incluidos=$11, excedente_precio=$12, activa=TRUE, updated_at=NOW()
+      WHERE id=$13
+      RETURNING *
+    `, [
+      equipo, formato, localidad, normalizeTarifaText(localidad), modalidad,
+      parseInt(b.jornadas, 10) || 1,
+      precio, b.moneda || 'UYU', b.condicion || '',
+      !!b.inicioSuave,
+      toIntOrNull(b.disparosIncluidos),
+      b.excedentePrecio === '' || b.excedentePrecio == null ? null : toNumber(b.excedentePrecio),
+      req.params.id,
+    ]);
+    if (!rows.length) return res.status(404).json({ error: 'Precio no encontrado' });
+    res.json(mapMaquinaTarifa(rows[0]));
+  } catch (err) {
+    console.error('PUT /api/finanzas/maquina-tarifas/:id error:', err);
+    if (err.code === '23505') return res.status(409).json({ error: 'Ya existe un precio para esa combinación de equipo, formato, zona y modalidad' });
+    res.status(500).json({ error: 'Error al actualizar precio de máquina' });
+  }
+});
+
+router.delete('/maquina-tarifas/:id', requireRole('superadmin', 'administrador'), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'UPDATE maquina_tarifas SET activa=FALSE, updated_at=NOW() WHERE id=$1 RETURNING *',
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Precio no encontrado' });
+    res.json({ ok:true });
+  } catch (err) {
+    console.error('DELETE /api/finanzas/maquina-tarifas/:id error:', err);
+    res.status(500).json({ error: 'Error al desactivar precio de máquina' });
   }
 });
 

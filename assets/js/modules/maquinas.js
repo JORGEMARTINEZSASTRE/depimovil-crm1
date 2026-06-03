@@ -41,6 +41,63 @@ function mapMaquinaLocal(m){
     disponibilidadVisibleGestor:!!m.disponibilidad_visible_gestor,
     obs:m.obs||''};
 }
+function maqPrecioNorm(v){
+  return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function maqPrecioEquipo(m){
+  const raw=maqPrecioNorm([m.nombre,m.marca,m.modelo,m.categoria,m.obs].filter(Boolean).join(' '));
+  if(/22d/.test(raw)||/liposonix/.test(raw))return 'HIFU 22D MAX con Liposonix';
+  if(/hifu/.test(raw)&&/(12d max|12 d max|max)/.test(raw))return 'HIFU 12D MAX';
+  if(/hifu/.test(raw)||/12d/.test(raw))return 'HIFU 12D';
+  if(/pressoterapia|presoterapia|botas/.test(raw))return 'Pressoterapia';
+  if(/exilis/.test(raw))return 'Exilis';
+  if(/hidrofacial|hydrafacial|facial/.test(raw))return 'Hidrofacial';
+  if(/\bems\b|electroestimulacion|electro estimulacion/.test(raw))return 'EMS / Electroestimulación';
+  if(/soprano|titanium|ice|laser|depil|depi/.test(raw))return 'Soprano Titanium Ice';
+  return m.categoria||m.nombre||'';
+}
+function maqPrecioFormato(m){
+  const raw=maqPrecioNorm([m.nombre,m.marca,m.modelo,m.categoria,m.obs].filter(Boolean).join(' '));
+  if(/de pie|vertical|torre|grande|standing|floor|ndyag|ndyac/.test(raw))return 'de pie';
+  if(/escritorio|desktop|mesa|portatil|portátil|chica/.test(raw))return 'de escritorio';
+  return '';
+}
+function maqPrecioFmt(v){
+  return (typeof precioMaqFmt==='function'?precioMaqFmt(v):(Number(v)||0).toLocaleString('es-UY',{maximumFractionDigits:0}));
+}
+function maqPrecioModalidad(m){
+  return typeof precioMaqModalidadLabel==='function'?precioMaqModalidadLabel(m):m;
+}
+function renderMaqPreciosFicha(m){
+  if(!canEdit())return '';
+  const equipo=maqPrecioEquipo(m);
+  const formato=maqPrecioFormato(m);
+  const tarifas=(DB.get('maquina_tarifas')||[]).filter(t=>{
+    if(t.equipo!==equipo)return false;
+    if(formato&&t.formato&&t.formato!==formato)return false;
+    return true;
+  }).sort((a,b)=>
+    (a.formato||'').localeCompare(b.formato||'','es')||
+    (a.localidad||'').localeCompare(b.localidad||'','es')||
+    ((typeof precioMaqOrdenModalidad==='function'?precioMaqOrdenModalidad(a.modalidad):0)-(typeof precioMaqOrdenModalidad==='function'?precioMaqOrdenModalidad(b.modalidad):0))
+  );
+  return `<div class="info-card full">
+    <h4>💲 Precios por zona</h4>
+    ${tarifas.length?`<div style="overflow-x:auto"><table>
+      <thead><tr><th>Formato</th><th>Zona</th><th>Variable</th><th style="text-align:right">Precio</th><th>Condición</th></tr></thead>
+      <tbody>${tarifas.map(t=>`<tr>
+        <td>${escapeHTML(t.formato||'General')}</td>
+        <td>${escapeHTML(t.localidad||'—')}</td>
+        <td>${t.inicioSuave?'<span class="badge badge-green">Inicio suave</span>':escapeHTML(maqPrecioModalidad(t.modalidad))}</td>
+        <td style="text-align:right"><strong>${maqPrecioFmt(t.precio)}</strong> ${escapeHTML(t.moneda||'UYU')}</td>
+        <td>${escapeHTML(t.condicion||'—')}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <div style="margin-top:10px"><button class="action-btn" onclick="preciosMaqFilter.equipo='${escapeAttr(equipo)}';preciosMaqFilter.formato='${escapeAttr(formato)}';navigate('precios-maquinas');renderPreciosMaquinas()">Editar matriz de precios</button></div>`:
+    `<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin precios cargados para ${escapeHTML(equipo)}${formato?' '+escapeHTML(formato):''}.</div>
+    <div><button class="action-btn" onclick="preciosMaqFilter.equipo='${escapeAttr(equipo)}';preciosMaqFilter.formato='${escapeAttr(formato)}';preciosMaqNuevo=true;navigate('precios-maquinas');renderPreciosMaquinas()">Agregar precio</button></div>`}
+  </div>`;
+}
 function maquinaPhotoUrl(m){
   const url=m?.fotoUrl||m?.foto_url||'';
   if(!url)return '';
@@ -272,6 +329,7 @@ function showMaqFicha(id){
         ${m.puestaPuntoWaEstado?ir('WhatsApp gestor',`${escapeHTML(m.puestaPuntoWaEstado)}${m.puestaPuntoWaNotificadoEn?' · '+fmtDate(m.puestaPuntoWaNotificadoEn):''}${m.puestaPuntoWaError?' · '+escapeHTML(m.puestaPuntoWaError):''}`):''}
         ${m.tecnicoEstado?ir('Técnico',`${badgeSubEstadoMaq(m)} ${escapeHTML(m.tecnicoNombre||'')}`):''}
       </div>
+      ${renderMaqPreciosFicha(m)}
       ${renderGestionViajeraPanel(m)}
       <div class="info-card">
         <h4>📅 Reservas (${reservas.length})</h4>

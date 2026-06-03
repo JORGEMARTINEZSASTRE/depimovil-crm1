@@ -5,6 +5,7 @@ let ventasMaqFilter={search:'',estado:''};
 let ventasMaqPrecioFilter={equipo:'',localidad:''};
 let ventasMaqPreciosLoading=false;
 let preciosMaqFilter={equipo:'',formato:'',localidad:'',modalidad:''};
+let preciosMaqNuevo=false;
 
 function ensureVentasMaquinasData(){
   if(!DB.get('ventas_maquinas')) DB.set('ventas_maquinas',[]);
@@ -28,6 +29,81 @@ function precioMaqModalidadLabel(m){
 }
 function precioMaqOrdenModalidad(m){
   return {media_jornada:0,inicio_suave:1,jornada:2,'2_jornadas':3,'3_jornadas':4,semana:5,mensual:6}[m] ?? 9;
+}
+function precioMaqModalidades(){
+  return ['media_jornada','inicio_suave','jornada','2_jornadas','3_jornadas','semana','mensual'];
+}
+function precioMaqInput(id,key,value,type='text',extra=''){
+  return `<input ${type?`type="${type}"`:''} id="precio-${id}-${key}" value="${escapeAttr(value ?? '')}" ${extra} style="width:100%;min-width:90px;text-align:${key==='precio'||key==='disparosIncluidos'||key==='excedentePrecio'?'right':'left'}">`;
+}
+function precioMaqSelect(id,key,value,options){
+  return `<select id="precio-${id}-${key}" style="width:100%;min-width:110px">${options.map(o=>`<option value="${escapeAttr(o.value)}" ${String(o.value)===String(value)?'selected':''}>${escapeHTML(o.label)}</option>`).join('')}</select>`;
+}
+function precioMaqRowPayload(id){
+  const val=k=>gv(`precio-${id}-${k}`).trim();
+  const precio=val('precio').replace(/\./g,'').replace(',','.');
+  const disparos=val('disparosIncluidos').replace(/\./g,'');
+  return {
+    equipo:val('equipo'),
+    formato:val('formato'),
+    localidad:val('localidad'),
+    modalidad:val('modalidad'),
+    jornadas:parseInt(val('jornadas'),10)||1,
+    precio:parseFloat(precio)||0,
+    moneda:val('moneda')||'UYU',
+    condicion:val('condicion'),
+    inicioSuave:val('modalidad')==='inicio_suave',
+    disparosIncluidos:disparos?parseInt(disparos,10):null,
+    excedentePrecio:val('excedentePrecio')?parseFloat(val('excedentePrecio').replace(/\./g,'').replace(',','.')):null
+  };
+}
+async function guardarPrecioMaquina(id){
+  const payload=precioMaqRowPayload(id);
+  if(!payload.equipo||!payload.localidad||!payload.modalidad||payload.precio<=0){
+    showToast('⚠️ Equipo, zona, modalidad y precio son obligatorios','warn');return;
+  }
+  try{
+    const url=id==='nuevo'?'/api/finanzas/maquina-tarifas':`/api/finanzas/maquina-tarifas/${id}`;
+    const saved=await api(url,{method:id==='nuevo'?'POST':'PUT',body:JSON.stringify(payload)});
+    const tarifas=DB.get('maquina_tarifas')||[];
+    if(id==='nuevo'){
+      DB.set('maquina_tarifas',[...tarifas,saved]);
+      preciosMaqNuevo=false;
+    }else{
+      DB.set('maquina_tarifas',tarifas.map(t=>parseInt(t.id)===parseInt(id)?saved:t));
+    }
+    showToast('✅ Precio guardado');
+    renderPreciosMaquinas();
+    if(typeof renderVentasMaqPrecios==='function')renderVentasMaqPrecios();
+  }catch(e){showToast('⛔ '+e.message,'warn');}
+}
+async function eliminarPrecioMaquina(id){
+  if(!confirm('¿Desactivar este precio?'))return;
+  try{
+    await api(`/api/finanzas/maquina-tarifas/${id}`,{method:'DELETE'});
+    DB.set('maquina_tarifas',(DB.get('maquina_tarifas')||[]).filter(t=>parseInt(t.id)!==parseInt(id)));
+    showToast('✅ Precio desactivado');
+    renderPreciosMaquinas();
+  }catch(e){showToast('⛔ '+e.message,'warn');}
+}
+function precioMaqEditableRow(t,id){
+  const modalidades=precioMaqModalidades().map(m=>({value:m,label:precioMaqModalidadLabel(m)}));
+  return `<tr>
+    <td>${precioMaqInput(id,'equipo',t.equipo)}</td>
+    <td>${precioMaqInput(id,'formato',t.formato||'')}</td>
+    <td>${precioMaqInput(id,'localidad',t.localidad)}</td>
+    <td>${precioMaqSelect(id,'modalidad',t.modalidad||'jornada',modalidades)}</td>
+    <td style="text-align:right">${precioMaqInput(id,'precio',precioMaqFmt(t.precio||0),'text')}</td>
+    <td>${precioMaqInput(id,'moneda',t.moneda||'UYU')}</td>
+    <td>${precioMaqInput(id,'jornadas',t.jornadas||1,'number','min="1"')}</td>
+    <td>${precioMaqInput(id,'disparosIncluidos',t.disparosIncluidos||'','text')}</td>
+    <td>${precioMaqInput(id,'excedentePrecio',t.excedentePrecio||'','text')}</td>
+    <td>${precioMaqInput(id,'condicion',t.condicion||'')}</td>
+    <td style="white-space:nowrap">
+      <button class="action-btn" onclick="guardarPrecioMaquina('${id}')">Guardar</button>
+      ${id==='nuevo'?`<button class="action-btn" onclick="preciosMaqNuevo=false;renderPreciosMaquinas()">Cancelar</button>`:`<button class="action-btn" onclick="eliminarPrecioMaquina(${id})">Desactivar</button>`}
+    </td>
+  </tr>`;
 }
 function ensureVentasMaqPreciosPanel(){
   let panel=document.getElementById('ventasMaqPreciosPanel');
@@ -133,6 +209,7 @@ async function cargarVentasMaqPreciosRemotos(){
     const tarifas=await api('/api/finanzas/maquina-tarifas');
     if(Array.isArray(tarifas))DB.set('maquina_tarifas',tarifas);
     renderVentasMaqPrecios();
+    if(document.getElementById('view-precios-maquinas')?.classList.contains('active'))renderPreciosMaquinas();
   }catch(e){
     const wrap=document.getElementById('ventasMaqPreciosTable');
     if(wrap)wrap.innerHTML='<div class="empty-state" style="padding:18px"><h3>Sin precios cargados</h3><p>No se pudo obtener la matriz de precios.</p></div>';
@@ -172,7 +249,10 @@ function initMenuPreciosMaquinas(){
           <h2 style="font-size:18px;font-weight:700;color:var(--text)">💲 Precios de alquiler</h2>
           <p style="font-size:13px;color:var(--text2);margin-top:4px">Variables por equipo, formato, zona y modalidad.</p>
         </div>
-        <button class="btn-secondary" onclick="cargarVentasMaqPreciosRemotos()">Actualizar precios</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="cargarVentasMaqPreciosRemotos()">Actualizar precios</button>
+          <button class="btn-add" onclick="preciosMaqNuevo=true;renderPreciosMaquinas()">+ Precio</button>
+        </div>
       </div>
       <div id="preciosMaqResumen" class="fin-summary"></div>
       <div class="table-container">
@@ -242,16 +322,11 @@ function renderPreciosMaquinas(){
   wrap.innerHTML=`
     <div style="overflow-x:auto">
       <table>
-        <thead><tr><th>Equipo</th><th>Formato</th><th>Zona</th><th>Variable</th><th style="text-align:right">Precio</th><th>Condición</th></tr></thead>
-        <tbody>${rows.map(t=>`
-          <tr>
-            <td><strong>${escapeHTML(t.equipo)}</strong></td>
-            <td>${escapeHTML(t.formato||'General')}</td>
-            <td>${escapeHTML(t.localidad||'—')}</td>
-            <td>${t.inicioSuave?'<span class="badge badge-green">Inicio suave</span>':escapeHTML(precioMaqModalidadLabel(t.modalidad))}</td>
-            <td style="text-align:right"><strong>${precioMaqFmt(t.precio)}</strong> ${escapeHTML(t.moneda||'UYU')}</td>
-            <td>${escapeHTML(t.condicion||'—')}</td>
-          </tr>`).join('')}</tbody>
+        <thead><tr><th>Equipo</th><th>Formato</th><th>Zona</th><th>Variable</th><th style="text-align:right">Precio</th><th>Moneda</th><th>Jornadas</th><th>Disparos</th><th>Excedente</th><th>Condición</th><th>Acciones</th></tr></thead>
+        <tbody>
+          ${preciosMaqNuevo?precioMaqEditableRow({equipo:preciosMaqFilter.equipo||'',formato:preciosMaqFilter.formato||'',localidad:preciosMaqFilter.localidad||'',modalidad:preciosMaqFilter.modalidad||'jornada',precio:'',moneda:'UYU',jornadas:1},'nuevo'):''}
+          ${rows.map(t=>precioMaqEditableRow(t,t.id)).join('')}
+        </tbody>
       </table>
     </div>`;
 }
