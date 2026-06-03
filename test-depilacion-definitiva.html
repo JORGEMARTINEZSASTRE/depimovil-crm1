@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Depilación Definitiva Láser — DepiMóvil</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh}
+header{background:#fff;border-bottom:1px solid #e0ddd5;padding:1rem 2rem;display:flex;align-items:center;gap:12px}
+header h1{font-size:18px;font-weight:600}
+header span{font-size:13px;color:#888;margin-left:auto}
+.wrap{max-width:760px;margin:2rem auto;padding:0 1rem}
+.level-tabs{display:flex;gap:8px;margin-bottom:1.5rem}
+.tab{padding:9px 22px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:14px;cursor:pointer;transition:all .15s;color:#555}
+.tab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.level-info{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.level-badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px}
+.badge-b{background:#e8f5e9;color:#2e7d32}
+.badge-i{background:#fff8e1;color:#f57f17}
+.badge-a{background:#fce4ec;color:#c62828}
+.aprobado-req{font-size:12px;color:#888}
+.prog-wrap{background:#e8e6e0;border-radius:999px;height:6px;margin-bottom:1.5rem}
+.prog-bar{height:6px;border-radius:999px;background:#1a1a1a;transition:width .3s}
+.qcard{background:#fff;border:1px solid #e0ddd5;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.q-num{font-size:11px;color:#aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.q-text{font-size:15px;line-height:1.55;margin-bottom:14px;font-weight:500}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid #e0ddd5;cursor:pointer;font-size:14px;transition:all .12s;background:#fff}
+.opt:hover:not(.disabled){background:#f5f4f0;border-color:#bbb}
+.opt.correct{background:#e8f5e9;border-color:#66bb6a;color:#1b5e20}
+.opt.wrong{background:#ffebee;border-color:#ef9a9a;color:#b71c1c}
+.opt.disabled{cursor:default}
+.opt-letter{font-weight:600;min-width:20px;color:#888}
+.opt.correct .opt-letter,.opt.wrong .opt-letter{color:inherit}
+.explanation{font-size:13px;margin-top:10px;padding:10px 14px;border-radius:8px;background:#f5f4f0;color:#555;line-height:1.55;display:none}
+.explanation.show{display:block}
+.result-panel{border-radius:16px;padding:2rem;margin-top:2rem;text-align:center;display:none}
+.result-panel.show{display:block}
+.result-panel.aprobado{background:#e8f5e9;border:1.5px solid #66bb6a}
+.result-panel.reprobado{background:#ffebee;border:1.5px solid #ef9a9a}
+.result-icon{font-size:48px;margin-bottom:12px}
+.result-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.result-panel.aprobado .result-title{color:#1b5e20}
+.result-panel.reprobado .result-title{color:#b71c1c}
+.result-pct{font-size:48px;font-weight:700;margin:10px 0}
+.result-panel.aprobado .result-pct{color:#2e7d32}
+.result-panel.reprobado .result-pct{color:#c62828}
+.result-sub{font-size:14px;color:#666;margin-bottom:1.5rem}
+.result-detail{font-size:13px;color:#888;margin-bottom:1.5rem}
+.btn{padding:10px 28px;border-radius:8px;border:1px solid #1a1a1a;background:#1a1a1a;color:#fff;font-size:14px;cursor:pointer;transition:all .15s}
+.btn:hover{background:#333}
+.btn-outline{background:#fff;color:#1a1a1a;margin-left:8px}
+.btn-outline:hover{background:#f5f4f0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Test Depilación Definitiva Láser</h1>
+  <span>Aprobación: mínimo 80% de aciertos</span>
+</header>
+
+<div class="wrap">
+  <div class="level-tabs">
+    <button class="tab active" onclick="setLevel(0)">Básico</button>
+    <button class="tab" onclick="setLevel(1)">Intermedio</button>
+    <button class="tab" onclick="setLevel(2)">Avanzado</button>
+  </div>
+
+  <div class="level-info">
+    <span class="level-badge" id="lvBadge"></span>
+    <span class="aprobado-req">Mínimo para aprobar: 80% (10/12 correctas)</span>
+  </div>
+
+  <div class="prog-wrap"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+  <div id="questionsArea"></div>
+
+  <div class="result-panel" id="resultPanel">
+    <div class="result-icon" id="resIcon"></div>
+    <div class="result-title" id="resTitle"></div>
+    <div class="result-pct" id="resPct"></div>
+    <div class="result-sub" id="resSub"></div>
+    <div class="result-detail" id="resDetail"></div>
+    <button class="btn" onclick="resetLevel()">Reintentar</button>
+    <button class="btn btn-outline" onclick="nextLevel()">Siguiente nivel</button>
+  </div>
+</div>
+
+<script>
+const levels = [
+  {
+    label:"Básico", badge:"badge-b",
+    qs:[
+      {q:"¿Qué se entiende por depilación definitiva con láser?",opts:["Eliminación total del 100% del vello en una sesión","Reducción permanente y significativa del vello que requiere varias sesiones y puede necesitar mantenimientos ocasionales","Depilación temporal que dura 6 meses","Eliminación solo del vello de piernas"],ans:1,exp:"La depilación láser logra una reducción permanente significativa reconocida por la FDA. No siempre es 100% definitiva en todas las zonas, pero sí una reducción duradera que puede requerir mantenimientos."},
+      {q:"¿Cuál es el principio físico que hace posible la depilación definitiva con láser?",opts:["Crioterapia selectiva","Termólisis selectiva: el láser destruye la melanina del folículo generando calor que daña permanentemente la papila dérmica","Electrólisis química","Radiofrecuencia focalizada"],ans:1,exp:"La termólisis selectiva permite que la energía láser sea absorbida por la melanina del folículo, generando calor que destruye la papila dérmica y el bulge, impidiendo la regeneración del vello."},
+      {q:"¿Qué parte del folículo debe destruirse para lograr un resultado definitivo?",opts:["Solo la cutícula del vello","Solo el tallo del vello","La papila dérmica y el bulge (zona de células madre)","La glándula sebácea"],ans:2,exp:"Para un resultado permanente deben destruirse la papila dérmica (que nutre el folículo) y el bulge (reserva de células madre foliculares). Si solo se daña el tallo, el folículo se regenera."},
+      {q:"¿Por qué el vello blanco o muy rubio no responde al láser definitivo?",opts:["Porque es más grueso y resistente","Porque carece de melanina suficiente, que es el cromóforo que absorbe la energía láser","Porque siempre está en fase telógena","Porque crece más profundo"],ans:1,exp:"El láser necesita melanina como objetivo. El vello blanco, canoso o muy rubio no contiene melanina suficiente para absorber la energía y destruir el folículo permanentemente."},
+      {q:"¿Cuántas sesiones son necesarias generalmente para lograr resultados definitivos?",opts:["1 a 2 sesiones","3 a 4 sesiones","6 a 8 sesiones o más según la zona","Una sola sesión anual"],ans:2,exp:"Se necesitan entre 6 y 8 sesiones como mínimo, espaciadas según el ciclo de crecimiento de cada zona. Zonas hormonales pueden requerir más sesiones y mantenimientos periódicos."},
+      {q:"¿En qué fase del ciclo del vello actúa el láser para lograr el resultado definitivo?",opts:["Fase telógena (reposo)","Fase catágena (transición)","Fase anágena (crecimiento activo)","Cualquier fase es igual de efectiva"],ans:2,exp:"Solo en fase anágena el folículo tiene conexión activa con la papila y alta concentración de melanina, siendo vulnerable a la destrucción definitiva por el láser."},
+      {q:"¿Qué tipo de vello responde mejor al tratamiento definitivo con láser?",opts:["Vello fino y claro","Vello blanco","Vello oscuro, grueso y en piel clara","Vello muy corto recién depilado con cera"],ans:2,exp:"El vello oscuro y grueso contiene más melanina, absorbiendo más energía láser. La piel clara tiene menos melanina epidérmica competitiva, haciendo el tratamiento más seguro y efectivo."},
+      {q:"¿Cuál es la preparación correcta antes de cada sesión de depilación definitiva?",opts:["Depilarse con cera 2 días antes","Afeitar la zona 24-48 horas antes y evitar exposición solar","Aplicar crema depilatoria el día de la sesión","No hacer nada especial"],ans:1,exp:"Se debe afeitar 24-48 horas antes (el láser actúa sobre el folículo, no sobre el vello visible) y evitar exposición solar para no aumentar la melanina epidérmica."},
+      {q:"¿Qué cuidado es indispensable después de cada sesión?",opts:["Depilarse con cera para eliminar el vello tratado","Usar protector solar SPF 50+ y evitar exposición solar directa","Aplicar calor en la zona para potenciar el efecto","Exfoliar inmediatamente después"],ans:1,exp:"Protector solar SPF 50+ es obligatorio post-sesión. La piel queda sensible y la exposición solar puede causar hiperpigmentación post-inflamatoria."},
+      {q:"¿Cuál es la contraindicación más importante para la depilación definitiva láser?",opts:["Tener el vello oscuro","Piel bronceada o exposición solar reciente","Ser mayor de 30 años","Tener la piel hidratada"],ans:1,exp:"La piel bronceada tiene melanina epidérmica aumentada que compite con la del folículo, incrementando el riesgo de quemaduras, hipopigmentación e ineficacia del tratamiento."},
+      {q:"¿Es posible realizar depilación definitiva láser durante el embarazo?",opts:["Sí, es completamente seguro","No, está contraindicado durante el embarazo","Solo en el primer trimestre","Solo en zonas alejadas del abdomen"],ans:1,exp:"El láser está contraindicado durante el embarazo por ausencia de estudios de seguridad suficientes y por los cambios hormonales que alteran el ciclo del vello, reduciendo la efectividad."},
+      {q:"¿Cuánto tiempo después de terminadas las sesiones se consideran definitivos los resultados?",opts:["Inmediatamente después de la última sesión","Al mes de la última sesión","Entre 3 y 6 meses después de la última sesión, cuando se completa la caída del vello tratado","A los 2 años"],ans:2,exp:"Los resultados finales se evalúan entre 3 y 6 meses después de la última sesión, tiempo necesario para que todos los folículos tratados completen su ciclo y caigan."}
+    ]
+  },
+  {
+    label:"Intermedio", badge:"badge-i",
+    qs:[
+      {q:"¿Qué diferencia al láser de diodo 808 nm del Nd:YAG 1064 nm para depilación definitiva?",opts:["Son idénticos en resultados","El diodo 808 nm es más eficaz en pieles claras a intermedias; el Nd:YAG 1064 nm penetra más y es más seguro en fototipos IV-VI por menor absorción epidérmica","El Nd:YAG no sirve para depilación definitiva","El diodo solo sirve para vello fino"],ans:1,exp:"El diodo 808 nm tiene alta absorción por melanina, ideal para pieles I-IV. El Nd:YAG 1064 nm tiene menor absorción epidérmica de melanina, siendo más seguro en pieles oscuras con menor riesgo de daño colateral."},
+      {q:"¿Por qué las zonas hormonales requieren más sesiones para lograr resultado definitivo?",opts:["Porque la piel es más gruesa en esas zonas","Porque los andrógenos estimulan continuamente nuevos folículos vellosos, generando vello nuevo incluso después del tratamiento","Porque el láser no penetra en esas zonas","Porque el vello es más fino"],ans:1,exp:"Las zonas andrógeno-dependientes (bikini, axilas, cara en mujeres) tienen folículos que se reactivan por estímulo hormonal. Si hay desequilibrio hormonal (SOP), el vello puede regenerar requiriendo más sesiones y mantenimientos."},
+      {q:"¿Qué es la fluencia y por qué es clave para el resultado definitivo?",opts:["La velocidad de movimiento del cabezal","La energía por unidad de área (J/cm²); debe ser suficientemente alta para destruir el folículo pero sin quemar la epidermis","La frecuencia de repetición de disparos","El tamaño del spot láser"],ans:1,exp:"La fluencia (J/cm²) determina la cantidad de energía que llega al folículo. Debe ser la adecuada para cada fototipo y zona: suficiente para destruir la papila sin dañar la piel circundante."},
+      {q:"¿Cuál es el intervalo correcto entre sesiones para la zona del cuerpo (piernas, espalda)?",opts:["Cada 2 semanas","Cada mes","Cada 6-8 semanas","Cada 6 meses"],ans:2,exp:"Las zonas corporales tienen ciclos de crecimiento más largos (~45-60 días). El intervalo de 6-8 semanas permite tratar los folículos que entran en fase anágena entre sesiones."},
+      {q:"¿Qué es el modo SHR y qué ventaja tiene para la depilación definitiva?",opts:["Un modo que usa mayor energía por disparo","Un modo de disparos múltiples de baja fluencia en movimiento que calienta el folículo progresivamente, más cómodo y seguro en pieles oscuras","Un modo exclusivo para vello blanco","Un modo que requiere menos sesiones"],ans:1,exp:"El SHR (Super Hair Removal) acumula calor mediante múltiples pulsos de baja fluencia en movimiento rápido. Es más cómodo, reduce el riesgo en pieles oscuras y permite tratar zonas grandes con mayor velocidad."},
+      {q:"¿Qué ocurre con el vello tratado 7-21 días después de la sesión?",opts:["Crece más grueso","Desaparece instantáneamente","Emerge a la superficie y cae progresivamente (efecto peppering), esto es señal de que el tratamiento funcionó","No cambia hasta la siguiente sesión"],ans:2,exp:"El vello tratado se destruye en el folículo pero tarda 7-21 días en emerger y caer. El 'peppering' (puntos oscuros que salen) es la respuesta normal al tratamiento; no confundir con crecimiento."},
+      {q:"¿Qué medicamentos contraindican la depilación definitiva láser?",opts:["Vitamina C y antiinflamatorios comunes","Isotretinoína, antibióticos fotosensibilizantes (tetraciclinas), anticoagulantes en algunos casos y medicación hormonal no estabilizada","Anticonceptivos orales en todos los casos","Solo los corticoides tópicos"],ans:1,exp:"La isotretinoína (mínimo 6 meses de suspensión antes del láser), los fotosensibilizantes como tetraciclinas y medicación hormonal inestable son contraindicaciones importantes que deben evaluarse en cada paciente."},
+      {q:"¿Cómo se evalúa si una sesión de depilación definitiva fue exitosa?",opts:["Por el dolor sentido durante la sesión","Por el eritema perifólicular y edema leve post-sesión inmediata, seguido de caída del vello a los 7-21 días","Por la cantidad de disparos realizados","Por el precio del equipo"],ans:1,exp:"El eritema y edema perifólicular inmediato indica respuesta correcta del folículo al calor. La caída del vello a los 7-21 días confirma la efectividad de la sesión."},
+      {q:"¿Puede realizarse depilación definitiva en zona de tatuajes?",opts:["Sí, sin ningún problema","No, el láser puede decolorar o destruir el tatuaje porque la tinta actúa como cromóforo absorbiendo energía","Solo si el tatuaje es negro","Solo tatuajes pequeños"],ans:1,exp:"Los pigmentos del tatuaje absorben energía láser como la melanina. Tratar sobre un tatuaje puede decolorarlo, destruirlo parcialmente o causar quemaduras. Se debe evitar tratar directamente sobre la tinta."},
+      {q:"¿Cuál es el fototipo de Fitzpatrick más desafiante para la depilación definitiva láser?",opts:["Fototipo I (piel muy clara)","Fototipo III (piel mediterránea)","Fototipo V-VI (piel muy oscura)","Fototipo II (piel clara)"],ans:2,exp:"Los fototipos V-VI tienen alta melanina epidérmica que compite con la folicular. Requieren equipos específicos (Nd:YAG 1064 nm), fluencias ajustadas y mayor cuidado para evitar hipopigmentación o quemaduras."},
+      {q:"¿Qué zona del cuerpo femenino suele ser la más resistente al tratamiento definitivo?",opts:["Piernas","Axilas","Línea alba y zona hormonal del mentón / patillas","Brazos"],ans:2,exp:"La zona del mentón, patillas y línea alba en mujeres son las más resistentes por influencia hormonal androgénica. Pueden requerir más de 10 sesiones y mantenimientos semestrales o anuales."},
+      {q:"¿Cuánto tiempo debe esperarse entre el cese de isotretinoína y el inicio de depilación láser?",opts:["No hay que esperar","1 semana","Al menos 6 meses","1 mes"],ans:2,exp:"La isotretinoína adelgaza la epidermis y aumenta la fotosensibilidad. Se requiere un período mínimo de 6 meses tras el cese antes de iniciar el tratamiento láser para evitar cicatrices y reacciones adversas graves."}
+    ]
+  },
+  {
+    label:"Avanzado", badge:"badge-a",
+    qs:[
+      {q:"¿Qué mecanismo histológico explica la destrucción definitiva del folículo piloso por láser?",opts:["Necrosis de la cutícula del vello únicamente","Necrosis térmica de la papila dérmica y del bulge (nicho de células madre foliculares), eliminando la capacidad regenerativa del folículo","Apoptosis de los queratinocitos epidérmicos","Fibrosis de la glándula sebácea"],ans:1,exp:"La destrucción definitiva requiere necrosis del bulge (células madre que regeneran el folículo) y la papila dérmica (que nutre el vello en anágena). Si solo se daña el tallo o la vaina, el folículo se recupera completamente."},
+      {q:"¿Cómo determina el tiempo de relajación térmica (TRT) los parámetros óptimos del pulso?",opts:["El pulso debe ser mayor al TRT para mayor efecto","El pulso debe ser menor o igual al TRT del folículo para confinar el daño al cromóforo sin transferir calor a la epidermis circundante","El TRT no tiene relación con la duración del pulso","El TRT solo importa en el láser Nd:YAG"],ans:1,exp:"El TRT folicular (~10-100 ms) define el tiempo máximo del pulso. Pulsos más cortos que el TRT confinan el calor en el folículo. Pulsos más largos permiten la difusión térmica, dañando tejidos adyacentes."},
+      {q:"¿Por qué el láser Nd:YAG 1064 nm es el más indicado para fototipos V-VI en depilación definitiva?",opts:["Porque es el más potente","A 1064 nm el coeficiente de absorción de la melanina es mínimo comparado con 755-810 nm, reduciendo la absorción epidérmica y el riesgo de daño en pieles muy oscuras","Porque penetra menos profundo","Porque es el más económico"],ans:1,exp:"A mayor longitud de onda, menor absorción por melanina. A 1064 nm la melanina epidérmica absorbe mucho menos energía que a 755 u 810 nm, permitiendo tratar pieles oscuras con menor riesgo de quemaduras e hipopigmentación."},
+      {q:"¿Qué es la hipertricosis paradójica y en qué contexto ocurre en depilación definitiva?",opts:["Un efecto buscado en el cuero cabelludo","La estimulación de folículos latentes adyacentes al área tratada, posiblemente por fluencias subóptimas que activan en lugar de destruir, más frecuente en pieles oscuras con vello fino","Un error de calibración del equipo","El crecimiento del vello más oscuro post-sesión"],ans:1,exp:"La hipertricosis paradójica es el crecimiento de vello nuevo en zonas periféricas al área tratada. Se asocia a fluencias bajas en pieles oscuras que estimulan folículos latentes sin destruirlos. La solución es aumentar la fluencia o cambiar de longitud de onda."},
+      {q:"¿Cómo afecta el síndrome de ovario poliquístico (SOP) a los resultados definitivos del láser?",opts:["No tiene ningún efecto","Los niveles elevados de andrógenos reactivan folículos tratados y estimulan nuevos, haciendo que el resultado nunca sea completamente definitivo sin tratamiento hormonal paralelo","El SOP mejora la respuesta al láser","Solo afecta a mujeres mayores de 40 años"],ans:1,exp:"En el SOP, el exceso androgénico estimula continuamente nuevos folículos terminales. Aunque el láser destruye los folículos tratados, los andrógenos generan nuevos. El tratamiento médico hormonal es fundamental para consolidar los resultados definitivos."},
+      {q:"¿Qué rol cumple el sistema de enfriamiento en la eficacia definitiva del tratamiento?",opts:["Solo sirve para el confort del paciente","Protege la epidermis del daño térmico, permitiendo usar fluencias más altas que destruyen más eficazmente la papila dérmica sin quemar la piel","Reduce la temperatura del folículo, haciendo el tratamiento menos efectivo","No tiene ningún efecto en los resultados"],ans:1,exp:"El enfriamiento epidérmico (contact cooling, criógeno, aire frío) permite escalar la fluencia de forma segura. Al proteger la epidermis, se puede aplicar más energía al folículo, mejorando la tasa de destrucción permanente."},
+      {q:"¿Qué diferencia clínica existe entre hipopigmentación e hiperpigmentación post-láser y cuál es más grave?",opts:["Son iguales y ambas son reversibles en 1 semana","La hiperpigmentación (PIH) es aumento de melanina reactiva, generalmente reversible con tratamiento; la hipopigmentación implica destrucción de melanocitos, puede ser permanente y es más difícil de tratar","La hipopigmentación es más fácil de tratar","La hiperpigmentación siempre es permanente"],ans:1,exp:"La PIH (hiperpigmentación post-inflamatoria) es por sobreproducción de melanina reactiva, generalmente reversible con despigmentantes y fotoprotección. La hipopigmentación por destrucción de melanocitos puede ser permanente y no tiene tratamiento sencillo."},
+      {q:"¿Por qué es fundamental realizar test de parche antes de cada nuevo paciente?",opts:["Es solo un requisito burocrático","Permite determinar la fluencia óptima para cada fototipo y zona, identificando la respuesta tisular (eritema perifólicular adecuado vs. quemadura) antes de tratar el área completa","Es solo para pacientes con piel oscura","Solo es necesario en la primera sesión de por vida"],ans:1,exp:"El test de parche individualiza los parámetros: eritema y edema perifólicular leve = fluencia correcta. Ampollas, despigmentación inmediata = fluencia excesiva. Cada paciente, fototipo y zona puede requerir ajuste fino de parámetros."},
+      {q:"¿Qué sucede biológicamente en el folículo durante los 7-21 días post-sesión?",opts:["El folículo se regenera completamente","El vello destruido es empujado hacia la superficie por la actividad epidérmica y cae; el folículo dañado entra en involución y los macrófagos fagocitan los restos celulares","El láser sigue actuando durante esos días","El folículo se replica y forma dos vellos nuevos"],ans:1,exp:"Post-sesión, el folículo necrosado pierde su anclaje dérmico. El vello destruido emerge y cae en 7-21 días. Los macrófagos fagocitan los detritos celulares y el tejido conectivo ocupa el espacio del folículo destruido."},
+      {q:"¿Cuál es el fundamento de combinar láser de diodo con Nd:YAG en una misma sesión?",opts:["No tiene ningún fundamento científico","El diodo actúa sobre la melanina folicular en pieles intermedias con mayor eficacia; el Nd:YAG protege la epidermis en fototipos altos. Algunos equipos combinan ambos para ampliar el rango seguro de tratamiento","Son incompatibles en la misma sesión","Solo se combinan para reducir el tiempo de sesión"],ans:1,exp:"Equipos de tecnología dual combinan diodo (alta afinidad folicular) con Nd:YAG (seguridad epidérmica en pieles oscuras). La combinación permite tratar un rango más amplio de fototipos con mayor eficacia y seguridad en la misma sesión."},
+      {q:"¿Qué consideraciones especiales requiere la depilación definitiva en hombres?",opts:["No hay ninguna diferencia con el tratamiento femenino","Los hombres tienen mayor densidad folicular, vellos más gruesos y profundos (especialmente en barba y espalda), mayor influencia androgénica y pueden requerir fluencias más altas y más sesiones en zonas andrógeno-dependientes","El láser no es efectivo en hombres","Los hombres responden mejor con menos sesiones"],ans:1,exp:"En hombres, el vello andrógeno-dependiente (barba, pecho, espalda) es más grueso, profundo y resistente. Requiere fluencias más altas, más sesiones y los resultados en barba nunca son completamente definitivos por la alta carga hormonal androgénica."},
+      {q:"¿Cuál es el marco regulatorio que respalda la clasificación de la depilación láser como 'reducción permanente del vello'?",opts:["No existe ningún marco regulatorio","La FDA (Food and Drug Administration) de EE.UU. reconoce oficialmente la depilación láser como 'reducción permanente del vello' (permanent hair reduction), definida como reducción estable a largo plazo del número de vellos que regresan tras el tratamiento","La OMS la clasifica como procedimiento experimental","Solo está regulada en Europa"],ans:1,exp:"La FDA define 'permanent hair reduction' como la reducción a largo plazo del número de vellos que re-crecen después del tratamiento, que puede incluir todos o solo una parte de los vellos tratados, siendo estable y duradera. Esta definición distingue correctamente del concepto de eliminación total permanente."}
+    ]
+  }
+];
+
+let currentLevel=0, answered=[];
+
+function setLevel(idx){
+  currentLevel=idx;
+  answered=new Array(levels[idx].qs.length).fill(null);
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.getElementById('resultPanel').className='result-panel';
+  const lv=levels[idx];
+  const b=document.getElementById('lvBadge');
+  b.textContent=lv.label; b.className='level-badge '+lv.badge;
+  render();
+}
+
+function render(){
+  const lv=levels[currentLevel];
+  document.getElementById('questionsArea').innerHTML=lv.qs.map((q,qi)=>{
+    const ans=answered[qi];
+    return `<div class="qcard">
+      <div class="q-num">Pregunta ${qi+1} de ${lv.qs.length}</div>
+      <div class="q-text"><span style="color:#aaa;font-weight:600;margin-right:6px;">${qi+1}.</span>${q.q}</div>
+      <div class="opts">
+        ${q.opts.map((o,oi)=>{
+          let cls='opt';
+          if(ans!==null){cls+=' disabled';if(oi===q.ans)cls+=' correct';else if(oi===ans)cls+=' wrong';}
+          return `<div class="${cls}" onclick="answer(${qi},${oi})"><span class="opt-letter">${String.fromCharCode(65+oi)}.</span><span>${o}</span></div>`;
+        }).join('')}
+      </div>
+      <div class="explanation ${ans!==null?'show':''}">${q.exp}</div>
+    </div>`;
+  }).join('');
+  updateProgress();
+}
+
+function answer(qi,oi){
+  if(answered[qi]!==null)return;
+  answered[qi]=oi;
+  updateProgress();
+  const lv=levels[currentLevel];
+  const card=document.querySelectorAll('.qcard')[qi];
+  card.querySelectorAll('.opt').forEach((o,i)=>{
+    o.classList.add('disabled');
+    if(i===lv.qs[qi].ans)o.classList.add('correct');
+    else if(i===oi&&oi!==lv.qs[qi].ans)o.classList.add('wrong');
+  });
+  card.querySelector('.explanation').classList.add('show');
+  if(answered.every(a=>a!==null))showResult();
+}
+
+function updateProgress(){
+  const done=answered.filter(a=>a!==null).length;
+  document.getElementById('progBar').style.width=(done/levels[currentLevel].qs.length*100)+'%';
+}
+
+function showResult(){
+  const lv=levels[currentLevel];
+  const correct=answered.filter((a,i)=>a===lv.qs[i].ans).length;
+  const total=lv.qs.length;
+  const pct=Math.round(correct/total*100);
+  const aprobado=pct>=80;
+  const panel=document.getElementById('resultPanel');
+  panel.className='result-panel show '+(aprobado?'aprobado':'reprobado');
+  document.getElementById('resIcon').textContent=aprobado?'✅':'❌';
+  document.getElementById('resTitle').textContent=aprobado?'¡APROBADO!':'REPROBADO';
+  document.getElementById('resPct').textContent=pct+'%';
+  document.getElementById('resSub').textContent=aprobado
+    ?`Excelente. Obtuviste ${correct} de ${total} respuestas correctas.`
+    :`No alcanzaste el mínimo del 80%. Obtuviste ${correct} de ${total} correctas. Necesitás al menos 10/12.`;
+  document.getElementById('resDetail').textContent=aprobado
+    ?'Podés continuar con el siguiente nivel.'
+    :'Repasá las preguntas incorrectas y volvé a intentarlo.';
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function resetLevel(){setLevel(currentLevel);}
+function nextLevel(){if(currentLevel<2)setLevel(currentLevel+1);}
+
+setLevel(0);
+</script>
+</body>
+</html>
