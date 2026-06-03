@@ -278,6 +278,18 @@ function normalizarTextoPrecio(value) {
   return normalizarCiudad(value).replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+function localidadTarifaBase(value) {
+  const norm = normalizarCiudad(value);
+  if (!norm) return '';
+  if (norm.includes('montevideo')) return 'montevideo';
+  if (norm.includes('canelones')) return 'canelones';
+  if (norm.includes('maldonado') || norm.includes('punta del este')) return 'maldonado';
+  if (norm.includes('salto')) return 'salto';
+  if (norm.includes('tacuarembo')) return 'tacuarembo';
+  if (norm.includes('todo el pais') || norm.includes('uruguay')) return 'todo el pais';
+  return 'interior';
+}
+
 function parseJsonArray(value) {
   if (Array.isArray(value)) return value;
   if (!value) return [];
@@ -294,22 +306,38 @@ async function ensureMaquinaTarifas(client) {
     CREATE TABLE IF NOT EXISTS maquina_tarifas (
       id SERIAL PRIMARY KEY,
       equipo VARCHAR(160) NOT NULL,
-      formato VARCHAR(80),
+      formato VARCHAR(80) NOT NULL DEFAULT '',
       localidad VARCHAR(120) NOT NULL,
       localidad_norm VARCHAR(140) NOT NULL,
+      modalidad VARCHAR(60) NOT NULL DEFAULT 'jornada',
       jornadas INTEGER NOT NULL DEFAULT 1,
       precio NUMERIC(12,2) NOT NULL,
       moneda VARCHAR(10) NOT NULL DEFAULT 'UYU',
       condicion TEXT,
+      inicio_suave BOOLEAN NOT NULL DEFAULT FALSE,
+      disparos_incluidos INTEGER,
+      excedente_precio NUMERIC(12,2),
       activa BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      UNIQUE (equipo, formato, localidad_norm, jornadas)
+      UNIQUE (equipo, formato, localidad_norm, modalidad)
     )
+  `);
+  await client.query("ALTER TABLE maquina_tarifas ADD COLUMN IF NOT EXISTS modalidad VARCHAR(60) NOT NULL DEFAULT 'jornada'");
+  await client.query("ALTER TABLE maquina_tarifas ADD COLUMN IF NOT EXISTS inicio_suave BOOLEAN NOT NULL DEFAULT FALSE");
+  await client.query('ALTER TABLE maquina_tarifas ADD COLUMN IF NOT EXISTS disparos_incluidos INTEGER');
+  await client.query('ALTER TABLE maquina_tarifas ADD COLUMN IF NOT EXISTS excedente_precio NUMERIC(12,2)');
+  await client.query("UPDATE maquina_tarifas SET formato = '' WHERE formato IS NULL");
+  await client.query("ALTER TABLE maquina_tarifas ALTER COLUMN formato SET DEFAULT ''");
+  await client.query("ALTER TABLE maquina_tarifas ALTER COLUMN formato SET NOT NULL");
+  await client.query('ALTER TABLE maquina_tarifas DROP CONSTRAINT IF EXISTS maquina_tarifas_equipo_formato_localidad_norm_jornadas_key');
+  await client.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS maquina_tarifas_equipo_formato_localidad_norm_modalidad_key
+    ON maquina_tarifas (equipo, formato, localidad_norm, modalidad)
   `);
   await client.query(`
     CREATE INDEX IF NOT EXISTS idx_maquina_tarifas_lookup
-    ON maquina_tarifas (activa, localidad_norm, jornadas)
+    ON maquina_tarifas (activa, localidad_norm, modalidad)
   `);
 }
 
@@ -328,8 +356,14 @@ function inferirEquipoTarifa(row) {
   const raw = normalizarTextoPrecio([
     row.maquina_nombre, row.maquina_marca, row.maquina_modelo, row.maquina_categoria, row.maquina_obs,
   ].filter(Boolean).join(' '));
+  if (/22d/.test(raw) || /liposonix/.test(raw)) return 'HIFU 22D MAX con Liposonix';
+  if (/hifu/.test(raw) && /(12d max|12 d max|max)/.test(raw)) return 'HIFU 12D MAX';
+  if (/hifu/.test(raw) || /12d/.test(raw)) return 'HIFU 12D';
+  if (/pressoterapia|presoterapia|botas/.test(raw)) return 'Pressoterapia';
+  if (/exilis/.test(raw)) return 'Exilis';
+  if (/hidrofacial|hydrafacial|facial/.test(raw)) return 'Hidrofacial';
+  if (/\bems\b|electroestimulacion|electro estimulacion/.test(raw)) return 'EMS / Electroestimulación';
   if (/(soprano|titanium|ice|laser|depil|depi)/.test(raw)) return 'Soprano Titanium Ice';
-  if (/hifu/.test(raw)) return 'HIFU 12D';
   return row.maquina_categoria || row.maquina_nombre || '';
 }
 
@@ -342,34 +376,57 @@ function inferirFormatoTarifa(row) {
   return null;
 }
 
-async function precioMatrizMaquina(client, row, reserva = {}) {
-  await ensureMaquinaTarifas(client);
-  const equipo = inferirEquipoTarifa(row);
-  const formato = inferirFormatoTarifa(row);
+function modalidadTarifaReserva(reserva = {}) {
+  const tipo = reserva.tipo || 'jornada';
+  if (tipo === 'semanal') return 'semana';
+  if (tipo === 'mensual') return 'mensual';
   const jornadas = jornadasReserva(reserva);
-  const localidades = [
+  if (jornadas === 2) return '2_jornadas';
+  if (jornadas === 3) return '3_jornadas';
+  return 'jornada';
+}
+
+function localidadesTarifaCandidatas(row, reserva = {}) {
+  const raw = [
     reserva.dept_logistica,
     row.operadora_ciudad,
     row.operadora_departamento,
   ];
   parseJsonArray(row.direcciones_entrega).forEach(d => {
-    localidades.push(d.localidad, d.ciudad, d.departamento);
+    raw.push(d.localidad, d.ciudad, d.departamento);
   });
-  const localidadNorms = Array.from(new Set(localidades.map(normalizarCiudad).filter(Boolean)));
+  const exactas = raw.map(localidadTarifaBase).filter(Boolean);
+  const candidates = [];
+  exactas.forEach(loc => {
+    if (!candidates.includes(loc)) candidates.push(loc);
+    if (!['montevideo', 'canelones', 'maldonado', 'todo el pais', 'interior'].includes(loc) && !candidates.includes('interior')) {
+      candidates.push('interior');
+    }
+  });
+  if (!candidates.includes('todo el pais')) candidates.push('todo el pais');
+  return candidates;
+}
+
+async function precioMatrizMaquina(client, row, reserva = {}) {
+  await ensureMaquinaTarifas(client);
+  const equipo = inferirEquipoTarifa(row);
+  const formato = inferirFormatoTarifa(row);
+  const modalidad = modalidadTarifaReserva(reserva);
+  const localidadNorms = localidadesTarifaCandidatas(row, reserva);
   if (!equipo || !localidadNorms.length) return null;
   const { rows: tarifas } = await client.query(`
     SELECT *
     FROM maquina_tarifas
     WHERE activa = TRUE
       AND localidad_norm = ANY($1)
-      AND jornadas <= $2
+      AND modalidad = $2
       AND lower(equipo) = lower($3)
-      AND ($4::text IS NULL OR formato IS NULL OR lower(formato) = lower($4))
-    ORDER BY jornadas DESC,
-      CASE WHEN $4::text IS NOT NULL AND formato IS NOT NULL THEN 0 ELSE 1 END,
+      AND ($4::text IS NULL OR formato = '' OR lower(formato) = lower($4))
+    ORDER BY array_position($1::text[], localidad_norm),
+      CASE WHEN $4::text IS NOT NULL AND formato <> '' THEN 0 ELSE 1 END,
       updated_at DESC
     LIMIT 1
-  `, [localidadNorms, jornadas, equipo, formato]);
+  `, [localidadNorms, modalidad, equipo, formato]);
   const tarifa = tarifas[0];
   const precio = parseFloat(tarifa?.precio);
   return Number.isFinite(precio) && precio > 0 ? { valor: precio, tarifa } : null;
