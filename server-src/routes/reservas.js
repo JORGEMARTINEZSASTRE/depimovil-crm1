@@ -289,12 +289,102 @@ function parseJsonArray(value) {
   }
 }
 
-async function precioReservaParaOperadora(client, operadoraId, maquinaId) {
+async function ensureMaquinaTarifas(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS maquina_tarifas (
+      id SERIAL PRIMARY KEY,
+      equipo VARCHAR(160) NOT NULL,
+      formato VARCHAR(80),
+      localidad VARCHAR(120) NOT NULL,
+      localidad_norm VARCHAR(140) NOT NULL,
+      jornadas INTEGER NOT NULL DEFAULT 1,
+      precio NUMERIC(12,2) NOT NULL,
+      moneda VARCHAR(10) NOT NULL DEFAULT 'UYU',
+      condicion TEXT,
+      activa BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE (equipo, formato, localidad_norm, jornadas)
+    )
+  `);
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS idx_maquina_tarifas_lookup
+    ON maquina_tarifas (activa, localidad_norm, jornadas)
+  `);
+}
+
+function jornadasReserva({ tipo, fecha_jornada, fecha_inicio, fecha_fin }) {
+  if ((tipo || 'jornada') === 'jornada') return 1;
+  const inicio = dateOnly(fecha_inicio || fecha_jornada);
+  const fin = dateOnly(fecha_fin || fecha_inicio || fecha_jornada);
+  if (!inicio || !fin) return 1;
+  const a = new Date(`${inicio}T12:00:00Z`);
+  const b = new Date(`${fin}T12:00:00Z`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 1;
+  return Math.max(1, Math.round((b - a) / (1000 * 60 * 60 * 24)) + 1);
+}
+
+function inferirEquipoTarifa(row) {
+  const raw = normalizarTextoPrecio([
+    row.maquina_nombre, row.maquina_marca, row.maquina_modelo, row.maquina_categoria, row.maquina_obs,
+  ].filter(Boolean).join(' '));
+  if (/(soprano|titanium|ice|laser|depil|depi)/.test(raw)) return 'Soprano Titanium Ice';
+  if (/hifu/.test(raw)) return 'HIFU 12D';
+  return row.maquina_categoria || row.maquina_nombre || '';
+}
+
+function inferirFormatoTarifa(row) {
+  const raw = normalizarTextoPrecio([
+    row.maquina_nombre, row.maquina_marca, row.maquina_modelo, row.maquina_categoria, row.maquina_obs,
+  ].filter(Boolean).join(' '));
+  if (/(de pie|vertical|torre|grande|standing|floor|ndyag|ndyac)/.test(raw)) return 'de pie';
+  if (/(escritorio|desktop|mesa|portatil|portátil|chica)/.test(raw)) return 'de escritorio';
+  return null;
+}
+
+async function precioMatrizMaquina(client, row, reserva = {}) {
+  await ensureMaquinaTarifas(client);
+  const equipo = inferirEquipoTarifa(row);
+  const formato = inferirFormatoTarifa(row);
+  const jornadas = jornadasReserva(reserva);
+  const localidades = [
+    reserva.dept_logistica,
+    row.operadora_ciudad,
+    row.operadora_departamento,
+  ];
+  parseJsonArray(row.direcciones_entrega).forEach(d => {
+    localidades.push(d.localidad, d.ciudad, d.departamento);
+  });
+  const localidadNorms = Array.from(new Set(localidades.map(normalizarCiudad).filter(Boolean)));
+  if (!equipo || !localidadNorms.length) return null;
+  const { rows: tarifas } = await client.query(`
+    SELECT *
+    FROM maquina_tarifas
+    WHERE activa = TRUE
+      AND localidad_norm = ANY($1)
+      AND jornadas <= $2
+      AND lower(equipo) = lower($3)
+      AND ($4::text IS NULL OR formato IS NULL OR lower(formato) = lower($4))
+    ORDER BY jornadas DESC,
+      CASE WHEN $4::text IS NOT NULL AND formato IS NOT NULL THEN 0 ELSE 1 END,
+      updated_at DESC
+    LIMIT 1
+  `, [localidadNorms, jornadas, equipo, formato]);
+  const tarifa = tarifas[0];
+  const precio = parseFloat(tarifa?.precio);
+  return Number.isFinite(precio) && precio > 0 ? { valor: precio, tarifa } : null;
+}
+
+async function precioReservaParaOperadora(client, operadoraId, maquinaId, reserva = {}) {
   const { rows } = await client.query(`
-    SELECT o.equipos_alquila,
+    SELECT o.equipos_alquila, o.ciudad AS operadora_ciudad, o.departamento AS operadora_departamento,
+           o.direcciones_entrega,
            m.codigo AS maquina_codigo,
            m.nombre AS maquina_nombre,
-           m.categoria AS maquina_categoria
+           m.categoria AS maquina_categoria,
+           m.marca AS maquina_marca,
+           m.modelo AS maquina_modelo,
+           m.obs AS maquina_obs
     FROM operadoras o
     CROSS JOIN maquinas m
     WHERE o.id=$1 AND m.id=$2
@@ -313,7 +403,9 @@ async function precioReservaParaOperadora(client, operadoraId, maquinaId) {
     return claves.some(k => equipo.includes(k) || k.includes(equipo));
   });
   const valor = parseFloat(tarifa?.valor);
-  return Number.isFinite(valor) && valor > 0 ? valor : null;
+  if (Number.isFinite(valor) && valor > 0) return valor;
+  const matriz = await precioMatrizMaquina(client, row, reserva);
+  return matriz?.valor || null;
 }
 
 function localidadesOperadora(row) {
@@ -604,7 +696,13 @@ router.post('/', auth, async (req, res) => {
       return res.status(disponibilidadOk.status || 400).json({ error: disponibilidadOk.error });
     }
     const montoFinal = isOperadoraRole(req.user.rol)
-      ? (await precioReservaParaOperadora(client, operadoraIdFinal, parseInt(maquina_id, 10)) || 0)
+      ? (await precioReservaParaOperadora(client, operadoraIdFinal, parseInt(maquina_id, 10), {
+        tipo: tipo || 'jornada',
+        fecha_jornada,
+        fecha_inicio,
+        fecha_fin,
+        dept_logistica,
+      }) || 0)
       : (parseFloat(monto) || 0);
     const monedaFinal = isOperadoraRole(req.user.rol) ? 'UYU' : (moneda || 'UYU');
 
