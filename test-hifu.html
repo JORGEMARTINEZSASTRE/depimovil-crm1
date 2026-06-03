@@ -95,10 +95,10 @@ const levels = [
     qs:[
       {q:"¿Qué significa la sigla HIFU?",opts:["High Intensity Focused Ultrasound","High Impact Frequency Unit","Heat Infrared Fusion Unit","Hybrid Intense Focal Ultrasound"],ans:0,exp:"HIFU = High Intensity Focused Ultrasound (ultrasonido focalizado de alta intensidad)."},
       {q:"¿Qué tipo de energía utiliza el HIFU?",opts:["Luz láser","Ondas de ultrasonido","Radiofrecuencia","Corriente eléctrica"],ans:1,exp:"HIFU emplea ondas de ultrasonido focalizadas en un punto específico del tejido."},
-      {q:"¿En qué capa actúa principalmente el HIFU facial?",opts:["Epidermis","Dermis superficial","SMAS y dermis profunda","Tejido subcutáneo graso"],ans:2,exp:"El HIFU facial trabaja en el SMAS y la dermis profunda, similar a un lifting quirúrgico."},
+      {q:"¿En qué capa actúa principalmente el HIFU con cartucho de 4.5 mm?",opts:["Epidermis","Dermis superficial","SMAS y dermis profunda","Tejido subcutáneo graso"],ans:2,exp:"El cartucho de 4.5 mm llega al SMAS (músculo superficial) y dermis profunda, produciendo un efecto similar al lifting quirúrgico."},
       {q:"¿Para qué se usa el HIFU en estética corporal?",opts:["Hidratación profunda","Reducción de grasa localizada y reafirmación","Exfoliación química","Bronceado artificial"],ans:1,exp:"El HIFU corporal destruye adipocitos mediante calor focal y estimula colágeno."},
       {q:"¿Cuántas sesiones se recomiendan para el HIFU facial?",opts:["1 sesión cada 6-12 meses","1 sesión por semana durante 1 mes","3 sesiones diarias","10 sesiones seguidas"],ans:0,exp:"Una sesión cada 6-12 meses es suficiente por la duración del proceso de colagenogénesis."},
-      {q:"¿Qué temperatura alcanza el tejido durante el HIFU?",opts:["20-30 °C","37-40 °C","60-70 °C","100 °C"],ans:2,exp:"HIFU genera 60-70 °C en el punto focal, suficiente para desnaturalizar proteínas sin dañar la superficie."},
+      {q:"¿Qué le ocurre al tejido graso en el punto focal durante una sesión de HIFU corporal?",opts:["Se congela y cristaliza","Se oxigena y regenera","Se destruye por calor intenso (necrosis térmica)","Se comprime mecánicamente sin daño celular"],ans:2,exp:"El calor focal del HIFU genera necrosis térmica selectiva de los adipocitos en el punto de impacto, sin afectar los tejidos circundantes."},
       {q:"¿El HIFU es un procedimiento invasivo?",opts:["Sí, requiere incisiones","No, es completamente no invasivo","Sí, requiere anestesia general","Sí, usa agujas"],ans:1,exp:"HIFU actúa desde el exterior sin cortes ni agujas, siendo completamente no invasivo."},
       {q:"¿Cuál es el efecto principal a nivel celular?",opts:["Aumenta el riego sanguíneo superficial","Produce coagulación térmica y necrosis puntual del tejido","Congela los adipocitos","Oxigena las células"],ans:1,exp:"El calor focal genera microcoagulación que destruye tejido graso y estimula síntesis de colágeno nuevo."},
       {q:"¿Cuándo se notan los resultados del HIFU facial?",opts:["Mismo día","A los 2-3 días","Entre 1 y 3 meses","Al año de la sesión"],ans:2,exp:"La neocolagenogénesis tarda entre 1 y 3 meses; el máximo resultado se ve a los 3-6 meses."},
@@ -162,7 +162,7 @@ function render(){
     const ans=answered[qi];
     return `<div class="qcard">
       <div class="q-num">Pregunta ${qi+1} de ${lv.qs.length}</div>
-      <div class="q-text">${q.q}</div>
+      <div class="q-text"><span style="color:#aaa;font-weight:600;margin-right:6px;">${qi+1}.</span>${q.q}</div>
       <div class="opts">
         ${q.opts.map((o,oi)=>{
           let cls='opt';
