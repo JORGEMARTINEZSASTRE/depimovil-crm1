@@ -2,9 +2,51 @@
    VENTAS DE MÁQUINAS
 ══════════════════════════════════ */
 let ventasMaqFilter={search:'',estado:''};
+let ventasMaqPrecioFilter={equipo:'',localidad:''};
+let ventasMaqPreciosLoading=false;
 
 function ensureVentasMaquinasData(){
   if(!DB.get('ventas_maquinas')) DB.set('ventas_maquinas',[]);
+  if(!DB.get('maquina_tarifas')) DB.set('maquina_tarifas',[]);
+}
+function precioMaqFmt(valor){
+  const n=Number(valor)||0;
+  return n.toLocaleString('es-UY',{maximumFractionDigits:0});
+}
+function precioMaqModalidadLabel(m){
+  const map={
+    media_jornada:'Media jornada',
+    inicio_suave:'Inicio suave',
+    jornada:'Jornada',
+    '2_jornadas':'2 jornadas',
+    '3_jornadas':'3 jornadas',
+    semana:'Semana',
+    mensual:'Mensual'
+  };
+  return map[m]||m||'Jornada';
+}
+function precioMaqOrdenModalidad(m){
+  return {media_jornada:0,inicio_suave:1,jornada:2,'2_jornadas':3,'3_jornadas':4,semana:5,mensual:6}[m] ?? 9;
+}
+function ensureVentasMaqPreciosPanel(){
+  let panel=document.getElementById('ventasMaqPreciosPanel');
+  if(panel)return panel;
+  const resumen=document.getElementById('ventasMaqResumen');
+  if(!resumen||!resumen.parentNode)return null;
+  panel=document.createElement('div');
+  panel.className='table-container';
+  panel.id='ventasMaqPreciosPanel';
+  panel.innerHTML=`
+    <div class="table-header">
+      <h3>ADN precios de alquiler</h3>
+      <div class="table-actions">
+        <select class="filter-select" id="ventasMaqPrecioEquipo" onchange="filterVentasMaqPrecios('equipo',this.value)"><option value="">Equipo</option></select>
+        <select class="filter-select" id="ventasMaqPrecioZona" onchange="filterVentasMaqPrecios('localidad',this.value)"><option value="">Zona</option></select>
+      </div>
+    </div>
+    <div id="ventasMaqPreciosTable"></div>`;
+  resumen.insertAdjacentElement('afterend',panel);
+  return panel;
 }
 function ventaMaqEstadoBadge(e){
   const map={pendiente:['badge-yellow','Pendiente'],parcial:['badge-blue','Parcial'],pagada:['badge-green','Pagada'],anulada:['badge-red','Anulada']};
@@ -23,7 +65,79 @@ function renderVentasMaquinas(){
     <div class="fin-cell"><div class="fc-label">Total vendido</div><div class="fc-value">${totalVendido.toLocaleString()}</div></div>
     <div class="fin-cell"><div class="fc-label">Cobrado</div><div class="fc-value" style="color:var(--green)">${totalCobrado.toLocaleString()}</div></div>
     <div class="fin-cell"><div class="fc-label">Saldo pendiente</div><div class="fc-value" style="color:var(--yellow)">${totalSaldo.toLocaleString()}</div></div>`;
+  renderVentasMaqPrecios();
   renderVentasMaquinasTabla(ventas);updateVentasMaquinasBadge();
+}
+function renderVentasMaqPrecios(){
+  ensureVentasMaqPreciosPanel();
+  const tarifas=(DB.get('maquina_tarifas')||[]).filter(t=>Number(t.precio)>0);
+  const panel=document.getElementById('ventasMaqPreciosPanel');
+  const wrap=document.getElementById('ventasMaqPreciosTable');
+  if(!panel||!wrap)return;
+  if(!tarifas.length){
+    wrap.innerHTML='<div class="empty-state" style="padding:18px"><h3>Cargando precios</h3><p>La matriz de precios se carga desde administración.</p></div>';
+    cargarVentasMaqPreciosRemotos();
+    return;
+  }
+  const equipoEl=document.getElementById('ventasMaqPrecioEquipo');
+  const zonaEl=document.getElementById('ventasMaqPrecioZona');
+  const equipos=[...new Set(tarifas.map(t=>t.equipo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const zonas=[...new Set(tarifas.map(t=>t.localidad).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  if(equipoEl){
+    const actual=ventasMaqPrecioFilter.equipo||equipoEl.value||'';
+    equipoEl.innerHTML='<option value="">Equipo</option>'+equipos.map(e=>`<option value="${escapeHTML(e)}">${escapeHTML(e)}</option>`).join('');
+    equipoEl.value=actual;
+  }
+  if(zonaEl){
+    const actual=ventasMaqPrecioFilter.localidad||zonaEl.value||'';
+    zonaEl.innerHTML='<option value="">Zona</option>'+zonas.map(z=>`<option value="${escapeHTML(z)}">${escapeHTML(z)}</option>`).join('');
+    zonaEl.value=actual;
+  }
+  const rows=tarifas.filter(t=>
+    (!ventasMaqPrecioFilter.equipo||t.equipo===ventasMaqPrecioFilter.equipo)&&
+    (!ventasMaqPrecioFilter.localidad||t.localidad===ventasMaqPrecioFilter.localidad)
+  ).sort((a,b)=>
+    (a.equipo||'').localeCompare(b.equipo||'','es')||
+    (a.formato||'').localeCompare(b.formato||'','es')||
+    (a.localidad||'').localeCompare(b.localidad||'','es')||
+    precioMaqOrdenModalidad(a.modalidad)-precioMaqOrdenModalidad(b.modalidad)
+  );
+  const limit=36;
+  const visible=rows.slice(0,limit);
+  wrap.innerHTML=`
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Equipo</th><th>Formato</th><th>Zona</th><th>Modalidad</th><th style="text-align:right">Precio</th><th>Condición</th></tr></thead>
+        <tbody>${visible.map(t=>`
+          <tr>
+            <td><strong>${escapeHTML(t.equipo)}</strong></td>
+            <td>${escapeHTML(t.formato||'General')}</td>
+            <td>${escapeHTML(t.localidad||'—')}</td>
+            <td>${t.inicioSuave?'<span class="badge badge-green">Inicio suave</span>':escapeHTML(precioMaqModalidadLabel(t.modalidad))}</td>
+            <td style="text-align:right"><strong>${precioMaqFmt(t.precio)}</strong> ${escapeHTML(t.moneda||'UYU')}</td>
+            <td>${escapeHTML(t.condicion||'—')}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    ${rows.length>limit?`<div style="font-size:12px;color:var(--text3);margin-top:8px">Mostrando ${limit} de ${rows.length}. Usá los filtros para afinar la búsqueda.</div>`:''}`;
+}
+function filterVentasMaqPrecios(k,v){
+  ventasMaqPrecioFilter[k]=v;
+  renderVentasMaqPrecios();
+}
+async function cargarVentasMaqPreciosRemotos(){
+  if(ventasMaqPreciosLoading||!(currentUser&&isAdminRole(currentUser.rol)))return;
+  ventasMaqPreciosLoading=true;
+  try{
+    const tarifas=await api('/api/finanzas/maquina-tarifas');
+    if(Array.isArray(tarifas))DB.set('maquina_tarifas',tarifas);
+    renderVentasMaqPrecios();
+  }catch(e){
+    const wrap=document.getElementById('ventasMaqPreciosTable');
+    if(wrap)wrap.innerHTML='<div class="empty-state" style="padding:18px"><h3>Sin precios cargados</h3><p>No se pudo obtener la matriz de precios.</p></div>';
+  }finally{
+    ventasMaqPreciosLoading=false;
+  }
 }
 function renderVentasMaquinasTabla(ventas){
   const q=ventasMaqFilter.search.toLowerCase();

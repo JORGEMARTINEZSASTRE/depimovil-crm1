@@ -223,7 +223,7 @@ async function syncContratosLocales(contratosApi){
 }
 function aplicarFinanzasCache(data){
   if(!data)return;
-  ['caja_cuentas','caja_categorias','caja_movimientos','caja_cierres','proveedores','compras','ventas_maquinas'].forEach(k=>{
+  ['caja_cuentas','caja_categorias','caja_movimientos','caja_cierres','proveedores','compras','ventas_maquinas','maquina_tarifas'].forEach(k=>{
     if(Array.isArray(data[k])) DB.set(k,data[k]);
   });
 }

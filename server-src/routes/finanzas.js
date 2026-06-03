@@ -192,6 +192,24 @@ function mapVenta(r) {
     documento:r.documento||'', total:toNumber(r.total), moneda:r.moneda, pagado:toNumber(r.pagado), saldo:toNumber(r.saldo),
     estado:r.estado, cuentaId:r.cuenta_id, comprobante:r.comprobante||'', obs:r.obs||'', updatedAt:r.updated_at };
 }
+function mapMaquinaTarifa(r) {
+  return {
+    id:r.id,
+    equipo:r.equipo,
+    formato:r.formato || '',
+    localidad:r.localidad,
+    localidadNorm:r.localidad_norm,
+    modalidad:r.modalidad || 'jornada',
+    jornadas:parseInt(r.jornadas, 10) || 1,
+    precio:toNumber(r.precio),
+    moneda:r.moneda || 'UYU',
+    condicion:r.condicion || '',
+    inicioSuave:!!r.inicio_suave,
+    disparosIncluidos:r.disparos_incluidos == null ? null : parseInt(r.disparos_incluidos, 10),
+    excedentePrecio:r.excedente_precio == null ? null : toNumber(r.excedente_precio),
+    updatedAt:r.updated_at
+  };
+}
 function mapMovimiento(r) {
   return { id:r.id, codigo:r.codigo, tipo:r.tipo, estado:r.estado, fecha:dateOnly(r.fecha), cuentaId:r.cuenta_id,
     categoria:r.categoria, categoriaBase:r.categoria_base, moneda:r.moneda, monto:toNumber(r.monto), comprobante:r.comprobante||'',
@@ -222,17 +240,34 @@ router.get('/bootstrap', async (req, res) => {
         caja_cierres: [],
         proveedores: [],
         compras: [],
-        ventas_maquinas: []
+        ventas_maquinas: [],
+        maquina_tarifas: []
       });
     }
-    const [cuentas,categorias,movs,cierres,proveedores,compras,ventas] = await Promise.all([
+    const [cuentas,categorias,movs,cierres,proveedores,compras,ventas,tarifas] = await Promise.all([
       pool.query('SELECT * FROM caja_cuentas ORDER BY id'),
       pool.query('SELECT * FROM caja_categorias ORDER BY tipo,label'),
       pool.query('SELECT * FROM caja_movimientos ORDER BY fecha DESC, id DESC'),
       pool.query('SELECT * FROM caja_cierres ORDER BY fecha_hasta DESC, id DESC'),
       pool.query('SELECT * FROM proveedores ORDER BY nombre'),
       pool.query('SELECT * FROM compras ORDER BY fecha DESC, id DESC'),
-      pool.query('SELECT * FROM ventas_maquinas ORDER BY fecha DESC, id DESC')
+      pool.query('SELECT * FROM ventas_maquinas ORDER BY fecha DESC, id DESC'),
+      pool.query(`
+        SELECT *
+        FROM maquina_tarifas
+        WHERE activa = TRUE
+        ORDER BY equipo, formato, localidad,
+          CASE modalidad
+            WHEN 'media_jornada' THEN 0
+            WHEN 'inicio_suave' THEN 1
+            WHEN 'jornada' THEN 2
+            WHEN '2_jornadas' THEN 3
+            WHEN '3_jornadas' THEN 4
+            WHEN 'semana' THEN 5
+            WHEN 'mensual' THEN 6
+            ELSE 9
+          END
+      `)
     ]);
     res.json({
       caja_cuentas: cuentas.rows.map(mapCuenta),
@@ -241,9 +276,36 @@ router.get('/bootstrap', async (req, res) => {
       caja_cierres: cierres.rows.map(mapCierre),
       proveedores: proveedores.rows.map(mapProveedor),
       compras: compras.rows.map(mapCompra),
-      ventas_maquinas: ventas.rows.map(mapVenta)
+      ventas_maquinas: ventas.rows.map(mapVenta),
+      maquina_tarifas: tarifas.rows.map(mapMaquinaTarifa)
     });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Error interno' }); }
+});
+
+router.get('/maquina-tarifas', async (req, res) => {
+  try {
+    if (!['superadmin', 'administrador'].includes(req.user.rol)) return res.json([]);
+    const { rows } = await pool.query(`
+      SELECT *
+      FROM maquina_tarifas
+      WHERE activa = TRUE
+      ORDER BY equipo, formato, localidad,
+        CASE modalidad
+          WHEN 'media_jornada' THEN 0
+          WHEN 'inicio_suave' THEN 1
+          WHEN 'jornada' THEN 2
+          WHEN '2_jornadas' THEN 3
+          WHEN '3_jornadas' THEN 4
+          WHEN 'semana' THEN 5
+          WHEN 'mensual' THEN 6
+          ELSE 9
+        END
+    `);
+    res.json(rows.map(mapMaquinaTarifa));
+  } catch (err) {
+    console.error('GET /api/finanzas/maquina-tarifas error:', err);
+    res.status(500).json({ error: 'Error al obtener precios de máquinas' });
+  }
 });
 
 router.get('/kpis', async (req, res) => {
