@@ -2,6 +2,7 @@
    MÁQUINAS
 ══════════════════════════════════ */
 let maqFilter={search:'',status:''};
+let maqPrecioEditId=null;
 const MAQ_CATEGORIAS_DEFAULT=['Láser Depilación','Radiofrecuencia / HIFU','IPL','Pressoterapia','Hidrofacial','Electroestimulación','Ultrasonido','Cavitación','Diodo + NDYAG','Otro'];
 function maqTipoOperativoLabel(tipo){
   return {viajera:'Viajera',alquiler:'Viajera',base_ciudad:'Base ciudad',solo_venta:'Solo venta'}[tipo||'viajera'] || tipo;
@@ -68,6 +69,77 @@ function maqPrecioFmt(v){
 function maqPrecioModalidad(m){
   return typeof precioMaqModalidadLabel==='function'?precioMaqModalidadLabel(m):m;
 }
+function maqPrecioZonaBase(m){
+  const raw=maqPrecioNorm([m.ciudadBase,m.ubicacion,m.deptBase].filter(Boolean).join(' '));
+  if(raw.includes('montevideo'))return 'montevideo';
+  if(raw.includes('canelones'))return 'canelones';
+  if(raw.includes('maldonado')||raw.includes('punta del este'))return 'maldonado';
+  if(raw.includes('salto'))return 'salto';
+  if(raw.includes('tacuarembo'))return 'tacuarembo';
+  return raw?'interior':'';
+}
+function maqPrecioPrincipal(m,tarifas){
+  const zona=maqPrecioZonaBase(m);
+  const modalidadOrden={jornada:0,inicio_suave:1,media_jornada:2,'2_jornadas':3,'3_jornadas':4,semana:5,mensual:6};
+  return tarifas.slice().sort((a,b)=>{
+    const az=maqPrecioNorm(a.localidadNorm||a.localidad)===zona?0:(maqPrecioNorm(a.localidadNorm||a.localidad)==='interior'?1:2);
+    const bz=maqPrecioNorm(b.localidadNorm||b.localidad)===zona?0:(maqPrecioNorm(b.localidadNorm||b.localidad)==='interior'?1:2);
+    return az-bz || ((modalidadOrden[a.modalidad]??9)-(modalidadOrden[b.modalidad]??9));
+  })[0]||null;
+}
+function maqPrecioInput(id,key,value,type='text',extra=''){
+  return `<input ${type?`type="${type}"`:''} id="maq-precio-${id}-${key}" value="${escapeAttr(value ?? '')}" ${extra} style="width:100%;text-align:${key==='precio'?'right':'left'}">`;
+}
+function maqPrecioSelect(id,value){
+  const modalidades=typeof precioMaqModalidades==='function'?precioMaqModalidades():['jornada','2_jornadas','3_jornadas','semana','mensual'];
+  return `<select id="maq-precio-${id}-modalidad" style="width:100%">${modalidades.map(m=>`<option value="${escapeAttr(m)}" ${m===value?'selected':''}>${escapeHTML(maqPrecioModalidad(m))}</option>`).join('')}</select>`;
+}
+function maqPrecioPayload(id){
+  const val=k=>gv(`maq-precio-${id}-${k}`).trim();
+  return {
+    equipo:val('equipo'),
+    formato:val('formato'),
+    localidad:val('localidad'),
+    modalidad:val('modalidad'),
+    jornadas:parseInt(val('jornadas'),10)||1,
+    precio:parseFloat(val('precio').replace(/\./g,'').replace(',','.'))||0,
+    moneda:val('moneda')||'UYU',
+    condicion:val('condicion'),
+    inicioSuave:val('modalidad')==='inicio_suave',
+    disparosIncluidos:null,
+    excedentePrecio:null
+  };
+}
+async function guardarMaqPrecioFicha(maquinaId,id){
+  const payload=maqPrecioPayload(id);
+  if(!payload.equipo||!payload.localidad||!payload.modalidad||payload.precio<=0){
+    showToast('⚠️ Equipo, zona, modalidad y precio son obligatorios','warn');return;
+  }
+  try{
+    const saved=await api(id==='nuevo'?'/api/finanzas/maquina-tarifas':`/api/finanzas/maquina-tarifas/${id}`,{
+      method:id==='nuevo'?'POST':'PUT',
+      body:JSON.stringify(payload)
+    });
+    const tarifas=DB.get('maquina_tarifas')||[];
+    DB.set('maquina_tarifas',id==='nuevo'?[...tarifas,saved]:tarifas.map(t=>parseInt(t.id)===parseInt(id)?saved:t));
+    maqPrecioEditId=null;
+    showToast('✅ Precio guardado');
+    showMaqFicha(maquinaId);
+  }catch(e){showToast('⛔ '+e.message,'warn');}
+}
+function renderMaqPrecioEditor(m,t,id,equipo,formato){
+  const base=t||{equipo,formato,localidad:maqPrecioZonaBase(m)||'',modalidad:'jornada',precio:'',moneda:'UYU',jornadas:1,condicion:''};
+  return `<div style="display:grid;grid-template-columns:1.3fr .8fr .8fr .9fr .75fr 1.5fr auto;gap:8px;align-items:end">
+    <label style="font-size:11px;color:var(--text2)">Equipo${maqPrecioInput(id,'equipo',base.equipo)}</label>
+    <label style="font-size:11px;color:var(--text2)">Formato${maqPrecioInput(id,'formato',base.formato||'')}</label>
+    <label style="font-size:11px;color:var(--text2)">Zona${maqPrecioInput(id,'localidad',base.localidad||'')}</label>
+    <label style="font-size:11px;color:var(--text2)">Variable${maqPrecioSelect(id,base.modalidad||'jornada')}</label>
+    <label style="font-size:11px;color:var(--text2)">Precio${maqPrecioInput(id,'precio',base.precio?maqPrecioFmt(base.precio):'')}</label>
+    <label style="font-size:11px;color:var(--text2)">Condición${maqPrecioInput(id,'condicion',base.condicion||'')}</label>
+    <span style="display:none">${maqPrecioInput(id,'moneda',base.moneda||'UYU')}${maqPrecioInput(id,'jornadas',base.jornadas||1,'number')}</span>
+    <div style="display:flex;gap:6px;white-space:nowrap"><button class="action-btn" onclick="guardarMaqPrecioFicha(${m.id},'${id}')">Guardar</button><button class="action-btn" onclick="maqPrecioEditId=null;showMaqFicha(${m.id})">Cancelar</button></div>
+  </div>`;
+}
 function renderMaqPreciosFicha(m){
   if(!canEdit())return '';
   const equipo=maqPrecioEquipo(m);
@@ -81,21 +153,24 @@ function renderMaqPreciosFicha(m){
     (a.localidad||'').localeCompare(b.localidad||'','es')||
     ((typeof precioMaqOrdenModalidad==='function'?precioMaqOrdenModalidad(a.modalidad):0)-(typeof precioMaqOrdenModalidad==='function'?precioMaqOrdenModalidad(b.modalidad):0))
   );
+  const principal=maqPrecioPrincipal(m,tarifas);
+  const editing=principal&&parseInt(maqPrecioEditId)===parseInt(principal.id);
   return `<div class="info-card full">
-    <h4>💲 Precios por zona</h4>
-    ${tarifas.length?`<div style="overflow-x:auto"><table>
-      <thead><tr><th>Formato</th><th>Zona</th><th>Variable</th><th style="text-align:right">Precio</th><th>Condición</th></tr></thead>
-      <tbody>${tarifas.map(t=>`<tr>
-        <td>${escapeHTML(t.formato||'General')}</td>
-        <td>${escapeHTML(t.localidad||'—')}</td>
-        <td>${t.inicioSuave?'<span class="badge badge-green">Inicio suave</span>':escapeHTML(maqPrecioModalidad(t.modalidad))}</td>
-        <td style="text-align:right"><strong>${maqPrecioFmt(t.precio)}</strong> ${escapeHTML(t.moneda||'UYU')}</td>
-        <td>${escapeHTML(t.condicion||'—')}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>
-    <div style="margin-top:10px"><button class="action-btn" onclick="preciosMaqFilter.equipo='${escapeAttr(equipo)}';preciosMaqFilter.formato='${escapeAttr(formato)}';navigate('precios-maquinas');renderPreciosMaquinas()">Editar matriz de precios</button></div>`:
-    `<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin precios cargados para ${escapeHTML(equipo)}${formato?' '+escapeHTML(formato):''}.</div>
-    <div><button class="action-btn" onclick="preciosMaqFilter.equipo='${escapeAttr(equipo)}';preciosMaqFilter.formato='${escapeAttr(formato)}';preciosMaqNuevo=true;navigate('precios-maquinas');renderPreciosMaquinas()">Agregar precio</button></div>`}
+    <h4>💲 Precio fijo de la máquina</h4>
+    ${principal&&!editing?`<div class="dash-list-item">
+      <div>
+        <div class="name">${escapeHTML(principal.localidad||'Zona')} · ${principal.inicioSuave?'<span class="badge badge-green">Inicio suave</span>':escapeHTML(maqPrecioModalidad(principal.modalidad))}</div>
+        <div class="sub">${escapeHTML(equipo)}${formato?' · '+escapeHTML(formato):''}${principal.condicion?' · '+escapeHTML(principal.condicion):''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <strong style="font-size:18px;color:var(--accent)">${maqPrecioFmt(principal.precio)} ${escapeHTML(principal.moneda||'UYU')}</strong>
+        <button class="action-btn" onclick="maqPrecioEditId=${parseInt(principal.id,10)};showMaqFicha(${m.id})">Editar</button>
+      </div>
+    </div>
+    <div style="margin-top:10px"><button class="action-btn" onclick="preciosMaqFilter.equipo='${escapeAttr(equipo)}';preciosMaqFilter.formato='${escapeAttr(formato)}';navigate('precios-maquinas');renderPreciosMaquinas()">Ver matriz completa</button></div>`:
+    editing?renderMaqPrecioEditor(m,principal,principal.id,equipo,formato):
+    `<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin precio fijo cargado para ${escapeHTML(equipo)}${formato?' '+escapeHTML(formato):''}.</div>
+    ${maqPrecioEditId==='nuevo'?renderMaqPrecioEditor(m,null,'nuevo',equipo,formato):`<button class="action-btn" onclick="maqPrecioEditId='nuevo';showMaqFicha(${m.id})">Agregar precio fijo</button>`}`}
   </div>`;
 }
 function maquinaPhotoUrl(m){
