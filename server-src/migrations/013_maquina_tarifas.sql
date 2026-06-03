@@ -20,7 +20,7 @@ ON maquina_tarifas (activa, localidad_norm, jornadas);
 INSERT INTO maquina_tarifas (
   equipo, formato, localidad, localidad_norm, jornadas, precio, moneda, condicion
 ) VALUES (
-  'Soprano Titanium Ice', 'de pie', 'Maldonado', 'maldonado', 1, 10000, 'UYU', 'Jornada máquina grande/de pie'
+  'Soprano Titanium Ice', 'de pie', 'Maldonado', 'maldonado', 1, 8000, 'UYU', 'Jornada máquina grande/de pie'
 )
 ON CONFLICT (equipo, formato, localidad_norm, jornadas) DO UPDATE SET
   precio=EXCLUDED.precio,
