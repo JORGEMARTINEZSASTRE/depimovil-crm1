@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Depilación Láser — DepiMóvil</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh}
+header{background:#fff;border-bottom:1px solid #e0ddd5;padding:1rem 2rem;display:flex;align-items:center;gap:12px}
+header h1{font-size:18px;font-weight:600}
+header span{font-size:13px;color:#888;margin-left:auto}
+.wrap{max-width:760px;margin:2rem auto;padding:0 1rem}
+.level-tabs{display:flex;gap:8px;margin-bottom:1.5rem}
+.tab{padding:9px 22px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:14px;cursor:pointer;transition:all .15s;color:#555}
+.tab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.level-info{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.level-badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px}
+.badge-b{background:#e8f5e9;color:#2e7d32}
+.badge-i{background:#fff8e1;color:#f57f17}
+.badge-a{background:#fce4ec;color:#c62828}
+.aprobado-req{font-size:12px;color:#888}
+.prog-wrap{background:#e8e6e0;border-radius:999px;height:6px;margin-bottom:1.5rem}
+.prog-bar{height:6px;border-radius:999px;background:#1a1a1a;transition:width .3s}
+.qcard{background:#fff;border:1px solid #e0ddd5;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.q-num{font-size:11px;color:#aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.q-text{font-size:15px;line-height:1.55;margin-bottom:14px;font-weight:500}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid #e0ddd5;cursor:pointer;font-size:14px;transition:all .12s;background:#fff}
+.opt:hover:not(.disabled){background:#f5f4f0;border-color:#bbb}
+.opt.correct{background:#e8f5e9;border-color:#66bb6a;color:#1b5e20}
+.opt.wrong{background:#ffebee;border-color:#ef9a9a;color:#b71c1c}
+.opt.disabled{cursor:default}
+.opt-letter{font-weight:600;min-width:20px;color:#888}
+.opt.correct .opt-letter,.opt.wrong .opt-letter{color:inherit}
+.explanation{font-size:13px;margin-top:10px;padding:10px 14px;border-radius:8px;background:#f5f4f0;color:#555;line-height:1.55;display:none}
+.explanation.show{display:block}
+.result-panel{border-radius:16px;padding:2rem;margin-top:2rem;text-align:center;display:none}
+.result-panel.show{display:block}
+.result-panel.aprobado{background:#e8f5e9;border:1.5px solid #66bb6a}
+.result-panel.reprobado{background:#ffebee;border:1.5px solid #ef9a9a}
+.result-icon{font-size:48px;margin-bottom:12px}
+.result-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.result-panel.aprobado .result-title{color:#1b5e20}
+.result-panel.reprobado .result-title{color:#b71c1c}
+.result-pct{font-size:48px;font-weight:700;margin:10px 0}
+.result-panel.aprobado .result-pct{color:#2e7d32}
+.result-panel.reprobado .result-pct{color:#c62828}
+.result-sub{font-size:14px;color:#666;margin-bottom:1.5rem}
+.result-detail{font-size:13px;color:#888;margin-bottom:1.5rem}
+.btn{padding:10px 28px;border-radius:8px;border:1px solid #1a1a1a;background:#1a1a1a;color:#fff;font-size:14px;cursor:pointer;transition:all .15s}
+.btn:hover{background:#333}
+.btn-outline{background:#fff;color:#1a1a1a;margin-left:8px}
+.btn-outline:hover{background:#f5f4f0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Test Depilación Láser</h1>
+  <span>Aprobación: mínimo 80% de aciertos</span>
+</header>
+
+<div class="wrap">
+  <div class="level-tabs">
+    <button class="tab active" onclick="setLevel(0)">Básico</button>
+    <button class="tab" onclick="setLevel(1)">Intermedio</button>
+    <button class="tab" onclick="setLevel(2)">Avanzado</button>
+  </div>
+
+  <div class="level-info">
+    <span class="level-badge" id="lvBadge"></span>
+    <span class="aprobado-req">Mínimo para aprobar: 80% (10/12 correctas)</span>
+  </div>
+
+  <div class="prog-wrap"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+
+  <div id="questionsArea"></div>
+
+  <div class="result-panel" id="resultPanel">
+    <div class="result-icon" id="resIcon"></div>
+    <div class="result-title" id="resTitle"></div>
+    <div class="result-pct" id="resPct"></div>
+    <div class="result-sub" id="resSub"></div>
+    <div class="result-detail" id="resDetail"></div>
+    <button class="btn" onclick="resetLevel()">Reintentar</button>
+    <button class="btn btn-outline" onclick="nextLevel()">Siguiente nivel</button>
+  </div>
+</div>
+
+<script>
+const levels = [
+  {
+    label:"Básico", badge:"badge-b",
+    qs:[
+      {q:"¿En qué se basa el principio de la depilación láser?",opts:["Termólisis selectiva: el láser calienta selectivamente la melanina del folículo sin dañar la piel circundante","Congelación del folículo piloso","Exfoliación química de la raíz","Corriente eléctrica que destruye el bulbo"],ans:0,exp:"La termólisis selectiva es el principio base: la energía del láser es absorbida por la melanina del folículo, destruyéndolo sin afectar la piel alrededor."},
+      {q:"¿En qué fase del ciclo de crecimiento del vello es efectivo el láser?",opts:["Catágena","Telógena","Anágena","Exógena"],ans:2,exp:"Solo en fase anágena (crecimiento activo) el folículo tiene suficiente melanina y conexión con el bulbo para ser destruido eficazmente por el láser."},
+      {q:"¿Por qué se necesitan varias sesiones de depilación láser?",opts:["Porque el láser pierde potencia con el uso","Porque no todos los vellos están en fase anágena al mismo tiempo","Porque la piel necesita descanso entre sesiones","Porque el equipo se calienta y hay que apagarlo"],ans:1,exp:"Solo entre el 15-20% de los vellos están en fase anágena simultáneamente, por eso se requieren múltiples sesiones para tratar todos los folículos."},
+      {q:"¿Cuántas sesiones se recomiendan generalmente para la depilación láser?",opts:["1-2 sesiones","3-4 sesiones","6-8 sesiones","20 sesiones"],ans:2,exp:"Se recomiendan entre 6 y 8 sesiones como promedio, aunque varía según la zona, tipo de piel y tipo de vello."},
+      {q:"¿Qué tipo de vello responde mejor al láser?",opts:["Vello rubio fino","Vello blanco o canoso","Vello oscuro y grueso","Vello rojizo"],ans:2,exp:"El vello oscuro y grueso tiene más melanina, lo que permite mayor absorción de energía láser y mejor resultado."},
+      {q:"¿Cuál es la contraindicación más importante para la depilación láser?",opts:["Piel hidratada","Piel bronceada o con exposición solar reciente","Piel con vello oscuro","Piel con vello fino"],ans:1,exp:"La piel bronceada tiene más melanina superficial que compite con la del folículo, aumentando el riesgo de quemaduras y despigmentación."},
+      {q:"¿Qué longitud de onda usa el láser Alexandrita?",opts:["532 nm","755 nm","1064 nm","810 nm"],ans:1,exp:"El láser Alexandrita opera a 755 nm, ideal para pieles claras con vello oscuro por su alta afinidad con la melanina."},
+      {q:"¿Qué se debe hacer antes de una sesión de depilación láser?",opts:["Depilarse con cera","Exponerse al sol para activar la melanina","Afeitar la zona a tratar","Aplicar crema depilatoria"],ans:2,exp:"Se debe afeitar la zona 24-48 horas antes para que el láser actúe sobre el folículo y no sobre el vello superficial, evitando quemaduras."},
+      {q:"¿El láser elimina el vello de forma permanente?",opts:["Sí, con una sola sesión","Sí, con el ciclo completo de sesiones logra reducción permanente significativa","No, el vello siempre vuelve igual","Solo funciona en hombres"],ans:1,exp:"La depilación láser logra una reducción permanente significativa (no necesariamente 100%), reconocida por la FDA como 'reducción permanente del vello'."},
+      {q:"¿Qué sensación es normal durante la sesión de depilación láser?",opts:["Ninguna sensación","Calor y pinchazos similares a un elástico que golpea la piel","Frío intenso","Entumecimiento total"],ans:1,exp:"La sensación habitual es calor y pequeños pinchazos por el impacto del pulso láser; los equipos modernos incorporan sistemas de enfriamiento para mayor confort."},
+      {q:"¿Con qué frecuencia se realizan las sesiones de depilación láser?",opts:["Cada semana","Cada 15 días siempre","Cada 4-8 semanas según la zona","Cada 6 meses"],ans:2,exp:"El intervalo varía por zona: cara cada 4 semanas, cuerpo cada 6-8 semanas, coincidiendo con el ciclo de crecimiento del vello."},
+      {q:"¿Qué cuidado es esencial después de cada sesión?",opts:["Exponerse al sol para activar los resultados","Aplicar protector solar SPF 50+ y evitar el sol","Usar cera para eliminar los restos de vello","Aplicar agua caliente en la zona"],ans:1,exp:"Protector solar SPF 50+ es obligatorio post-sesión para evitar hiperpigmentación, ya que la piel queda sensible a la radiación UV."}
+    ]
+  },
+  {
+    label:"Intermedio", badge:"badge-i",
+    qs:[
+      {q:"¿Cuál es la diferencia entre el láser diodo 808 nm y el Nd:YAG 1064 nm?",opts:["El diodo es para pieles oscuras y el Nd:YAG para pieles claras","El diodo 808 nm es versátil para pieles intermedias; el Nd:YAG 1064 nm penetra más y es más seguro en pieles oscuras tipo IV-VI","Son idénticos en resultados","El Nd:YAG no funciona en vello oscuro"],ans:1,exp:"El diodo 808 nm es polivalente (pieles I-IV); el Nd:YAG 1064 nm tiene menor absorción por melanina y mayor penetración, haciéndolo más seguro en pieles oscuras."},
+      {q:"¿Qué es la fluencia en depilación láser?",opts:["La velocidad de disparo del láser","La energía entregada por unidad de área (J/cm²)","La frecuencia de la luz","El tamaño del spot"],ans:1,exp:"La fluencia (J/cm²) es la dosis de energía por unidad de área. A mayor fluencia, mayor efecto sobre el folículo, pero también mayor riesgo de efectos secundarios."},
+      {q:"¿Por qué el láser no es efectivo en vello blanco o rubio claro?",opts:["Porque ese vello es más grueso","Porque no contiene melanina suficiente para absorber la energía del láser","Porque crece más rápido","Porque está en fase telógena siempre"],ans:1,exp:"El láser necesita melanina como cromóforo objetivo. El vello blanco, rubio claro o rojizo carece de melanina suficiente para absorber la energía y destruir el folículo."},
+      {q:"¿Qué es el spot size y cómo afecta el tratamiento?",opts:["Es la temperatura del láser","Es el diámetro del haz láser; un spot mayor cubre más área y penetra más profundamente","Es la duración del pulso","Es el número de disparos por sesión"],ans:1,exp:"El spot size es el diámetro del haz. Spots más grandes permiten mayor penetración (scatter lateral) y cobertura más rápida, aunque requieren más potencia."},
+      {q:"¿Cuál es el riesgo principal en pieles fototipos IV-VI con láser de alta fluencia?",opts:["Mayor crecimiento del vello","Hiperpigmentación o hipopigmentación post-inflamatoria","Alergia al gel conductor","Caída del cabello"],ans:1,exp:"En pieles oscuras, la melanina epidérmica compite con la folicular; una fluencia excesiva puede causar quemaduras e hipo/hiperpigmentación."},
+      {q:"¿Qué es la duración del pulso (pulse width) y por qué importa?",opts:["El tiempo total de la sesión","El tiempo que dura cada disparo del láser; debe ser menor al tiempo de relajación térmica del folículo para no dañar tejido circundante","La frecuencia de los disparos","La potencia máxima del equipo"],ans:1,exp:"El pulse width debe ser ≤ al tiempo de relajación térmica del folículo (~10-100 ms). Pulsos más cortos concentran el calor en el objetivo sin transferirlo al tejido adyacente."},
+      {q:"¿Qué zona del cuerpo suele requerir más sesiones y por qué?",opts:["Piernas, porque tienen más vello","Zona hormonal (bikini, axilas, cara en mujeres) porque el vello está más influenciado por hormonas","Espalda, porque la piel es más gruesa","Brazos, porque el vello es más fino"],ans:1,exp:"Las zonas hormonales (bikini, axilas, cara en mujeres) son más resistentes porque el ciclo del vello está influenciado por andrógenos, requiriendo más sesiones y mantenimientos."},
+      {q:"¿Cuál es la diferencia entre depilación láser e IPL?",opts:["Son exactamente lo mismo","El láser emite luz monocromática coherente de una longitud de onda específica; el IPL emite luz pulsada de amplio espectro, siendo menos preciso","El IPL es más potente que el láser","El láser es más barato que el IPL"],ans:1,exp:"El láser es monocromático y coherente (una longitud de onda), más preciso y potente. El IPL emite un espectro amplio filtrado, menos selectivo y generalmente menos eficaz en vello grueso."},
+      {q:"¿Qué cuidado debe tener una paciente que usa retinoides antes de una sesión?",opts:["No hay ningún cuidado especial","Suspender los retinoides 5-7 días antes para evitar hipersensibilidad y riesgo de quemadura","Aplicar más retinoide para potenciar el efecto","Usar retinoide inmediatamente después"],ans:1,exp:"Los retinoides aumentan la fotosensibilidad y adelgazan la epidermis. Se deben suspender 5-7 días antes del tratamiento para evitar reacciones adversas."},
+      {q:"¿Qué es el efecto de 'peppering' en depilación láser?",opts:["Un efecto decorativo en la piel","Punto negro temporal que aparece cuando el vello tratado emerge fragmentado antes de caer","Una quemadura superficial","Un patrón de disparo del equipo"],ans:1,exp:"El 'peppering' es la aparición de puntos oscuros 7-14 días post-sesión cuando los restos del vello destruido emergen a la superficie antes de caer. Es normal y esperado."},
+      {q:"¿Cuándo está contraindicado el láser en mujeres con vello facial?",opts:["Nunca, siempre se puede tratar","Durante el embarazo, con medicación fotosensibilizante activa o con patología hormonal no controlada","Solo en mujeres mayores de 50 años","Solo si la piel es clara"],ans:1,exp:"Embarazo, fotosensibilizantes activos (antibióticos, isotretinoína) y alteraciones hormonales no tratadas (SOP, hirsutismo) son contraindicaciones para el tratamiento."},
+      {q:"¿Cuál es el intervalo recomendado entre sesiones en la zona de la cara?",opts:["Cada 2 semanas","Cada 3-4 semanas","Cada 3 meses","Cada 6 meses"],ans:1,exp:"La cara tiene un ciclo de crecimiento más corto (~28 días), por eso las sesiones se espacian cada 3-4 semanas para coincidir con la fase anágena."}
+    ]
+  },
+  {
+    label:"Avanzado", badge:"badge-a",
+    qs:[
+      {q:"¿Qué es el tiempo de relajación térmica (TRT) y cómo determina los parámetros del láser?",opts:["El tiempo que tarda el equipo en enfriarse","El tiempo que tarda la estructura objetivo en perder la mitad del calor absorbido; el pulso debe ser ≤ al TRT para confinamiento térmico selectivo","La duración total de la sesión","El intervalo entre sesiones"],ans:1,exp:"El TRT es el tiempo en que el cromóforo pierde el 50% del calor. Para el folículo (~10-100 ms), el pulso debe ser ≤ TRT para confinar el daño al folículo sin transferir calor a la epidermis."},
+      {q:"¿Qué mecanismo explica que el láser Nd:YAG 1064 nm sea más seguro en fototipos altos?",opts:["Tiene menos potencia","A 1064 nm la absorción por melanina es mucho menor que a 755 nm o 810 nm, reduciendo el riesgo de daño epidérmico en pieles oscuras","Tiene un spot más pequeño","Genera menos calor en total"],ans:1,exp:"A 1064 nm el coeficiente de absorción de la melanina es significativamente menor, lo que disminuye la competencia entre melanina epidérmica y folicular, siendo más seguro en pieles oscuras."},
+      {q:"¿Qué es la teoría del cromóforo competitivo y cómo afecta el tratamiento?",opts:["Es una teoría obsoleta","La oxihemoglobina y la melanina epidérmica compiten con la melanina folicular por absorber la energía láser, reduciendo la eficacia y aumentando el riesgo en pieles oscuras o bronceadas","Es el mecanismo por el que el láser destruye el colágeno","Solo aplica al IPL"],ans:1,exp:"La melanina epidérmica y la oxihemoglobina son cromóforos que absorben energía a longitudes similares. En pieles oscuras, la epidermis absorbe más energía, compitiendo con el folículo y aumentando el riesgo de daño colateral."},
+      {q:"¿Cómo afecta el ciclo hormonal al resultado de la depilación láser en mujeres?",opts:["No tiene ningún efecto","Los andrógenos estimulan folículos en fase de descanso convirtiéndolos en terminales; en patologías como el SOP el vello regenera más, requiriendo más sesiones y mantenimiento periódico","Los estrógenos potencian el efecto del láser","Solo afecta a mujeres menopáusicas"],ans:1,exp:"Los andrógenos pueden reclutar nuevos folículos vellosos. En SOP o desequilibrios hormonales el vello puede regenerar, haciendo necesario el tratamiento médico hormonal paralelo y sesiones de mantenimiento."},
+      {q:"¿Qué parámetro diferencia al láser de diodo de alta velocidad (SHR) del modo convencional?",opts:["El SHR usa mayor fluencia por disparo","El SHR aplica múltiples pulsos de baja fluencia en movimiento, calentando el folículo gradualmente en lugar de un solo pulso de alta energía","El SHR solo funciona en pieles claras","El SHR es menos efectivo"],ans:1,exp:"El modo SHR (Super Hair Removal) usa fluencias bajas repetidas en movimiento rápido, acumulando calor progresivamente en el folículo. Es más cómodo y seguro en pieles oscuras que el modo convencional de pulso único de alta fluencia."},
+      {q:"¿Cuál es la base histológica del daño permanente al folículo por láser?",opts:["Se destruye la cutícula del vello","Se produce necrosis térmica del bulge (zona madre del folículo) y/o la papila dérmica, eliminando la capacidad regenerativa","Se calcifica la raíz del vello","Se destruye solo la vaina radicular externa"],ans:1,exp:"Para lograr depilación permanente se debe destruir la zona germinativa: el bulge (células madre foliculares) y la papila dérmica. Si solo se daña el vello, el folículo se regenera."},
+      {q:"¿Qué es la hipertricosis paradójica inducida por láser?",opts:["Un error de calibración del equipo","El aumento o estimulación del crecimiento del vello en zonas adyacentes al área tratada, posiblemente por fluencias subóptimas que estimulan en lugar de destruir el folículo","Un efecto buscado en tratamientos capilares","La caída total del vello corporal"],ans:1,exp:"La hipertricosis paradójica es la estimulación del crecimiento de vello en zonas periféricas, especialmente en pieles oscuras o con vello fino, posiblemente por fluencias bajas que activan folículos latentes en lugar de destruirlos."},
+      {q:"¿Cómo se determina la fluencia correcta en el test de parche?",opts:["Se usa siempre la fluencia máxima del equipo","Se aplican disparos de prueba con fluencia creciente, evaluando eritema perifólicular (respuesta adecuada) vs. quemadura epidérmica (exceso) a las 24-48 horas","Se usa la fluencia del fabricante sin ajustar","Se elige la fluencia más baja siempre"],ans:1,exp:"El test de parche evalúa la respuesta: eritema perifólicular y edema leve = respuesta correcta. Ampollas o despigmentación = fluencia excesiva. Se ajusta el parámetro óptimo antes del tratamiento completo."},
+      {q:"¿Qué papel cumple el sistema de enfriamiento (contact cooling, cryo, aire frío) en la depilación láser?",opts:["Solo mejora el confort del paciente","Protege la epidermis del daño térmico durante el pulso, permitiendo usar fluencias más altas con mayor seguridad","Aumenta la absorción del láser en el folículo","No tiene efecto real en la seguridad"],ans:1,exp:"El enfriamiento epidérmico (pre, durante o post pulso) actúa como protector de la epidermis, permitiendo usar fluencias más altas que destruyen mejor el folículo sin dañar la superficie."},
+      {q:"¿Cuál es la diferencia clínica entre hipopigmentación e hiperpigmentación post-láser?",opts:["Son exactamente lo mismo","La hiperpigmentación es aumento de melanina post-inflamatorio (más frecuente en pieles oscuras, generalmente reversible); la hipopigmentación es destrucción de melanocitos (más permanente y difícil de tratar)","La hipopigmentación es más común que la hiperpigmentación","Ambas desaparecen solas en 1 semana"],ans:1,exp:"La hiperpigmentación post-inflamatoria (PIH) es por sobreproducción de melanina reactiva; suele ser reversible con despigmentantes y sol. La hipopigmentación implica destrucción de melanocitos, es más permanente y de difícil tratamiento."},
+      {q:"¿Qué deben conocer los operadores sobre la ley de protección ocular en el uso de láser?",opts:["No es necesaria ninguna protección","Tanto el operador como el paciente deben usar gafas certificadas con la longitud de onda específica del láser utilizado; la exposición ocular directa puede causar daño retinal irreversible","Solo el operador necesita protección","Solo se necesita protección con potencias mayores de 100W"],ans:1,exp:"La protección ocular certificada (OD apropiado para la longitud de onda) es OBLIGATORIA para operador y paciente. La exposición ocular directa o indirecta al láser puede causar daño retinal permanente e irreversible."},
+      {q:"¿Qué consideración especial se debe tener al tratar la zona perianal o genital?",opts:["No hay ninguna consideración especial","Requiere consentimiento informado específico, mayor cuidado en parámetros por la sensibilidad de la mucosa, evitar tratar sobre mucosa directamente y verificar ausencia de lesiones activas (HPV, herpes)","Solo se puede tratar en mujeres","El láser no funciona en esa zona"],ans:1,exp:"La zona genital requiere consentimiento informado detallado, parámetros conservadores, exclusión de mucosa directa y verificación de infecciones activas (VPH, herpes) que contraindican el tratamiento."}
+    ]
+  }
+];
+
+let currentLevel=0, answered=[];
+
+function setLevel(idx){
+  currentLevel=idx;
+  answered=new Array(levels[idx].qs.length).fill(null);
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.getElementById('resultPanel').className='result-panel';
+  const lv=levels[idx];
+  const b=document.getElementById('lvBadge');
+  b.textContent=lv.label; b.className='level-badge '+lv.badge;
+  render();
+}
+
+function render(){
+  const lv=levels[currentLevel];
+  document.getElementById('questionsArea').innerHTML=lv.qs.map((q,qi)=>{
+    const ans=answered[qi];
+    return `<div class="qcard">
+      <div class="q-num">Pregunta ${qi+1} de ${lv.qs.length}</div>
+      <div class="q-text"><span style="color:#aaa;font-weight:600;margin-right:6px;">${qi+1}.</span>${q.q}</div>
+      <div class="opts">
+        ${q.opts.map((o,oi)=>{
+          let cls='opt';
+          if(ans!==null){cls+=' disabled';if(oi===q.ans)cls+=' correct';else if(oi===ans)cls+=' wrong';}
+          return `<div class="${cls}" onclick="answer(${qi},${oi})"><span class="opt-letter">${String.fromCharCode(65+oi)}.</span><span>${o}</span></div>`;
+        }).join('')}
+      </div>
+      <div class="explanation ${ans!==null?'show':''}">${q.exp}</div>
+    </div>`;
+  }).join('');
+  updateProgress();
+}
+
+function answer(qi,oi){
+  if(answered[qi]!==null)return;
+  answered[qi]=oi;
+  updateProgress();
+  const lv=levels[currentLevel];
+  const card=document.querySelectorAll('.qcard')[qi];
+  card.querySelectorAll('.opt').forEach((o,i)=>{
+    o.classList.add('disabled');
+    if(i===lv.qs[qi].ans)o.classList.add('correct');
+    else if(i===oi&&oi!==lv.qs[qi].ans)o.classList.add('wrong');
+  });
+  card.querySelector('.explanation').classList.add('show');
+  if(answered.every(a=>a!==null))showResult();
+}
+
+function updateProgress(){
+  const done=answered.filter(a=>a!==null).length;
+  document.getElementById('progBar').style.width=(done/levels[currentLevel].qs.length*100)+'%';
+}
+
+function showResult(){
+  const lv=levels[currentLevel];
+  const correct=answered.filter((a,i)=>a===lv.qs[i].ans).length;
+  const total=lv.qs.length;
+  const pct=Math.round(correct/total*100);
+  const aprobado=pct>=80;
+  const panel=document.getElementById('resultPanel');
+  panel.className='result-panel show '+(aprobado?'aprobado':'reprobado');
+  document.getElementById('resIcon').textContent=aprobado?'✅':'❌';
+  document.getElementById('resTitle').textContent=aprobado?'¡APROBADO!':'REPROBADO';
+  document.getElementById('resPct').textContent=pct+'%';
+  document.getElementById('resSub').textContent=aprobado
+    ?`Excelente. Obtuviste ${correct} de ${total} respuestas correctas.`
+    :`No alcanzaste el mínimo del 80%. Obtuviste ${correct} de ${total} correctas. Necesitás al menos 10/12.`;
+  document.getElementById('resDetail').textContent=aprobado
+    ?'Podés continuar con el siguiente nivel.'
+    :'Repasá las preguntas incorrectas y volvé a intentarlo.';
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function resetLevel(){setLevel(currentLevel);}
+function nextLevel(){if(currentLevel<2)setLevel(currentLevel+1);}
+
+setLevel(0);
+</script>
+</body>
+</html>
