@@ -18,7 +18,7 @@ var _ctrNextId = _contratos.length ? Math.max(..._contratos.map(c=>c.id)) + 1 : 
 var _ctrDocumentos = { frente: null, dorso: null };
 
 function resetContratoForm() {
-  ['ctrNombre','ctrCI','ctrDomicilio','ctrCiudad','ctrSerial','ctrFechaFin','ctrDuracion','ctrMonto','ctrGarantia','ctrObs'].forEach(function(id){
+  ['ctrNombre','ctrCI','ctrDomicilio','ctrCiudad','ctrFechaFin','ctrDuracion','ctrMonto','ctrGarantia','ctrObs'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -63,7 +63,6 @@ function openContratoModal(opId) {
     var opt = document.createElement('option');
     opt.value = m.id;
     opt.text = m.codigo + ' \u2014 ' + m.nombre + ' [' + m.categoria + ']';
-    opt.dataset.serial = m.serial || '';
     mSel.add(opt);
   });
   
@@ -80,7 +79,6 @@ function openContratoModal(opId) {
   // Maquina change handler
   mSel.onchange = function() {
     var opt = mSel.options[mSel.selectedIndex];
-    document.getElementById('ctrSerial').value = opt.dataset.serial || '';
   };
   
   // Date change handlers
@@ -158,7 +156,6 @@ function renderContratoPreview() {
   var equipo = maq ? (maq.nombre || maqText) : maqText;
   var referencia = maq ? [maq.codigo, maq.categoria].filter(Boolean).join(' / ') : '________________';
   var nombreFantasia = maq ? (maq.nombre || '________________') : '________________';
-  var serial = document.getElementById('ctrSerial').value || 'S/N';
   var fechaInicio = document.getElementById('ctrFechaInicio').value || '____/____/____';
   var fechaFin = document.getElementById('ctrFechaFin').value || '____/____/____';
   var monto = document.getElementById('ctrMonto').value || '0';
@@ -181,7 +178,7 @@ function renderContratoPreview() {
   h += '<div class="clausula">En la ciudad de <strong>'+esc(ciudad)+'</strong>, Rep\u00fablica Oriental del Uruguay, comparecen por una parte <strong>DEPI M\u00d3VIL URUGUAY</strong>, empresa dedicada al alquiler, soporte, capacitaci\u00f3n y provisi\u00f3n de aparatolog\u00eda est\u00e9tica profesional, con domicilio comercial en calle <strong>Uruguay 1533, ciudad de Salto, Rep\u00fablica Oriental del Uruguay</strong>, en adelante <strong>LA ARRENDADORA</strong>, y por otra parte <strong>'+esc(nombre)+'</strong>, C.I./RUT <strong>'+esc(ci)+'</strong>, con domicilio en <strong>'+esc(domicilio)+'</strong>, ciudad <strong>'+esc(ciudad)+'</strong>, tel\u00e9fono <strong>'+esc(telefono)+'</strong>, correo <strong>'+esc(correo)+'</strong>, en adelante <strong>LA ARRENDATARIA</strong>, quienes acuerdan lo siguiente:</div>';
   
   h += '<div class="clausula"><div class="clausula-title">PRIMERA. OBJETO.</div>';
-  h += 'LA ARRENDADORA da en alquiler a LA ARRENDATARIA el equipo: <strong>'+esc(equipo)+'</strong>, modelo/referencia <strong>'+esc(referencia)+'</strong>, N.\u00ba de serie <strong>'+esc(serial)+'</strong>, nombre fantas\u00eda <strong>'+esc(nombreFantasia)+'</strong>, con los accesorios que se detallan en el anexo de entrega. El equipo se destina exclusivamente a uso profesional est\u00e9tico.</div>';
+  h += 'LA ARRENDADORA da en alquiler a LA ARRENDATARIA el equipo: <strong>'+esc(equipo)+'</strong>, modelo/referencia <strong>'+esc(referencia)+'</strong>, nombre fantas\u00eda <strong>'+esc(nombreFantasia)+'</strong>, con los accesorios que se detallan en el anexo de entrega. El equipo se destina exclusivamente a uso profesional est\u00e9tico.</div>';
   
   h += '<div class="clausula"><div class="clausula-title">SEGUNDA. PLAZO.</div>';
   h += 'El alquiler regir\u00e1 desde el <strong>'+fmtD(fechaInicio)+'</strong> hasta el <strong>'+fmtD(fechaFin)+'</strong>. Toda pr\u00f3rroga deber\u00e1 acordarse expresamente entre las partes.</div>';
@@ -258,7 +255,7 @@ async function saveContrato() {
     ciudad: document.getElementById('ctrCiudad').value,
     maquinaId: parseInt(document.getElementById('ctrMaquina').value) || null,
     maquina: document.getElementById('ctrMaquina').selectedIndex > 0 ? document.getElementById('ctrMaquina').options[document.getElementById('ctrMaquina').selectedIndex].text : '',
-    serial: document.getElementById('ctrSerial').value,
+    serial: '',
     fechaInicio: document.getElementById('ctrFechaInicio').value,
     fechaFin: document.getElementById('ctrFechaFin').value,
     monto: parseFloat(document.getElementById('ctrMonto').value) || 0,

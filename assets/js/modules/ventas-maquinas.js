@@ -4,6 +4,7 @@
 let ventasMaqFilter={search:'',estado:''};
 let ventasMaqPrecioFilter={equipo:'',localidad:''};
 let ventasMaqPreciosLoading=false;
+let preciosMaqFilter={equipo:'',formato:'',localidad:'',modalidad:''};
 
 function ensureVentasMaquinasData(){
   if(!DB.get('ventas_maquinas')) DB.set('ventas_maquinas',[]);
@@ -139,6 +140,125 @@ async function cargarVentasMaqPreciosRemotos(){
     ventasMaqPreciosLoading=false;
   }
 }
+function initMenuPreciosMaquinas(){
+  if(typeof viewTitles==='object')viewTitles['precios-maquinas']='Precios de Máquinas';
+  if(typeof navGroupByView==='object')navGroupByView['precios-maquinas']='finanzas';
+  if(typeof VIEW_PERMISSIONS==='object'){
+    ['superadmin','administrador','operaciones'].forEach(role=>{
+      if(Array.isArray(VIEW_PERMISSIONS[role])&&!VIEW_PERMISSIONS[role].includes('precios-maquinas')){
+        VIEW_PERMISSIONS[role].push('precios-maquinas');
+      }
+    });
+  }
+  const finanzas=document.querySelector('[data-nav-group="finanzas"]');
+  if(finanzas&&!document.querySelector('[data-view="precios-maquinas"]')){
+    const btn=document.createElement('button');
+    btn.className='nav-item';
+    btn.dataset.view='precios-maquinas';
+    btn.innerHTML='<span class="icon">💲</span> Precios';
+    btn.onclick=()=>{navigate('precios-maquinas');renderPreciosMaquinas();};
+    const ventas=finanzas.querySelector('[data-view="ventas-maquinas"]');
+    ventas?.insertAdjacentElement('afterend',btn) || finanzas.appendChild(btn);
+  }
+  if(!document.getElementById('view-precios-maquinas')){
+    const main=document.querySelector('.main-content')||document.querySelector('.content')||document.getElementById('app');
+    const after=document.getElementById('view-ventas-maquinas');
+    const view=document.createElement('div');
+    view.className='view';
+    view.id='view-precios-maquinas';
+    view.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2 style="font-size:18px;font-weight:700;color:var(--text)">💲 Precios de alquiler</h2>
+          <p style="font-size:13px;color:var(--text2);margin-top:4px">Variables por equipo, formato, zona y modalidad.</p>
+        </div>
+        <button class="btn-secondary" onclick="cargarVentasMaqPreciosRemotos()">Actualizar precios</button>
+      </div>
+      <div id="preciosMaqResumen" class="fin-summary"></div>
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Matriz de precios por zona</h3>
+          <div class="table-actions">
+            <select class="filter-select" id="preciosMaqEquipo" onchange="filterPreciosMaquinas('equipo',this.value)"><option value="">Equipo</option></select>
+            <select class="filter-select" id="preciosMaqFormato" onchange="filterPreciosMaquinas('formato',this.value)"><option value="">Formato</option></select>
+            <select class="filter-select" id="preciosMaqZona" onchange="filterPreciosMaquinas('localidad',this.value)"><option value="">Zona</option></select>
+            <select class="filter-select" id="preciosMaqModalidad" onchange="filterPreciosMaquinas('modalidad',this.value)"><option value="">Modalidad</option></select>
+          </div>
+        </div>
+        <div id="preciosMaqTable"></div>
+      </div>`;
+    if(after)after.insertAdjacentElement('afterend',view);
+    else main?.appendChild(view);
+  }
+}
+function setPrecioSelectOptions(id, values, label, current){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=`<option value="">${label}</option>`+values.map(v=>`<option value="${escapeAttr(v)}">${escapeHTML(v||'General')}</option>`).join('');
+  el.value=current||'';
+}
+function renderPreciosMaquinas(){
+  initMenuPreciosMaquinas();
+  const tarifas=(DB.get('maquina_tarifas')||[]).filter(t=>Number(t.precio)>0);
+  const resumen=document.getElementById('preciosMaqResumen');
+  const wrap=document.getElementById('preciosMaqTable');
+  if(!wrap)return;
+  if(!tarifas.length){
+    wrap.innerHTML='<div class="empty-state" style="padding:24px"><h3>Cargando precios</h3><p>La matriz se obtiene desde administración.</p></div>';
+    cargarVentasMaqPreciosRemotos();
+    return;
+  }
+  const equipos=[...new Set(tarifas.map(t=>t.equipo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const formatos=[...new Set(tarifas.map(t=>t.formato||'').filter(v=>v!==''))].sort((a,b)=>a.localeCompare(b,'es'));
+  const zonas=[...new Set(tarifas.map(t=>t.localidad).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const modalidades=[...new Set(tarifas.map(t=>t.modalidad).filter(Boolean))].sort((a,b)=>precioMaqOrdenModalidad(a)-precioMaqOrdenModalidad(b));
+  setPrecioSelectOptions('preciosMaqEquipo',equipos,'Equipo',preciosMaqFilter.equipo);
+  setPrecioSelectOptions('preciosMaqFormato',formatos,'Formato',preciosMaqFilter.formato);
+  setPrecioSelectOptions('preciosMaqZona',zonas,'Zona',preciosMaqFilter.localidad);
+  setPrecioSelectOptions('preciosMaqModalidad',modalidades.map(precioMaqModalidadLabel),'Modalidad','');
+  const selectedModalidad=preciosMaqFilter.modalidad;
+  const modalEl=document.getElementById('preciosMaqModalidad');
+  if(modalEl){
+    modalEl.innerHTML='<option value="">Modalidad</option>'+modalidades.map(m=>`<option value="${escapeAttr(m)}">${escapeHTML(precioMaqModalidadLabel(m))}</option>`).join('');
+    modalEl.value=selectedModalidad;
+  }
+  const rows=tarifas.filter(t=>
+    (!preciosMaqFilter.equipo||t.equipo===preciosMaqFilter.equipo)&&
+    (!preciosMaqFilter.formato||(t.formato||'')===preciosMaqFilter.formato)&&
+    (!preciosMaqFilter.localidad||t.localidad===preciosMaqFilter.localidad)&&
+    (!preciosMaqFilter.modalidad||t.modalidad===preciosMaqFilter.modalidad)
+  ).sort((a,b)=>
+    (a.equipo||'').localeCompare(b.equipo||'','es')||
+    (a.formato||'').localeCompare(b.formato||'','es')||
+    (a.localidad||'').localeCompare(b.localidad||'','es')||
+    precioMaqOrdenModalidad(a.modalidad)-precioMaqOrdenModalidad(b.modalidad)
+  );
+  if(resumen){
+    resumen.innerHTML=`
+      <div class="fin-cell"><div class="fc-label">Tarifas activas</div><div class="fc-value">${tarifas.length}</div></div>
+      <div class="fin-cell"><div class="fc-label">Equipos</div><div class="fc-value">${equipos.length}</div></div>
+      <div class="fin-cell"><div class="fc-label">Zonas</div><div class="fc-value">${zonas.length}</div></div>
+      <div class="fin-cell"><div class="fc-label">Filtradas</div><div class="fc-value">${rows.length}</div></div>`;
+  }
+  wrap.innerHTML=`
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Equipo</th><th>Formato</th><th>Zona</th><th>Variable</th><th style="text-align:right">Precio</th><th>Condición</th></tr></thead>
+        <tbody>${rows.map(t=>`
+          <tr>
+            <td><strong>${escapeHTML(t.equipo)}</strong></td>
+            <td>${escapeHTML(t.formato||'General')}</td>
+            <td>${escapeHTML(t.localidad||'—')}</td>
+            <td>${t.inicioSuave?'<span class="badge badge-green">Inicio suave</span>':escapeHTML(precioMaqModalidadLabel(t.modalidad))}</td>
+            <td style="text-align:right"><strong>${precioMaqFmt(t.precio)}</strong> ${escapeHTML(t.moneda||'UYU')}</td>
+            <td>${escapeHTML(t.condicion||'—')}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+function filterPreciosMaquinas(k,v){
+  preciosMaqFilter[k]=v;
+  renderPreciosMaquinas();
+}
 function renderVentasMaquinasTabla(ventas){
   const q=ventasMaqFilter.search.toLowerCase();
   const rows=ventas.filter(v=>{
@@ -207,3 +327,4 @@ function updateVentasMaquinasBadge(){
   const count=(DB.get('ventas_maquinas')||[]).filter(v=>['pendiente','parcial'].includes(v.estado)).length;const badge=document.getElementById('navBadgeVentasMaq');
   if(badge){badge.textContent=count;badge.style.display=count>0?'inline':'none';}
 }
+setTimeout(()=>initMenuPreciosMaquinas(),0);

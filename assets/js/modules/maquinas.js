@@ -261,7 +261,7 @@ function showMaqFicha(id){
         <h4>🔧 Datos Técnicos</h4>
         ${ir('Código',`<span style="font-family:monospace;color:var(--accent)">${escapeHTML(m.codigo)}</span>`)}
         ${ir('Nombre',escapeHTML(m.nombre))}${ir('Categoría',escapeHTML(m.categoria))}${ir('Marca',escapeHTML(m.marca||'—'))}
-        ${ir('Modelo/Tipo',escapeHTML(m.modelo||'—'))}${ir('N° Serie',escapeHTML(m.serie||'—'))}${ir('Uso operativo',`${escapeHTML(maqTipoOperativoLabel(m.tipoOperativo))}${m.tipoOperativo==='base_ciudad'&&m.ciudadBase?' · Base '+escapeHTML(m.ciudadBase):''}`)}${ir('Ícono URL',m.iconoUrl?escapeHTML(m.iconoUrl):'—')}${ir('Estado',badgeMaq(m.estado))}
+        ${ir('Modelo/Tipo',escapeHTML(m.modelo||'—'))}${ir('Uso operativo',`${escapeHTML(maqTipoOperativoLabel(m.tipoOperativo))}${m.tipoOperativo==='base_ciudad'&&m.ciudadBase?' · Base '+escapeHTML(m.ciudadBase):''}`)}${ir('Ícono URL',m.iconoUrl?escapeHTML(m.iconoUrl):'—')}${ir('Estado',badgeMaq(m.estado))}
       </div>
       <div class="info-card">
         <h4>📍 Ubicación y Mantenimiento</h4>
@@ -613,7 +613,7 @@ function openMaqModal(id){
   if(id){
     const m=(DB.get('maquinas')||[]).find(x=>x.id===id);if(!m)return;
     sv('maqId',m.id);sv('maqCodigo',m.codigo);sv('maqNombre',m.nombre);sv('maqCategoria',m.categoria);
-    sv('maqMarca',m.marca);sv('maqModelo',m.modelo);sv('maqSerie',m.serie);
+    sv('maqMarca',m.marca);sv('maqModelo',m.modelo);
     sv('maqDeptBase',m.deptBase);sv('maqUbicacion',m.ubicacion);sv('maqEstado',m.estado);
     sv('maqTipoOperativo',m.tipoOperativo||'viajera');sv('maqCiudadBase',m.ciudadBase||'');
     sv('maqUltMant',m.ultMant);sv('maqProxMant',m.proxMant==='—'?'':m.proxMant);sv('maqObs',m.obs);
@@ -622,7 +622,7 @@ function openMaqModal(id){
     sv('maqFotoUrl',m.fotoUrl||'');
     setMaquinaFotoPreview(m.fotoUrl||'');
   } else {
-    ['maqId','maqNombre','maqMarca','maqModelo','maqSerie','maqUbicacion','maqObs','maqCiudadBase'].forEach(f=>sv(f,''));
+    ['maqId','maqNombre','maqMarca','maqModelo','maqUbicacion','maqObs','maqCiudadBase'].forEach(f=>sv(f,''));
     sv('maqFotoUrl','');setMaquinaFotoPreview('');
     setNextMaquinaCodigo();sv('maqDeptBase','Uruguay');
     sv('maqCategoria','Láser Depilación');sv('maqEstado','disponible');sv('maqUltMant',today());sv('maqProxMant','');
@@ -723,7 +723,7 @@ async function saveMaquina(){
   const payload={
     codigo:gv('maqCodigo').trim(),nombre:gv('maqNombre').trim(),categoria,
     ubicacion:gv('maqUbicacion').trim(),estado:gv('maqEstado'),
-    serial_num:gv('maqSerie').trim(),marca:gv('maqMarca').trim(),modelo:gv('maqModelo').trim(),
+    marca:gv('maqMarca').trim(),modelo:gv('maqModelo').trim(),
     dept_base:gv('maqDeptBase').trim()||'Uruguay',
     ult_mant:gv('maqUltMant')||null,prox_mant:gv('maqProxMant')||null,
     icono_url:gv('maqIconoUrl').trim()||null,es_viajera:tipoOperativo==='viajera',
