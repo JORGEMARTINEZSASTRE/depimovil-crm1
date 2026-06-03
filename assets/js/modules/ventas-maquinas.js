@@ -6,6 +6,7 @@ let ventasMaqPrecioFilter={equipo:'',localidad:''};
 let ventasMaqPreciosLoading=false;
 let preciosMaqFilter={equipo:'',formato:'',localidad:'',modalidad:''};
 let preciosMaqNuevo=false;
+let preciosMaqEditId=null;
 
 function ensureVentasMaquinasData(){
   if(!DB.get('ventas_maquinas')) DB.set('ventas_maquinas',[]);
@@ -71,6 +72,7 @@ async function guardarPrecioMaquina(id){
       preciosMaqNuevo=false;
     }else{
       DB.set('maquina_tarifas',tarifas.map(t=>parseInt(t.id)===parseInt(id)?saved:t));
+      preciosMaqEditId=null;
     }
     showToast('✅ Precio guardado');
     renderPreciosMaquinas();
@@ -93,15 +95,38 @@ function precioMaqEditableRow(t,id){
     <td>${precioMaqInput(id,'formato',t.formato||'')}</td>
     <td>${precioMaqInput(id,'localidad',t.localidad)}</td>
     <td>${precioMaqSelect(id,'modalidad',t.modalidad||'jornada',modalidades)}</td>
-    <td style="text-align:right">${precioMaqInput(id,'precio',precioMaqFmt(t.precio||0),'text')}</td>
-    <td>${precioMaqInput(id,'moneda',t.moneda||'UYU')}</td>
+    <td style="text-align:right">
+      <div style="display:grid;grid-template-columns:minmax(90px,1fr) 70px;gap:6px;align-items:center">
+        ${precioMaqInput(id,'precio',precioMaqFmt(t.precio||0),'text')}
+        ${precioMaqInput(id,'moneda',t.moneda||'UYU')}
+      </div>
+    </td>
     <td>${precioMaqInput(id,'jornadas',t.jornadas||1,'number','min="1"')}</td>
     <td>${precioMaqInput(id,'disparosIncluidos',t.disparosIncluidos||'','text')}</td>
     <td>${precioMaqInput(id,'excedentePrecio',t.excedentePrecio||'','text')}</td>
     <td>${precioMaqInput(id,'condicion',t.condicion||'')}</td>
     <td style="white-space:nowrap">
       <button class="action-btn" onclick="guardarPrecioMaquina('${id}')">Guardar</button>
-      ${id==='nuevo'?`<button class="action-btn" onclick="preciosMaqNuevo=false;renderPreciosMaquinas()">Cancelar</button>`:`<button class="action-btn" onclick="eliminarPrecioMaquina(${id})">Desactivar</button>`}
+      ${id==='nuevo'?`<button class="action-btn" onclick="preciosMaqNuevo=false;renderPreciosMaquinas()">Cancelar</button>`:`<button class="action-btn" onclick="preciosMaqEditId=null;renderPreciosMaquinas()">Cancelar</button>`}
+    </td>
+  </tr>`;
+}
+function precioMaqDisplayRow(t){
+  const disparos=t.disparosIncluidos?precioMaqFmt(t.disparosIncluidos):'—';
+  const excedente=t.excedentePrecio?`${precioMaqFmt(t.excedentePrecio)} ${escapeHTML(t.moneda||'UYU')}`:'—';
+  return `<tr>
+    <td><strong>${escapeHTML(t.equipo)}</strong></td>
+    <td>${escapeHTML(t.formato||'General')}</td>
+    <td>${escapeHTML(t.localidad||'—')}</td>
+    <td>${t.inicioSuave?'<span class="badge badge-green">Inicio suave</span>':escapeHTML(precioMaqModalidadLabel(t.modalidad))}</td>
+    <td style="text-align:right"><strong>${precioMaqFmt(t.precio)}</strong> ${escapeHTML(t.moneda||'UYU')}</td>
+    <td>${escapeHTML(String(t.jornadas||1))}</td>
+    <td>${escapeHTML(disparos)}</td>
+    <td>${excedente}</td>
+    <td>${escapeHTML(t.condicion||'—')}</td>
+    <td style="white-space:nowrap">
+      <button class="action-btn" onclick="preciosMaqEditId=${parseInt(t.id,10)};renderPreciosMaquinas()">Editar</button>
+      <button class="action-btn" onclick="eliminarPrecioMaquina(${parseInt(t.id,10)})">Desactivar</button>
     </td>
   </tr>`;
 }
@@ -251,7 +276,7 @@ function initMenuPreciosMaquinas(){
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn-secondary" onclick="cargarVentasMaqPreciosRemotos()">Actualizar precios</button>
-          <button class="btn-add" onclick="preciosMaqNuevo=true;renderPreciosMaquinas()">+ Precio</button>
+          <button class="btn-add" onclick="preciosMaqNuevo=true;preciosMaqEditId=null;renderPreciosMaquinas()">+ Precio</button>
         </div>
       </div>
       <div id="preciosMaqResumen" class="fin-summary"></div>
@@ -322,10 +347,10 @@ function renderPreciosMaquinas(){
   wrap.innerHTML=`
     <div style="overflow-x:auto">
       <table>
-        <thead><tr><th>Equipo</th><th>Formato</th><th>Zona</th><th>Variable</th><th style="text-align:right">Precio</th><th>Moneda</th><th>Jornadas</th><th>Disparos</th><th>Excedente</th><th>Condición</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Equipo</th><th>Formato</th><th>Zona</th><th>Variable</th><th style="text-align:right">Precio</th><th>Jornadas</th><th>Disparos</th><th>Excedente</th><th>Condición</th><th>Acciones</th></tr></thead>
         <tbody>
           ${preciosMaqNuevo?precioMaqEditableRow({equipo:preciosMaqFilter.equipo||'',formato:preciosMaqFilter.formato||'',localidad:preciosMaqFilter.localidad||'',modalidad:preciosMaqFilter.modalidad||'jornada',precio:'',moneda:'UYU',jornadas:1},'nuevo'):''}
-          ${rows.map(t=>precioMaqEditableRow(t,t.id)).join('')}
+          ${rows.map(t=>parseInt(t.id)===parseInt(preciosMaqEditId)?precioMaqEditableRow(t,t.id):precioMaqDisplayRow(t)).join('')}
         </tbody>
       </table>
     </div>`;
