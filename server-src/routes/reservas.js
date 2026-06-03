@@ -66,6 +66,95 @@ function addDays(dateValue, days) {
   return d.toISOString().split('T')[0];
 }
 
+function normalizeText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function formatDateOnlyEs(value) {
+  if (value instanceof Date && hasMeaningfulTime(value)) {
+    return new Intl.DateTimeFormat('es-UY', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'America/Montevideo',
+    }).format(value);
+  }
+  const iso = dateOnly(value);
+  if (!iso || iso === '—') return '—';
+  const [year, month, day] = iso.split('-').map(n => parseInt(n, 10));
+  if (!year || !month || !day) return String(value);
+  return new Intl.DateTimeFormat('es-UY', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Montevideo',
+  }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+}
+
+function hasMeaningfulTime(value) {
+  if (!value) return false;
+  if (value instanceof Date) {
+    return value.getUTCHours() !== 0 || value.getUTCMinutes() !== 0 || value.getUTCSeconds() !== 0;
+  }
+  const str = String(value);
+  const match = str.match(/T(\d{2}):(\d{2})/);
+  return !!(match && !(match[1] === '00' && match[2] === '00'));
+}
+
+function formatTimeMontevideo(value) {
+  if (!value || !hasMeaningfulTime(value)) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('es-UY', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'America/Montevideo',
+  }).format(d);
+}
+
+function formatReservaFecha(row) {
+  const inicio = row.tipo === 'jornada'
+    ? (row.fecha_jornada || row.fecha_inicio)
+    : (row.fecha_inicio || row.fecha_jornada);
+  const fin = row.tipo === 'jornada' ? null : row.fecha_fin;
+  const fechaInicio = formatDateOnlyEs(inicio);
+  const fechaFin = fin && dateOnly(fin) !== dateOnly(inicio) ? formatDateOnlyEs(fin) : '';
+  const hora = formatTimeMontevideo(inicio);
+  const rango = fechaFin ? `${fechaInicio} al ${fechaFin}` : fechaInicio;
+  return hora ? `${rango}, hora ${hora} de Montevideo` : rango;
+}
+
+function inferMachineFormat(row) {
+  const raw = normalizeText([
+    row.maq_nombre, row.maq_marca, row.maq_modelo, row.maq_categoria, row.maq_obs,
+  ].filter(Boolean).join(' '));
+  if (/(de pie|vertical|torre|floor|standing)/.test(raw)) return 'de pie';
+  if (/(escritorio|desktop|mesa|portatil|portátil)/.test(raw)) return 'de escritorio';
+  return '';
+}
+
+function technicalMachineName(row) {
+  const raw = normalizeText([
+    row.maq_nombre, row.maq_marca, row.maq_modelo, row.maq_categoria,
+  ].filter(Boolean).join(' '));
+  if (/(soprano|titanium|ice|laser|láser|depil|depi)/.test(raw)) {
+    return ['Soprano Titanium Ice', inferMachineFormat(row)].filter(Boolean).join(' ');
+  }
+  return [row.maq_marca, row.maq_modelo, row.maq_categoria].filter(Boolean).join(' ').trim() || row.maq_categoria || 'Equipo profesional';
+}
+
+function formatMachineForOperator(row) {
+  const tecnico = technicalMachineName(row);
+  const fantasia = String(row.maq_nombre || '').trim();
+  if (!fantasia || normalizeText(fantasia) === normalizeText(tecnico)) return tecnico;
+  return `${tecnico} "${fantasia}"`;
+}
+
 const ESTADOS_RESERVA_BLOQUEANTES = ['solicitud_recibida', 'pendiente_aprobacion', 'aprobada', 'confirmada'];
 const ESTADOS_MAQUINA_NO_ALQUILABLE = ['mantenimiento', 'fuera_servicio', 'en_viaje'];
 
@@ -339,7 +428,7 @@ const WA_PLANTILLAS = {
   aprobada: (op, r) =>
     `¡Hola ${op.nombre}! ✅ Tu reserva fue aprobada.\n📌 Equipo: ${r.maquina||'—'}\n📅 Fecha: ${r.fecha}\n🔖 Código: ${r.codigo}`,
   confirmada: (op, r) =>
-    `¡Hola ${op.nombre}! 🔒 Tu reserva está confirmada.\n📌 Equipo: ${r.maquina||'—'}\n📅 Fecha: ${r.fecha}\n🔖 Código: ${r.codigo}`,
+    `Hola ${op.nombre}, tu reserva en DepiMóvil quedó confirmada.\n\nEquipo reservado: *${r.maquina||'—'}*\nFecha de la reserva: *${r.fecha}*\nCódigo de reserva: *${r.codigo}*\n\nNuestro equipo coordinará los detalles operativos necesarios. Gracias por trabajar con DepiMóvil.`,
   rechazada: (op, r) =>
     `¡Hola ${op.nombre}! ❌ Tu reserva no pudo ser procesada.\n📌 Equipo: ${r.maquina||'—'}\n🔖 Código: ${r.codigo}\n\nContactanos para más información.`,
   cancelada: (op, r) =>
@@ -354,7 +443,8 @@ async function notificarWA(reservaId, nuevoEstado, client) {
     }
     const { rows } = await pool.query(`
       SELECT r.*, o.nombre AS op_nombre, o.apellido AS op_apellido, o.whatsapp AS op_wa,
-             m.nombre AS maq_nombre
+             m.nombre AS maq_nombre, m.codigo AS maq_codigo, m.categoria AS maq_categoria,
+             m.marca AS maq_marca, m.modelo AS maq_modelo, m.obs AS maq_obs
       FROM reservas r
       LEFT JOIN operadoras o ON o.id = r.operadora_id
       LEFT JOIN maquinas m ON m.id = r.maquina_id
@@ -370,12 +460,9 @@ async function notificarWA(reservaId, nuevoEstado, client) {
       return;
     }
     const op = { nombre: row.op_nombre || '' };
-    const toDateStr = (v) => v ? String(v).split('T')[0] : '—';
-    const fecha = row.tipo === 'jornada'
-      ? toDateStr(row.fecha_jornada)
-      : toDateStr(row.fecha_inicio);
+    const fecha = formatReservaFecha(row);
     const texto = WA_PLANTILLAS[nuevoEstado](op, {
-      maquina: row.maq_nombre,
+      maquina: formatMachineForOperator(row),
       fecha,
       codigo: row.codigo,
     });
