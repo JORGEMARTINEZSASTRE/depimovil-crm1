@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test HIFU — DepiMóvil</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh}
+header{background:#fff;border-bottom:1px solid #e0ddd5;padding:1rem 2rem;display:flex;align-items:center;gap:12px}
+header h1{font-size:18px;font-weight:600;color:#1a1a1a}
+header span{font-size:13px;color:#888;margin-left:auto}
+.wrap{max-width:760px;margin:2rem auto;padding:0 1rem}
+.level-tabs{display:flex;gap:8px;margin-bottom:1.5rem}
+.tab{padding:9px 22px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:14px;cursor:pointer;transition:all .15s;color:#555}
+.tab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.level-info{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.level-badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px}
+.badge-b{background:#e8f5e9;color:#2e7d32}
+.badge-i{background:#fff8e1;color:#f57f17}
+.badge-a{background:#fce4ec;color:#c62828}
+.aprobado-req{font-size:12px;color:#888}
+.prog-wrap{background:#e8e6e0;border-radius:999px;height:6px;margin-bottom:1.5rem}
+.prog-bar{height:6px;border-radius:999px;background:#1a1a1a;transition:width .3s}
+.qcard{background:#fff;border:1px solid #e0ddd5;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.q-num{font-size:11px;color:#aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.q-text{font-size:15px;line-height:1.55;margin-bottom:14px;font-weight:500}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid #e0ddd5;cursor:pointer;font-size:14px;transition:all .12s;background:#fff}
+.opt:hover:not(.disabled){background:#f5f4f0;border-color:#bbb}
+.opt.correct{background:#e8f5e9;border-color:#66bb6a;color:#1b5e20}
+.opt.wrong{background:#ffebee;border-color:#ef9a9a;color:#b71c1c}
+.opt.disabled{cursor:default}
+.opt-letter{font-weight:600;min-width:20px;color:#888}
+.opt.correct .opt-letter,.opt.wrong .opt-letter{color:inherit}
+.explanation{font-size:13px;margin-top:10px;padding:10px 14px;border-radius:8px;background:#f5f4f0;color:#555;line-height:1.55;display:none}
+.explanation.show{display:block}
+.result-panel{border-radius:16px;padding:2rem;margin-top:2rem;text-align:center;display:none}
+.result-panel.show{display:block}
+.result-panel.aprobado{background:#e8f5e9;border:1.5px solid #66bb6a}
+.result-panel.reprobado{background:#ffebee;border:1.5px solid #ef9a9a}
+.result-icon{font-size:48px;margin-bottom:12px}
+.result-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.result-panel.aprobado .result-title{color:#1b5e20}
+.result-panel.reprobado .result-title{color:#b71c1c}
+.result-pct{font-size:48px;font-weight:700;margin:10px 0}
+.result-panel.aprobado .result-pct{color:#2e7d32}
+.result-panel.reprobado .result-pct{color:#c62828}
+.result-sub{font-size:14px;color:#666;margin-bottom:1.5rem}
+.result-detail{font-size:13px;color:#888;margin-bottom:1.5rem}
+.btn{padding:10px 28px;border-radius:8px;border:1px solid #1a1a1a;background:#1a1a1a;color:#fff;font-size:14px;cursor:pointer;transition:all .15s}
+.btn:hover{background:#333}
+.btn-outline{background:#fff;color:#1a1a1a;margin-left:8px}
+.btn-outline:hover{background:#f5f4f0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Test HIFU</h1>
+  <span>Aprobación: mínimo 80% de aciertos</span>
+</header>
+
+<div class="wrap">
+  <div class="level-tabs">
+    <button class="tab active" onclick="setLevel(0)">Básico</button>
+    <button class="tab" onclick="setLevel(1)">Intermedio</button>
+    <button class="tab" onclick="setLevel(2)">Avanzado</button>
+  </div>
+
+  <div class="level-info">
+    <span class="level-badge" id="lvBadge"></span>
+    <span class="aprobado-req">Mínimo para aprobar: 80% (10/12 correctas)</span>
+  </div>
+
+  <div class="prog-wrap"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+
+  <div id="questionsArea"></div>
+
+  <div class="result-panel" id="resultPanel">
+    <div class="result-icon" id="resIcon"></div>
+    <div class="result-title" id="resTitle"></div>
+    <div class="result-pct" id="resPct"></div>
+    <div class="result-sub" id="resSub"></div>
+    <div class="result-detail" id="resDetail"></div>
+    <button class="btn" onclick="resetLevel()">Reintentar</button>
+    <button class="btn btn-outline" onclick="nextLevel()">Siguiente nivel</button>
+  </div>
+</div>
+
+<script>
+const levels = [
+  {
+    label:"Básico", badge:"badge-b",
+    qs:[
+      {q:"¿Qué significa la sigla HIFU?",opts:["High Intensity Focused Ultrasound","High Impact Frequency Unit","Heat Infrared Fusion Unit","Hybrid Intense Focal Ultrasound"],ans:0,exp:"HIFU = High Intensity Focused Ultrasound (ultrasonido focalizado de alta intensidad)."},
+      {q:"¿Qué tipo de energía utiliza el HIFU?",opts:["Luz láser","Ondas de ultrasonido","Radiofrecuencia","Corriente eléctrica"],ans:1,exp:"HIFU emplea ondas de ultrasonido focalizadas en un punto específico del tejido."},
+      {q:"¿En qué capa actúa principalmente el HIFU facial?",opts:["Epidermis","Dermis superficial","SMAS y dermis profunda","Tejido subcutáneo graso"],ans:2,exp:"El HIFU facial trabaja en el SMAS y la dermis profunda, similar a un lifting quirúrgico."},
+      {q:"¿Para qué se usa el HIFU en estética corporal?",opts:["Hidratación profunda","Reducción de grasa localizada y reafirmación","Exfoliación química","Bronceado artificial"],ans:1,exp:"El HIFU corporal destruye adipocitos mediante calor focal y estimula colágeno."},
+      {q:"¿Cuántas sesiones se recomiendan para el HIFU facial?",opts:["1 sesión cada 6-12 meses","1 sesión por semana durante 1 mes","3 sesiones diarias","10 sesiones seguidas"],ans:0,exp:"Una sesión cada 6-12 meses es suficiente por la duración del proceso de colagenogénesis."},
+      {q:"¿Qué temperatura alcanza el tejido durante el HIFU?",opts:["20-30 °C","37-40 °C","60-70 °C","100 °C"],ans:2,exp:"HIFU genera 60-70 °C en el punto focal, suficiente para desnaturalizar proteínas sin dañar la superficie."},
+      {q:"¿El HIFU es un procedimiento invasivo?",opts:["Sí, requiere incisiones","No, es completamente no invasivo","Sí, requiere anestesia general","Sí, usa agujas"],ans:1,exp:"HIFU actúa desde el exterior sin cortes ni agujas, siendo completamente no invasivo."},
+      {q:"¿Cuál es el efecto principal a nivel celular?",opts:["Aumenta el riego sanguíneo superficial","Produce coagulación térmica y necrosis puntual del tejido","Congela los adipocitos","Oxigena las células"],ans:1,exp:"El calor focal genera microcoagulación que destruye tejido graso y estimula síntesis de colágeno nuevo."},
+      {q:"¿Cuándo se notan los resultados del HIFU facial?",opts:["Mismo día","A los 2-3 días","Entre 1 y 3 meses","Al año de la sesión"],ans:2,exp:"La neocolagenogénesis tarda entre 1 y 3 meses; el máximo resultado se ve a los 3-6 meses."},
+      {q:"¿Qué contraindicación absoluta tiene el HIFU?",opts:["Piel seca","Marcapasos o implantes metálicos en la zona","Manchas solares","Poros dilatados"],ans:1,exp:"Los implantes metálicos y marcapasos son contraindicación absoluta."},
+      {q:"¿Qué cartucho se usa para tratar el SMAS?",opts:["1.5 mm","3 mm","4.5 mm","7 mm"],ans:2,exp:"El cartucho de 4.5 mm alcanza el SMAS donde se ubican los músculos faciales superficiales."},
+      {q:"¿Cuál es la sensación más frecuente durante la sesión?",opts:["No se siente nada","Calor y pinchazos internos","Frío intenso","Corriente eléctrica"],ans:1,exp:"Los pacientes describen calor profundo y pinchazos internos en el punto de disparo, generalmente tolerables."}
+    ]
+  },
+  {
+    label:"Intermedio", badge:"badge-i",
+    qs:[
+      {q:"¿Qué principio físico explica la destrucción selectiva de tejido?",opts:["Cavitación acústica y efecto térmico focal","Efecto fotoeléctrico","Ionización de plasma","Resonancia magnética"],ans:0,exp:"HIFU combina efecto térmico y cavitación acústica para destruir tejido sin afectar áreas adyacentes."},
+      {q:"¿Cuál es la diferencia entre HIFU 3D y 4D?",opts:["El 4D emite múltiples líneas en diferentes profundidades en una sola pasada","El 3D usa láser","El 4D es más frío","No hay diferencia real"],ans:0,exp:"El HIFU 4D emite líneas en varias profundidades simultáneamente, aumentando cobertura y reduciendo tiempo."},
+      {q:"¿En qué capa actúa el cartucho de 1.5 mm?",opts:["SMAS","Hipodermis","Dermis superficial / unión dermoepidérmica","Músculo orbicular"],ans:2,exp:"El cartucho de 1.5 mm trabaja en dermis superficial, ideal para piel fina o contorno de ojos."},
+      {q:"¿Qué ocurre con los adipocitos destruidos por HIFU corporal?",opts:["Son eliminados por el sistema linfático y hepático","Quedan calcificados","Se convierten en fibroblastos","Son absorbidos por el músculo"],ans:0,exp:"Los adipocitos muertos son fagocitados y sus lípidos eliminados por el sistema linfático y metabolizados por el hígado."},
+      {q:"¿Cuántas líneas tiene un cartucho estándar de HIFU?",opts:["100","300","500-1000","50"],ans:2,exp:"Un cartucho estándar contiene entre 500 y 1000 líneas de disparo según fabricante."},
+      {q:"¿Por qué el HIFU no daña la epidermis?",opts:["La epidermis no conduce ultrasonido","El punto focal se forma solo a la profundidad programada","Usa gel protector especial","Emite frío simultáneamente"],ans:1,exp:"Las ondas convergen solo en el punto focal; los tejidos superficiales que atraviesa no acumulan calor suficiente."},
+      {q:"¿Para qué se usa el cartucho de 8 mm?",opts:["Dermis","SMAS facial","Tejido adiposo profundo corporal","Periostio óseo"],ans:2,exp:"El cartucho de 8 mm se usa en cuerpo para alcanzar el tejido adiposo subcutáneo profundo."},
+      {q:"¿Qué complicación surge si se aplica HIFU sobre relleno de AH reciente?",opts:["Mayor efecto lifting","Degradación o irregularidades del relleno","Aumento de volumen","Alergia al gel"],ans:1,exp:"El calor puede degradar o desplazar el ácido hialurónico. Se recomienda esperar 2-4 semanas."},
+      {q:"¿Qué parámetro define la energía por punto de disparo?",opts:["Voltaje (V)","Joules (J) por punto","Hertz (Hz)","Nanómetros"],ans:1,exp:"La energía por punto se mide en joules; potencia y duración del pulso determinan el depósito de energía."},
+      {q:"¿Cuánto tiempo esperar para exposición solar post-HIFU?",opts:["Inmediatamente","48-72 horas con SPF 50+","2 semanas sin protector","El sol no afecta"],ans:1,exp:"Se recomienda evitar exposición solar directa 48-72 h y usar SPF 50+ para proteger la piel sensibilizada."},
+      {q:"¿Qué frecuencia usan los cartuchos faciales de HIFU?",opts:["1 MHz","4-7 MHz","20 MHz","0.5 MHz"],ans:1,exp:"Los cartuchos faciales operan entre 4-7 MHz; mayor frecuencia = menor penetración pero mayor precisión."},
+      {q:"¿En qué tipo de piel está contraindicado el HIFU?",opts:["Piel madura mayor de 40 años","Heridas activas, infecciones o acné inflamatorio severo","Hiperpigmentación","Piel con vello facial"],ans:1,exp:"Heridas abiertas e infecciones activas son contraindicaciones relativas o absolutas según extensión."}
+    ]
+  },
+  {
+    label:"Avanzado", badge:"badge-a",
+    qs:[
+      {q:"¿Cuál es el mecanismo molecular por el que el HIFU estimula síntesis de colágeno?",opts:["Activa melanocitos","El calor desnaturaliza colágeno existente, desencadenando síntesis de colágeno tipo I y III","Aumenta ATP mitocondrial directamente","Inhibe metaloproteinasas permanentemente"],ans:1,exp:"La microcoagulación desnaturaliza colágeno existente; esto activa fibroblastos que sintetizan nuevo colágeno tipo I y III."},
+      {q:"¿Qué diferencia al HIFU del ultrasonido diagnóstico en intensidad?",opts:["El diagnóstico usa 0.1-1 W/cm², el HIFU 100-10.000 W/cm²","Son idénticos","HIFU usa menos potencia","El diagnóstico usa mayor potencia"],ans:0,exp:"El ultrasonido diagnóstico usa 0.1-1 W/cm²; el HIFU concentra 100-10.000 W/cm² en el punto focal."},
+      {q:"¿Qué es el umbral de cavitación en HIFU?",opts:["Temperatura mínima para fundir grasa","Presión acústica mínima para formar y colapsar microburbuchas","Número mínimo de disparos","Profundidad máxima alcanzable"],ans:1,exp:"El umbral de cavitación es la presión negativa que induce microburbuchas; su colapso libera energía mecánica adicional."},
+      {q:"¿Por qué el HIFU corporal requiere parámetros distintos al facial?",opts:["Menos terminaciones nerviosas","La grasa corporal es más profunda y requiere cartuchos de mayor profundidad y energía","No tiene SMAS","La piel no reacciona al calor"],ans:1,exp:"La grasa corporal está a 13-25 mm; se necesitan cartuchos de 8-13 mm y mayor energía (0.6-1.2 J) vs facial (0.2-0.4 J)."},
+      {q:"¿Cómo se llama la absorción selectiva de ultrasonido en tejido graso?",opts:["Reflectancia acústica preferencial","Impedancia acústica diferencial","Efecto piezoeléctrico reverso","Resonancia lipídica"],ans:1,exp:"La impedancia acústica diferencial hace que el tejido adiposo absorba más energía ultrasónica que músculo o dermis."},
+      {q:"¿Qué es el parámetro ISPTA en HIFU?",opts:["Índice de seguridad para tejidos ácidos","Intensidad espacial pico temporal promedio en el punto focal","Intensidad superficial por tiempo","Índice de saturación proteica"],ans:1,exp:"ISPTA (Spatial Peak Temporal Average Intensity) mide la intensidad máxima en el punto focal promediada temporalmente."},
+      {q:"¿Cuál es la complicación más grave por mala técnica de HIFU facial?",opts:["Eritema transitorio","Lesión del nervio facial o parálisis temporal","Deshidratación severa","Caída de cabello"],ans:1,exp:"La parálisis del nervio facial es la complicación más seria; ocurre al disparar sobre ramas del nervio facial."},
+      {q:"¿Qué protocolo es correcto para la zona periorbital?",opts:["Cartucho 4.5 mm, máxima energía","Cartucho 1.5 mm con energía reducida y protección ocular","Cartucho 8 mm, alta energía","Está absolutamente prohibido"],ans:1,exp:"La zona periorbital requiere cartucho 1.5 mm, energía baja, operadora entrenada y protección ocular."},
+      {q:"¿Cómo afecta la frecuencia del transductor a la profundidad de penetración?",opts:["Mayor frecuencia = mayor profundidad","Menor frecuencia = mayor profundidad","La frecuencia no afecta","Mayor frecuencia = menor calor"],ans:1,exp:"Relación inversa: menor frecuencia = mayor penetración (cuerpo); mayor frecuencia = menor penetración (cara)."},
+      {q:"¿Qué marcadores histológicos confirman la respuesta al HIFU?",opts:["Aumento de melanina","Zonas TUAZ, infiltrado inflamatorio y aumento de colágeno tipo I","Disminución de fibroblastos","No deja huella histológica"],ans:1,exp:"Las TUAZ (Thermal Ablation Zones) son zonas de coagulación microscópica con respuesta inflamatoria y síntesis de colágeno nuevo."},
+      {q:"¿Qué ventaja tienen los cartuchos de disparo lineal (VMAX)?",opts:["Menor calor","Emiten línea continua en un movimiento, reduciendo tiempo y mejorando uniformidad","Mayor profundidad","Eliminan necesidad de gel"],ans:1,exp:"Los cartuchos lineales generan una línea de puntos en un solo deslizamiento, reduciendo tiempo y mejorando homogeneidad."},
+      {q:"¿Cuál es la base científica para combinar HIFU con radiofrecuencia?",opts:["No tiene base científica","HIFU actúa en profundidad (SMAS/grasa) y RF en dermis superficial — capas complementarias","La RF enfría el HIFU","La RF amplifica ultrasonido"],ans:1,exp:"La sinergia HIFU+RF actúa en capas distintas: HIFU en profundidad y RF en dermis media, logrando estimulación completa de toda la columna tisular."}
+    ]
+  }
+];
+
+let currentLevel=0, answered=[];
+
+function setLevel(idx){
+  currentLevel=idx;
+  answered=new Array(levels[idx].qs.length).fill(null);
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.getElementById('resultPanel').className='result-panel';
+  const lv=levels[idx];
+  const b=document.getElementById('lvBadge');
+  b.textContent=lv.label; b.className='level-badge '+lv.badge;
+  render();
+}
+
+function render(){
+  const lv=levels[currentLevel];
+  document.getElementById('questionsArea').innerHTML=lv.qs.map((q,qi)=>{
+    const ans=answered[qi];
+    return `<div class="qcard">
+      <div class="q-num">Pregunta ${qi+1} de ${lv.qs.length}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="opts">
+        ${q.opts.map((o,oi)=>{
+          let cls='opt';
+          if(ans!==null){cls+=' disabled';if(oi===q.ans)cls+=' correct';else if(oi===ans)cls+=' wrong';}
+          return `<div class="${cls}" onclick="answer(${qi},${oi})"><span class="opt-letter">${String.fromCharCode(65+oi)}.</span><span>${o}</span></div>`;
+        }).join('')}
+      </div>
+      <div class="explanation ${ans!==null?'show':''}">${q.exp}</div>
+    </div>`;
+  }).join('');
+  updateProgress();
+}
+
+function answer(qi,oi){
+  if(answered[qi]!==null)return;
+  answered[qi]=oi;
+  updateProgress();
+  const lv=levels[currentLevel];
+  const cards=document.querySelectorAll('.qcard');
+  const card=cards[qi];
+  card.querySelectorAll('.opt').forEach((o,i)=>{
+    o.classList.add('disabled');
+    if(i===lv.qs[qi].ans)o.classList.add('correct');
+    else if(i===oi&&oi!==lv.qs[qi].ans)o.classList.add('wrong');
+  });
+  card.querySelector('.explanation').classList.add('show');
+  if(answered.every(a=>a!==null))showResult();
+}
+
+function updateProgress(){
+  const done=answered.filter(a=>a!==null).length;
+  document.getElementById('progBar').style.width=(done/levels[currentLevel].qs.length*100)+'%';
+}
+
+function showResult(){
+  const lv=levels[currentLevel];
+  const correct=answered.filter((a,i)=>a===lv.qs[i].ans).length;
+  const total=lv.qs.length;
+  const pct=Math.round(correct/total*100);
+  const aprobado=pct>=80;
+  const panel=document.getElementById('resultPanel');
+  panel.className='result-panel show '+(aprobado?'aprobado':'reprobado');
+  document.getElementById('resIcon').textContent=aprobado?'✅':'❌';
+  document.getElementById('resTitle').textContent=aprobado?'¡APROBADO!':'REPROBADO';
+  document.getElementById('resPct').textContent=pct+'%';
+  document.getElementById('resSub').textContent=aprobado
+    ?`Excelente. Obtuviste ${correct} de ${total} respuestas correctas.`
+    :`No alcanzaste el mínimo del 80%. Obtuviste ${correct} de ${total} correctas. Necesitás al menos 10/12.`;
+  document.getElementById('resDetail').textContent=aprobado
+    ?'Podés continuar con el siguiente nivel.'
+    :'Repasá las preguntas incorrectas y volvé a intentarlo.';
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function resetLevel(){setLevel(currentLevel);}
+function nextLevel(){if(currentLevel<2)setLevel(currentLevel+1);}
+
+setLevel(0);
+</script>
+</body>
+</html>
