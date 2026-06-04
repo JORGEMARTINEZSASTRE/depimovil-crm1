@@ -637,7 +637,49 @@ const EVAL_MASAJES_AVANZADO = {
     {q:'¿Qué distingue a un operador certificado en masajes y drenaje linfático para el contexto de la estética avanzada?',o:['Solo haber tomado un curso básico de masajes','El dominio de múltiples técnicas (DLM, masaje sueco, reductivo, miofascial, Kobido), capacidad de diseñar protocolos personalizados según el objetivo (post-quirúrgico, anticelulítico, drenante, rejuvenecedor), identificación de contraindicaciones y límites de competencia, documentación rigurosa y criterio para integrar el masaje en protocolos combinados con aparatología','Solo conocer el drenaje linfático básico','La certificación no tiene valor en el contexto de la estética'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_APARATOLOGIA_BASICO, EVAL_APARATOLOGIA_INTERMEDIO, EVAL_APARATOLOGIA_AVANZADO, EVAL_MASAJES_BASICO, EVAL_MASAJES_INTERMEDIO, EVAL_MASAJES_AVANZADO, EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_BRONCEADO_BASICO, EVAL_BRONCEADO_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_CAVITACION_BASICO = {
+  id:'cavitacion-basico',
+  titulo:'Test Básico — Cavitación Ultrasónica',
+  categoria:'Radiofrecuencia / HIFU',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué es la cavitación ultrasónica?',o:['Un tratamiento con láser para eliminar grasa','Una técnica no invasiva que usa ondas de ultrasonido de baja frecuencia para generar microburbuchas en el tejido adiposo que al colapsar destruyen los adipocitos','Un masaje profundo con vibración mecánica','Un tratamiento de radiofrecuencia monopolar'],c:1},
+    {q:'¿A qué frecuencia operan generalmente los equipos de cavitación ultrasónica estética?',o:['1-3 MHz (alta frecuencia)','40 kHz a 1 MHz (baja frecuencia), siendo 40 kHz la más usada para reducción de grasa localizada','10 MHz','500 Hz (baja frecuencia audible)'],c:1},
+    {q:'¿Qué ocurre con los adipocitos destruidos durante la cavitación?',o:['Se eliminan inmediatamente por los poros de la piel','Los lípidos liberados son transportados por el sistema linfático y metabolizados por el hígado','Se convierten en músculo','Quedan calcificados en el tejido'],c:1},
+    {q:'¿Es invasiva la cavitación ultrasónica?',o:['Sí, requiere pequeñas incisiones','Sí, usa agujas para introducir el ultrasonido','No, es completamente no invasiva','Sí, requiere anestesia local'],c:2},
+    {q:'¿Para qué está indicada principalmente la cavitación ultrasónica?',o:['Depilación definitiva','Reducción de grasa localizada y celulitis en zonas corporales específicas','Rejuvenecimiento facial','Eliminación de manchas pigmentadas'],c:1},
+    {q:'¿Qué se debe aplicar en la piel antes de usar el cabezal de cavitación?',o:['Nada, el cabezal funciona en seco','Gel conductor para facilitar la transmisión del ultrasonido y evitar fricción','Aceite mineral espeso','Crema anestésica'],c:1},
+    {q:'¿Cuál es una contraindicación absoluta de la cavitación ultrasónica?',o:['Tener celulitis leve','Embarazo, marcapasos, implantes metálicos en la zona o enfermedades hepáticas graves','Piel hidratada','Haber comido 2 horas antes'],c:1},
+    {q:'¿Cuántas sesiones se recomiendan generalmente en un protocolo de cavitación?',o:['1 sola sesión','Entre 6 y 10 sesiones espaciadas cada 7-15 días','50 sesiones diarias','Solo 2 sesiones en total'],c:1},
+    {q:'¿Qué recomendación post-sesión es esencial después de la cavitación?',o:['Ayuno de 24 horas','Beber abundante agua (mínimo 1.5-2 litros) para facilitar la eliminación de los lípidos por el sistema linfático y renal','Exposición solar directa','Evitar tomar agua las primeras 6 horas'],c:1},
+    {q:'¿En qué zona NO debe aplicarse la cavitación ultrasónica?',o:['Abdomen','Muslos y caderas','Zona cervical, cabeza, corazón, columna vertebral y sobre órganos vitales','Brazos'],c:2},
+    {q:'¿Con qué tratamiento se combina frecuentemente la cavitación para potenciar resultados?',o:['Depilación láser en la misma sesión','Radiofrecuencia o drenaje linfático post-sesión para eliminar los lípidos liberados y reafirmar la piel','HydraFacial facial','Bronceado orgánico'],c:1},
+    {q:'¿Cuándo se empiezan a notar los resultados de la cavitación?',o:['Inmediatamente durante la sesión con reducción visible','A partir de la 3ª-4ª sesión con mejora progresiva, siendo más visible al completar el ciclo','Solo después de 20 sesiones','Al año de finalizar el tratamiento'],c:1},
+  ],
+};
+const EVAL_CAVITACION_AVANZADO = {
+  id:'cavitacion-avanzado',
+  titulo:'Test Avanzado — Cavitación Ultrasónica',
+  categoria:'Radiofrecuencia / HIFU',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es el mecanismo físico de la cavitación acústica y cómo destruye los adipocitos?',o:['El ultrasonido calienta directamente la grasa hasta fundirla','Las ondas de ultrasonido de baja frecuencia generan ciclos alternos de presión positiva y negativa en el líquido intersticial; en la fase negativa se forman microburbuchas de vapor que colapsan violentamente (cavitación inercial) generando ondas de choque mecánicas que rompen las membranas de los adipocitos adyacentes','El ultrasonido congela selectivamente los adipocitos','Las ondas electromagnéticas disuelven la grasa'],c:1},
+    {q:'¿Por qué la cavitación actúa selectivamente sobre el tejido adiposo y no daña otros tejidos?',o:['No es selectiva, daña todos los tejidos por igual','El tejido adiposo tiene mayor contenido de lípidos y menor elasticidad que el tejido muscular o la dermis; su menor cohesión celular lo hace más susceptible a la cavitación; además la baja frecuencia usada (40 kHz) favorece la formación de microburbuchas en tejidos blandos lipídicos con menor riesgo en tejidos más densos y elásticos','La selectividad es solo marketing, no tiene base científica','Solo daña los tejidos superficiales'],c:1},
+    {q:'¿Qué rol cumple el hígado en el proceso de eliminación post-cavitación y por qué es una contraindicación la hepatopatía grave?',o:['El hígado no participa en la eliminación post-cavitación','Los triglicéridos y ácidos grasos liberados por los adipocitos destruidos son transportados por el sistema linfático al torrente circulatorio y metabolizados por el hígado; en hepatopatías graves la capacidad de metabolizar esta carga lipídica está comprometida, pudiendo generar daño hepático adicional','Los lípidos se eliminan solo por la orina sin participación hepática','El hígado solo actúa si se hacen más de 5 sesiones'],c:1},
+    {q:'¿Cómo se diseña un protocolo combinado de cavitación y radiofrecuencia para remodelado corporal?',o:['Se aplican en el mismo pase simultáneamente con el mismo cabezal','Se aplica primero la cavitación para destruir adipocitos y luego la radiofrecuencia en la misma sesión para reafirmar la piel y estimular colágeno en la zona tratada; el calor de la RF también potencia la circulación y el drenaje de los lípidos liberados','Se usan en sesiones separadas sin relación entre sí','La RF se aplica antes de la cavitación siempre'],c:1},
+    {q:'¿Qué diferencia a la cavitación de la criolipólisis en términos de mecanismo y perfil de paciente?',o:['Son exactamente iguales en mecanismo','La cavitación destruye adipocitos por implosión mecánica de microburbuchas (efecto inmediato sobre el tejido); la criolipólisis los destruye por apoptosis inducida por frío (efecto más lento, 2-3 meses); la cavitación es más versátil en zonas y más rápida en resultados; la criolipólisis es más precisa para bolsas de grasa bien delimitadas','La criolipólisis usa ultrasonido y la cavitación usa frío','Son incompatibles en el mismo ciclo de tratamiento'],c:1},
+    {q:'¿Por qué se recomienda espaciar las sesiones de cavitación cada 7-15 días y no hacerlas diariamente?',o:['Por razones económicas únicamente','El hígado necesita tiempo para metabolizar la carga lipídica generada en cada sesión; además el tejido necesita recuperarse del estrés mecánico; sesiones muy seguidas pueden sobrecargar el sistema de eliminación y reducir la eficacia','El equipo necesita recargarse entre sesiones','La piel necesita ese tiempo para regenerarse'],c:1},
+    {q:'¿Cómo afecta el índice de masa corporal (IMC) a los resultados de la cavitación?',o:['No afecta en absoluto','La cavitación está indicada para grasa localizada en personas con IMC cercano al normal o con sobrepeso leve; en obesidad importante los resultados son limitados y el tratamiento puede ser insuficiente; el operador debe establecer expectativas realistas y no presentar la cavitación como alternativa a la pérdida de peso general','La cavitación funciona mejor en personas con obesidad severa','El IMC alto potencia los resultados de la cavitación'],c:1},
+    {q:'¿Qué parámetros deben ajustarse en la cavitación según la zona a tratar?',o:['Los parámetros son siempre iguales para todas las zonas','La frecuencia (zonas más superficiales como cara requieren mayor frecuencia; zonas corporales profundas usan 40 kHz), la intensidad según la profundidad del tejido adiposo, el tiempo de aplicación por zona y la velocidad de movimiento del cabezal para distribuir uniformemente la energía','Solo varía el tiempo de sesión','Solo se ajusta si el cliente siente dolor'],c:1},
+    {q:'¿Qué complicación puede surgir por aplicar cavitación con el cabezal estático (sin movimiento) en el mismo punto?',o:['No hay ningún riesgo si el gel es suficiente','La concentración excesiva de energía en un punto puede generar quemaduras internas, daño tisular no deseado más allá del adiposo y dolor intenso; el cabezal debe mantenerse siempre en movimiento lento y continuo durante la aplicación','Solo puede producir eritema leve superficial','Solo ocurre con equipos de alta potencia'],c:1},
+    {q:'¿Cómo se integra la cavitación en un protocolo combinado con HIFU corporal?',o:['No se pueden combinar en el mismo ciclo','Se pueden combinar en el mismo protocolo: la cavitación actúa en el tejido adiposo superficial-medio y el HIFU corporal en el tejido adiposo profundo (8-13 mm); aplicados en sesiones separadas o en el mismo protocolo (generalmente cavitación primero, HIFU después) amplifican la reducción de grasa en distintas capas','Se aplican siempre el mismo día en el mismo pase','El HIFU anula el efecto de la cavitación'],c:1},
+    {q:'¿Cómo evalúa el operador avanzado la eficacia del protocolo de cavitación en el seguimiento del cliente?',o:['Solo preguntando cómo se siente el cliente','Mediante mediciones objetivas con cinta métrica en puntos anatómicos fijos antes de cada sesión, fotografía estandarizada, registro de parámetros usados y comparación con la medición inicial; la reducción de centímetros es el indicador principal de eficacia','Solo al finalizar el ciclo completo','La eficacia no puede evaluarse objetivamente'],c:1},
+    {q:'¿Qué consideración especial debe tenerse al combinar cavitación con un plan alimentario del cliente?',o:['La alimentación no tiene ninguna relación con los resultados','Para maximizar la eliminación de los lípidos liberados se recomienda una dieta moderada en grasas saturadas y alcohol los días de sesión y siguientes; el hígado debe poder metabolizar la carga lipídica sin sobrecarga; el exceso calórico puede reponer los adipocitos destruidos y reducir los resultados a largo plazo','Se debe hacer ayuno total el día de la sesión','Se recomienda una dieta alta en grasas para potenciar el efecto'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_APARATOLOGIA_BASICO, EVAL_APARATOLOGIA_INTERMEDIO, EVAL_APARATOLOGIA_AVANZADO, EVAL_MASAJES_BASICO, EVAL_MASAJES_INTERMEDIO, EVAL_MASAJES_AVANZADO, EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_CAVITACION_BASICO, EVAL_CAVITACION_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_BRONCEADO_BASICO, EVAL_BRONCEADO_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -864,7 +906,8 @@ async function saveEvaluacionTecnica(){
   const esBronceado = evaluacion.id.startsWith('bronceado-');
   const esAparatologia = evaluacion.id.startsWith('aparatologia-');
   const esMasajes = evaluacion.id.startsWith('masajes-');
-  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial && !esSoprano && !esBronceado && !esAparatologia && !esMasajes) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado','soprano-avanzado','bronceado-avanzado','aparatologia-avanzado','masajes-avanzado'].includes(evaluacion.id);
+  const esCavitacion = evaluacion.id.startsWith('cavitacion-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial && !esSoprano && !esBronceado && !esAparatologia && !esMasajes && !esCavitacion) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado','soprano-avanzado','bronceado-avanzado','aparatologia-avanzado','masajes-avanzado','cavitacion-avanzado'].includes(evaluacion.id);
 
   if(aprobada && esHabilitante){
     try{
@@ -889,11 +932,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano || esBronceado || esAparatologia || esMasajes)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano || esBronceado || esAparatologia || esMasajes || esCavitacion)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : esBronceado ? 'Bronceado Orgánico' : esAparatologia ? 'Aparatología Estética' : esMasajes ? 'Masajes y Drenaje Linfático' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : esBronceado ? 'Bronceado Orgánico' : esAparatologia ? 'Aparatología Estética' : esMasajes ? 'Masajes y Drenaje Linfático' : esCavitacion ? 'Cavitación Ultrasónica' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -1163,7 +1206,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-') && !e.id.startsWith('soprano-') && !e.id.startsWith('bronceado-') && !e.id.startsWith('aparatologia-') && !e.id.startsWith('masajes-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-') && !e.id.startsWith('soprano-') && !e.id.startsWith('bronceado-') && !e.id.startsWith('aparatologia-') && !e.id.startsWith('masajes-') && !e.id.startsWith('cavitacion-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -1192,9 +1235,11 @@ function renderEvaluacionesRows(allResultados){
   const bronceado     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bronceado-'));
   const aparatologia  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('aparatologia-'));
   const masajes       = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('masajes-'));
+  const cavitacion    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('cavitacion-'));
   return rowsOtros
     + renderCertificacionGroup(allResultados, aparatologia, '#37474f', '🏅', 'Certificación en Aparatología Estética')
     + renderCertificacionGroup(allResultados, masajes,      '#6a1b9a', '💆', 'Certificación Masajes y Drenaje Linfático')
+    + renderCertificacionGroup(allResultados, cavitacion,   '#0288d1', '🌊', 'Certificación Cavitación Ultrasónica')
     + renderCertificacionGroup(allResultados, laser,        '#1976d2', '⚡', 'Certificación Depilación Láser')
     + renderCertificacionGroup(allResultados, ndyag,        '#0097a7', '🔵', 'Certificación Nd:YAG')
     + renderCertificacionGroup(allResultados, soprano,      '#c62828', '🔴', 'Certificación Soprano Titanium ICE')
