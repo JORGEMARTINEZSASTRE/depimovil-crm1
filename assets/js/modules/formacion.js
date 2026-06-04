@@ -511,7 +511,70 @@ const EVAL_BRONCEADO_AVANZADO = {
     {q:'¿Cómo se evalúa y certifica la competencia técnica de una operadora en bronceado orgánico según estándares de calidad?',o:['Solo con un examen teórico sin práctica','La evaluación debe incluir conocimiento teórico del mecanismo de la DHA, protocolos de preparación y aplicación, manejo de contraindicaciones, técnica práctica supervisada con resultado uniforme y natural, y capacidad de asesoramiento al cliente; la certificación acredita que la operadora puede ofrecer el servicio con calidad y seguridad','Solo se requiere haber aplicado una vez','No existe certificación para bronceado orgánico'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_BRONCEADO_BASICO, EVAL_BRONCEADO_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_APARATOLOGIA_BASICO = {
+  id:'aparatologia-basico',
+  titulo:'Test Nivel 1 — Introducción a la Aparatología Estética',
+  categoria:'General',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué se entiende por aparatología estética?',o:['El uso de maquillaje y cosméticos profesionales','El conjunto de equipos y tecnologías que aplican energías físicas (láser, ultrasonido, radiofrecuencia, etc.) para mejorar la apariencia y el bienestar sin cirugía','Solo los equipos de depilación láser','Cualquier herramienta de masaje manual'],c:1},
+    {q:'¿Cuál es el primer paso antes de realizar cualquier tratamiento con aparatología?',o:['Encender el equipo y comenzar directamente','Realizar una anamnesis completa: antecedentes médicos, medicación, contraindicaciones y consentimiento informado del cliente','Elegir el programa del equipo según el área','Aplicar el gel conductor sin más preparación'],c:1},
+    {q:'¿Qué es el consentimiento informado y por qué es obligatorio?',o:['Un formulario opcional que firman solo clientes mayores de 60 años','Un documento donde el cliente declara conocer el tratamiento, sus beneficios, riesgos y contraindicaciones; es obligatorio por protección legal y ética del operador y el cliente','Solo se requiere para tratamientos de láser','Un comprobante de pago del servicio'],c:1},
+    {q:'¿Cuál es una contraindicación general que aplica a casi todos los equipos de aparatología?',o:['Tener piel hidratada','Embarazo, marcapasos o implantes electrónicos activos en la zona a tratar','Ser mayor de 18 años','Haber tomado agua antes de la sesión'],c:1},
+    {q:'¿Qué norma básica de higiene debe cumplirse en el uso de equipos de aparatología?',o:['No es necesario limpiar los accesorios entre clientes si no hay suciedad visible','Limpiar y desinfectar todos los accesorios y cabezales de contacto entre cada cliente según el protocolo del fabricante','Solo limpiar al final del día','Solo desinfectar si el cliente lo solicita'],c:1},
+    {q:'¿Qué se debe hacer si un cliente presenta una contraindicación durante la anamnesis?',o:['Realizar el tratamiento de todas formas si el cliente lo pide','Reducir la potencia a la mitad y continuar','No realizar el tratamiento y explicar al cliente el motivo; derivar si corresponde','Ignorarlo si la contraindicación parece leve'],c:1},
+    {q:'¿Qué significa EPP en el contexto de la aparatología estética?',o:['Equipo de Potencia Programable','Equipo de Protección Personal: guantes, gafas certificadas, ropa adecuada que protegen al operador durante el uso de equipos','Estándar de Protocolo Profesional','Evaluación de Parámetros del equipo'],c:1},
+    {q:'¿Por qué es importante conocer el tipo de piel del cliente antes de aplicar aparatología?',o:['Solo para elegir el color del gel conductor','Porque el fototipo, la sensibilidad y las condiciones de la piel determinan qué tratamientos son seguros y qué parámetros deben usarse para evitar efectos adversos','No influye en el tratamiento','Solo importa en tratamientos faciales'],c:1},
+    {q:'¿Qué debe hacerse si durante un tratamiento el cliente expresa dolor intenso o malestar?',o:['Pedirle que aguante porque es normal','Continuar pero hablar con el cliente para distraerlo','Detener el tratamiento inmediatamente, evaluar la situación y ajustar parámetros o suspender la sesión','Aumentar la potencia para terminar más rápido'],c:2},
+    {q:'¿Cuál es la función del gel conductor en equipos de ultrasonido o radiofrecuencia?',o:['Solo hidrata la piel durante el tratamiento','Facilita el contacto entre el cabezal y la piel, permite la transmisión eficiente de la energía y evita la fricción y el calor excesivo superficial','Es solo decorativo y puede omitirse','Solo sirve para que el cabezal se deslice'],c:1},
+    {q:'¿Qué información debe registrarse en la ficha del cliente después de cada sesión?',o:['Solo el nombre del cliente y la fecha','Zona tratada, equipo utilizado, parámetros aplicados, respuesta de la piel, incidencias observadas y recomendaciones post-sesión','Solo si hubo algún problema','Solo la forma de pago'],c:1},
+    {q:'¿Por qué se recomienda hacer un test de parche antes de aplicar un nuevo tratamiento o equipo a un cliente?',o:['Para que el cliente conozca el equipo','Para evaluar la respuesta individual de la piel al tratamiento en una zona pequeña antes de tratar el área completa, identificando posibles reacciones adversas','Es solo un requisito burocrático sin valor real','Solo se hace en tratamientos de láser'],c:1},
+  ],
+};
+const EVAL_APARATOLOGIA_INTERMEDIO = {
+  id:'aparatologia-intermedio',
+  titulo:'Test Nivel 2 — Aplicación Práctica en Aparatología Estética',
+  categoria:'General',
+  nivel:'Intermedio',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cómo se determina el parámetro de energía correcto para cada cliente en un equipo de aparatología?',o:['Se usa siempre la potencia máxima para mejores resultados','Se evalúa el fototipo, el área a tratar, la sensibilidad individual y las indicaciones del fabricante; se comienza con parámetros conservadores y se ajusta según la respuesta tisular del cliente','Se usa siempre la mínima potencia por seguridad','El equipo lo determina automáticamente sin intervención del operador'],c:1},
+    {q:'¿Qué diferencia existe entre un tratamiento facial y uno corporal en términos de parámetros?',o:['Son exactamente iguales','Los tratamientos faciales requieren generalmente menor energía, mayor precisión y cabezales más pequeños por la mayor sensibilidad de la piel facial y la proximidad a estructuras delicadas; los corporales permiten mayor energía y cabezales más grandes','Solo varía el tiempo de sesión','El tratamiento corporal siempre es más seguro'],c:1},
+    {q:'¿Cómo debe posicionarse el cliente para optimizar la seguridad y la eficacia del tratamiento?',o:['En cualquier posición que el operador prefiera','En una posición cómoda que permita acceso completo a la zona, evite tensiones musculares y facilite la correcta aplicación del equipo; algunas tecnologías requieren posiciones específicas (placa de retorno, zonas de alcance)','Solo importa la posición en tratamientos faciales','El posicionamiento no influye en el resultado'],c:1},
+    {q:'¿Qué es el protocolo de tratamiento y por qué debe seguirse?',o:['Una sugerencia opcional del fabricante','La secuencia estandarizada de pasos (preparación, aplicación, finalización y cuidados post) que garantiza la seguridad, eficacia y reproducibilidad del tratamiento; su seguimiento protege al cliente y al operador','Solo sirve para los equipos más caros','Solo importa en la primera sesión'],c:1},
+    {q:'¿Cómo se evalúa la respuesta tisular correcta durante un tratamiento de radiofrecuencia?',o:['El cliente debe sentir dolor para confirmar que funciona','Se busca eritema leve y uniforme en la zona tratada, temperatura agradable de calor profundo sin quemadura superficial, y el cliente debe sentir calor tolerable; ausencia de reacción puede indicar parámetros insuficientes','Solo se evalúa al mes del tratamiento','No hay forma de evaluar la respuesta durante el tratamiento'],c:1},
+    {q:'¿Qué debe hacer el operador si nota una reacción inusual en la piel durante el tratamiento (enrojecimiento excesivo, ampollas, cambio de color)?',o:['Continuar y ver si mejora','Reducir levemente la potencia y seguir','Detener inmediatamente, retirar el equipo, aplicar calmante si corresponde, registrar la incidencia y evaluar si se requiere atención médica','Aumentar el gel y continuar'],c:2},
+    {q:'¿Cómo se comunican correctamente los cuidados post-tratamiento al cliente?',o:['Solo verbalmente al final, sin documentar','De forma clara, verbal y escrita si es posible, explicando qué puede sentir (eritema leve, sensibilidad), qué debe hacer (protector solar, hidratación) y qué debe evitar (sol, calor, exfoliación) según el tratamiento realizado','No es necesario dar instrucciones post-tratamiento','Solo se indican si el cliente pregunta'],c:1},
+    {q:'¿Cómo debe manejarse un cliente que llega con expectativas poco realistas sobre los resultados de la aparatología?',o:['Prometerle los resultados que pide para no perder la venta','Explicar honestamente qué puede lograr el tratamiento, en cuántas sesiones y con qué mantenimiento; establecer expectativas reales protege la confianza del cliente y la reputación del servicio','Ignorar sus expectativas y realizar el tratamiento','Decirle que es imposible lograr cualquier resultado'],c:1},
+    {q:'¿Qué cuidado especial requiere el tratamiento de zonas con cicatrices recientes?',o:['Tratar directamente sobre la cicatriz para mejorarla sin evaluación previa','Evaluar el tiempo de cicatrización (generalmente mínimo 6-12 meses para cicatrices maduras), evitar zonas con cicatrices queloides o hipertróficas activas y consultar protocolo específico del equipo para esa condición','Las cicatrices no afectan el tratamiento','Solo se evitan las cicatrices en zona facial'],c:1},
+    {q:'¿Qué implica la responsabilidad profesional del operador de aparatología estética?',o:['Solo operar el equipo correctamente','Conocer el equipo, sus indicaciones y contraindicaciones; realizar anamnesis completa; respetar protocolos; documentar cada sesión; comunicar resultados realistas; reconocer y manejar efectos adversos; y derivar cuando excede su competencia','Solo es responsable si el cliente firma el consentimiento','La responsabilidad recae solo en el fabricante del equipo'],c:1},
+    {q:'¿Cómo se realiza el mantenimiento básico de un equipo de aparatología entre sesiones?',o:['No requiere mantenimiento entre sesiones','Limpiar y desinfectar cabezales y accesorios según protocolo del fabricante, verificar que los cables y conexiones estén en buen estado, chequear que los parámetros vuelvan a valores iniciales y guardar correctamente los accesorios','Solo limpiar una vez por semana','El fabricante realiza todo el mantenimiento'],c:1},
+    {q:'¿Qué debe hacer el operador cuando un cliente pregunta si puede combinar su tratamiento con un medicamento que está tomando?',o:['Decirle que todos los medicamentos son compatibles','Responder que no es competencia del operador decidir y derivar la consulta a un médico; el operador puede identificar fotosensibilizantes o contraindicaciones conocidas pero nunca dar consejo médico','Buscar en internet y responder inmediatamente','Continuar el tratamiento sin evaluar la medicación'],c:1},
+  ],
+};
+const EVAL_APARATOLOGIA_AVANZADO = {
+  id:'aparatologia-avanzado',
+  titulo:'Test Nivel 3 — Habilitación en Aparatología Estética',
+  categoria:'General',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cómo se diseña un plan de tratamiento integral con aparatología para un cliente con flacidez facial moderada y grasa localizada abdominal?',o:['Se elige un solo equipo para todo','Se diseña un protocolo diferenciado: para el rostro puede indicarse HIFU o radiofrecuencia para estimular colágeno y mejorar tono; para abdomen puede combinarse HIFU corporal o Exilis para grasa con Emsculpt para tonificación; se planifican sesiones, frecuencia e indicadores de progreso','Se aplica el equipo más caro disponible','Se trata todo en una sola sesión con un solo equipo'],c:1},
+    {q:'¿Cuál es el fundamento para no combinar ciertos tratamientos de aparatología en la misma sesión?',o:['Es solo una restricción comercial','Algunos tratamientos generan calor, inflamación o cambios en el pH cutáneo que pueden interferir con otros; por ejemplo, no se recomienda combinar peelings exfoliantes con láser el mismo día, ni radiofrecuencia sobre zonas recién tratadas con rellenos; el operador debe conocer las interacciones entre tratamientos','Todos los tratamientos son siempre compatibles el mismo día','Solo importa si el cliente tiene piel sensible'],c:1},
+    {q:'¿Cómo evalúa el operador avanzado la evolución del cliente a lo largo del ciclo de tratamiento?',o:['Solo preguntando cómo se siente','Mediante fotografías estandarizadas antes/durante/después, registro de parámetros en ficha, evaluación objetiva de la respuesta tisular en cada sesión, y comparación con los objetivos iniciales; los indicadores permiten ajustar el protocolo si no se logra la respuesta esperada','Solo al finalizar el tratamiento completo','No es necesario evaluar la evolución'],c:1},
+    {q:'¿Qué criterio debe aplicar el operador cuando un cliente solicita aumentar la potencia más allá del protocolo recomendado?',o:['Siempre complacer al cliente y aumentar la potencia','Explicar que los protocolos están diseñados para maximizar eficacia y seguridad; trabajar fuera de los parámetros recomendados aumenta el riesgo de efectos adversos sin necesariamente mejorar el resultado; la seguridad del cliente es prioridad','Aumentar solo un poco para no perder al cliente','Dejar que el cliente decida siempre'],c:1},
+    {q:'¿Cómo se maneja correctamente la detección de una lesión cutánea sospechosa (mancha irregular, lesión elevada) en la zona a tratar?',o:['Tratar alrededor y no preguntar al cliente','Evitar tratar directamente sobre la lesión, comunicar al cliente que ha observado algo que requiere evaluación médica y recomendar que consulte un dermatólogo antes de continuar; documentar la observación en la ficha','Aplicar menor potencia sobre la lesión','Fotografiar y subir a redes sociales para pedir opinión'],c:1},
+    {q:'¿Cuál es la diferencia entre efectos secundarios esperables y complicaciones que requieren derivación médica en aparatología?',o:['No existe diferencia, todo es normal','Los efectos esperables son transitorios y proporcionales al tratamiento (eritema leve, sensibilidad, edema leve post-sesión); las complicaciones son reacciones desproporcionadas, persistentes o inesperadas (quemaduras, hipopigmentación, reacciones alérgicas severas, dolor persistente) que requieren evaluación médica','Solo hay complicaciones en equipos de alta potencia','Todo dolor es una complicación que requiere derivación'],c:1},
+    {q:'¿Qué implica la actualización continua en aparatología estética para un operador certificado?',o:['No es necesaria, la certificación es permanente sin actualización','Mantenerse informado sobre nuevas tecnologías, actualizaciones de protocolos, evidencia científica emergente y cambios regulatorios; asistir a capacitaciones periódicas; la aparatología evoluciona rápidamente y el conocimiento desactualizado puede representar riesgo para el cliente','Solo actualizar cuando el equipo lo pide','La actualización es solo para médicos'],c:1},
+    {q:'¿Cómo se gestiona un cliente que experimentó una reacción adversa leve en una sesión anterior y quiere continuar el tratamiento?',o:['Realizar el mismo tratamiento con los mismos parámetros','Investigar la causa de la reacción, ajustar los parámetros (menor energía, menor tiempo, diferente protocolo), realizar test de parche en la sesión actual, obtener consentimiento informado actualizado documentando el antecedente y monitorear de cerca durante la sesión','Suspender el tratamiento definitivamente sin evaluar','Cambiar de equipo sin analizar la causa'],c:1},
+    {q:'¿Qué consideraciones éticas debe tener el operador de aparatología al asesorar sobre tratamientos?',o:['Recomendar siempre el tratamiento más caro','Recomendar solo los tratamientos que sean apropiados para las necesidades y objetivos del cliente, con honestidad sobre resultados esperables, sin presión de venta; respetar la autonomía del cliente para decidir y priorizar siempre su bienestar por sobre los intereses comerciales','Prometer siempre los mejores resultados','El asesoramiento ético solo aplica en contextos médicos'],c:1},
+    {q:'¿Cómo impacta la correcta documentación en la calidad del servicio y la protección legal del operador?',o:['La documentación no tiene valor legal ni clínico','La ficha completa (anamnesis, consentimiento, parámetros, evolución, incidencias) permite dar seguimiento personalizado, detectar patrones de respuesta, proteger legalmente al operador ante reclamos, y garantizar continuidad del servicio si otro operador atiende al cliente','Solo importa si hay un problema','La documentación es obligatoria solo en clínicas médicas'],c:1},
+    {q:'¿Qué habilidades blandas son esenciales para un operador certificado en aparatología estética?',o:['Solo el conocimiento técnico del equipo','Comunicación efectiva y empática con el cliente, escucha activa para entender sus objetivos y preocupaciones, manejo de expectativas, trabajo en equipo, actitud de mejora continua y criterio para reconocer los límites de su competencia y derivar cuando corresponde','Solo importa la rapidez en la aplicación','Las habilidades blandas no tienen relación con la aparatología'],c:1},
+    {q:'¿Qué distingue a un operador de aparatología estética certificado de uno sin formación?',o:['Solo el precio que cobra','El operador certificado posee conocimiento teórico validado, dominio de protocolos seguros, capacidad de identificar contraindicaciones, criterio para ajustar parámetros, responsabilidad profesional documentada y compromiso con la actualización continua; esto garantiza tratamientos más seguros, eficaces y con menor riesgo de efectos adversos','Solo la cantidad de años de experiencia','El certificado es solo un papel sin valor real'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_APARATOLOGIA_BASICO, EVAL_APARATOLOGIA_INTERMEDIO, EVAL_APARATOLOGIA_AVANZADO, EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_BRONCEADO_BASICO, EVAL_BRONCEADO_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -736,7 +799,8 @@ async function saveEvaluacionTecnica(){
   const esHydrafacial = evaluacion.id.startsWith('hydrafacial-');
   const esSoprano = evaluacion.id.startsWith('soprano-');
   const esBronceado = evaluacion.id.startsWith('bronceado-');
-  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial && !esSoprano && !esBronceado) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado','soprano-avanzado','bronceado-avanzado'].includes(evaluacion.id);
+  const esAparatologia = evaluacion.id.startsWith('aparatologia-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial && !esSoprano && !esBronceado && !esAparatologia) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado','soprano-avanzado','bronceado-avanzado','aparatologia-avanzado'].includes(evaluacion.id);
 
   if(aprobada && esHabilitante){
     try{
@@ -761,11 +825,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano || esBronceado)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano || esBronceado || esAparatologia)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : esBronceado ? 'Bronceado Orgánico' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : esBronceado ? 'Bronceado Orgánico' : esAparatologia ? 'Aparatología Estética' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -1035,7 +1099,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-') && !e.id.startsWith('soprano-') && !e.id.startsWith('bronceado-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-') && !e.id.startsWith('soprano-') && !e.id.startsWith('bronceado-') && !e.id.startsWith('aparatologia-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -1061,14 +1125,16 @@ function renderEvaluacionesRows(allResultados){
   const exilis      = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
   const emsculpt    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
   const hydrafacial = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hydrafacial-'));
-  const bronceado   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bronceado-'));
+  const bronceado     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bronceado-'));
+  const aparatologia  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('aparatologia-'));
   return rowsOtros
-    + renderCertificacionGroup(allResultados, laser,       '#1976d2', '⚡', 'Certificación Depilación Láser')
-    + renderCertificacionGroup(allResultados, ndyag,       '#0097a7', '🔵', 'Certificación Nd:YAG')
-    + renderCertificacionGroup(allResultados, soprano,     '#c62828', '🔴', 'Certificación Soprano Titanium ICE')
-    + renderCertificacionGroup(allResultados, exilis,      '#e65100', '🔶', 'Certificación Exilis Elite')
-    + renderCertificacionGroup(allResultados, emsculpt,    '#2e7d32', '💪', 'Certificación Emsculpt')
-    + renderCertificacionGroup(allResultados, hydrafacial, '#00838f', '💧', 'Certificación HydraFacial')
-    + renderCertificacionGroup(allResultados, bronceado,   '#f9a825', '🌟', 'Certificación Bronceado Orgánico')
-    + renderCertificacionGroup(allResultados, hifu,        '#9c27b0', '💜', 'Certificación HIFU');
+    + renderCertificacionGroup(allResultados, aparatologia, '#37474f', '🏅', 'Certificación en Aparatología Estética')
+    + renderCertificacionGroup(allResultados, laser,        '#1976d2', '⚡', 'Certificación Depilación Láser')
+    + renderCertificacionGroup(allResultados, ndyag,        '#0097a7', '🔵', 'Certificación Nd:YAG')
+    + renderCertificacionGroup(allResultados, soprano,      '#c62828', '🔴', 'Certificación Soprano Titanium ICE')
+    + renderCertificacionGroup(allResultados, exilis,       '#e65100', '🔶', 'Certificación Exilis Elite')
+    + renderCertificacionGroup(allResultados, emsculpt,     '#2e7d32', '💪', 'Certificación Emsculpt')
+    + renderCertificacionGroup(allResultados, hydrafacial,  '#00838f', '💧', 'Certificación HydraFacial')
+    + renderCertificacionGroup(allResultados, bronceado,    '#f9a825', '🌟', 'Certificación Bronceado Orgánico')
+    + renderCertificacionGroup(allResultados, hifu,         '#9c27b0', '💜', 'Certificación HIFU');
 }
