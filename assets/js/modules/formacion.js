@@ -1516,22 +1516,11 @@ function renderEvaluaciones(){
 
 // ── Control de intentos y temporizador de evaluación ──
 const EVAL_MAX_INTENTOS = 3;
-const EVAL_MINUTOS_POR_NIVEL = 5;
 const EVAL_BLOQUEO_HORAS = 24;
 
 function getEvalTiempoMinutos(evaluacion){
-  // Contar cuántos niveles tiene la certificación a la que pertenece este test
-  const prefix = evaluacion.id.replace(/-basico$|-intermedio$|-avanzado$|-avanzado2$/, '').replace(/-[^-]+$/, '');
-  // Extraer prefijo base (todo antes del último guion)
-  const parts = evaluacion.id.split('-');
-  const nivelPart = parts[parts.length - 1]; // basico, intermedio, avanzado
-  const baseParts = parts.slice(0, parts.length - 1).join('-');
-  const niveles = EVALUACIONES_TECNICAS.filter(e => {
-    const ep = e.id.split('-');
-    const eBase = ep.slice(0, ep.length - 1).join('-');
-    return eBase === baseParts;
-  }).length;
-  return Math.max(5, niveles * EVAL_MINUTOS_POR_NIVEL);
+  // 1 minuto por pregunta
+  return evaluacion.preguntas ? evaluacion.preguntas.length : 12;
 }
 let evalTimer = null;
 let evalTiempoRestante = 0;
