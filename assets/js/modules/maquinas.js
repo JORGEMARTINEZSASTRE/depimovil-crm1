@@ -167,7 +167,7 @@ function renderMaqPreciosFicha(m){
         <button class="action-btn" onclick="maqPrecioEditId=${parseInt(principal.id,10)};showMaqFicha(${m.id})">Editar</button>
       </div>
     </div>
-    <div style="margin-top:10px"><button class="action-btn" onclick="preciosMaqFilter.equipo='${escapeAttr(equipo)}';preciosMaqFilter.formato='${escapeAttr(formato)}';navigate('precios-maquinas');renderPreciosMaquinas()">Ver matriz completa</button></div>`:
+    `:
     editing?renderMaqPrecioEditor(m,principal,principal.id,equipo,formato):
     `<div style="color:var(--text3);font-size:13px;padding:12px 0">Sin precio fijo cargado para ${escapeHTML(equipo)}${formato?' '+escapeHTML(formato):''}.</div>
     ${maqPrecioEditId==='nuevo'?renderMaqPrecioEditor(m,null,'nuevo',equipo,formato):`<button class="action-btn" onclick="maqPrecioEditId='nuevo';showMaqFicha(${m.id})">Agregar precio fijo</button>`}`}
