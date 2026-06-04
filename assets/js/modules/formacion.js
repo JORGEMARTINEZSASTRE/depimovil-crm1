@@ -1516,8 +1516,23 @@ function renderEvaluaciones(){
 
 // ── Control de intentos y temporizador de evaluación ──
 const EVAL_MAX_INTENTOS = 3;
-const EVAL_TIEMPO_MINUTOS = 10;
+const EVAL_MINUTOS_POR_NIVEL = 5;
 const EVAL_BLOQUEO_HORAS = 24;
+
+function getEvalTiempoMinutos(evaluacion){
+  // Contar cuántos niveles tiene la certificación a la que pertenece este test
+  const prefix = evaluacion.id.replace(/-basico$|-intermedio$|-avanzado$|-avanzado2$/, '').replace(/-[^-]+$/, '');
+  // Extraer prefijo base (todo antes del último guion)
+  const parts = evaluacion.id.split('-');
+  const nivelPart = parts[parts.length - 1]; // basico, intermedio, avanzado
+  const baseParts = parts.slice(0, parts.length - 1).join('-');
+  const niveles = EVALUACIONES_TECNICAS.filter(e => {
+    const ep = e.id.split('-');
+    const eBase = ep.slice(0, ep.length - 1).join('-');
+    return eBase === baseParts;
+  }).length;
+  return Math.max(5, niveles * EVAL_MINUTOS_POR_NIVEL);
+}
 let evalTimer = null;
 let evalTiempoRestante = 0;
 
@@ -1565,7 +1580,7 @@ function resetearIntentosEval(opId, evalId){
 
 function iniciarTimerEval(){
   clearInterval(evalTimer);
-  evalTiempoRestante = EVAL_TIEMPO_MINUTOS * 60;
+  evalTiempoRestante = (window._evalTiempoMinutos || 10) * 60;
   actualizarTimerUI();
   evalTimer = setInterval(function(){
     evalTiempoRestante--;
@@ -1638,7 +1653,7 @@ function openEvaluacionModal(evaluacionId){
       <div>Aprobación mínima: <strong>${evaluacion.minimoAprobacion}/${evaluacion.preguntas.length}</strong>. Si aprueba, queda habilitada para <strong>${evaluacion.categoria}</strong>.</div>
       <div style="display:flex;align-items:center;gap:16px">
         <div style="font-size:12px;color:var(--text3)">Intentos: <strong style="color:${intentosRestantes<=1?'#e53935':'var(--text)'}">${intentosRestantes}/${EVAL_MAX_INTENTOS}</strong></div>
-        <div style="font-size:12px;color:var(--text3)">⏱ Tiempo: <strong id="evalTimerDisplay" style="font-size:15px;color:var(--text)">10:00</strong></div>
+        <div style="font-size:12px;color:var(--text3)">⏱ Tiempo: <strong id="evalTimerDisplay" style="font-size:15px;color:var(--text)">${String(window._evalTiempoMinutos||10).padStart(2,'0')}:00</strong></div>
       </div>
     </div>`;
   document.getElementById('evalPreguntas').innerHTML=evaluacion.preguntas.map((p,i)=>`
@@ -1651,6 +1666,7 @@ function openEvaluacionModal(evaluacionId){
         </label>`).join('')}
       </div>
     </div>`).join('');
+  window._evalTiempoMinutos = getEvalTiempoMinutos(evaluacion);
   openModal('modalEvaluacion');
   iniciarTimerEval();
 }
