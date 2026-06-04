@@ -364,7 +364,49 @@ const EVAL_EMSCULPT_AVANZADO = {
     {q:'¿Cuál es la evidencia sobre el uso del Emsculpt en rehabilitación y fortalecimiento post-quirúrgico?',o:['Está completamente contraindicado en cualquier contexto postquirúrgico','Estudios exploratorios muestran potencial para recuperación muscular post-cirugía (ej. post-liposucción, post-parto cuando está cicatrizado) para restablecer tono muscular; requiere evaluación médica previa y protocolo conservador adaptado al estado del paciente','Se puede usar inmediatamente tras cualquier cirugía','No existe ninguna evidencia sobre uso post-quirúrgico'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_HYDRAFACIAL_BASICO = {
+  id:'hydrafacial-basico',
+  titulo:'Test Básico — HydraFacial',
+  categoria:'General',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué es el HydraFacial?',o:['Un tratamiento de depilación facial con láser','Un tratamiento facial no invasivo que combina limpieza, exfoliación, extracción e hidratación profunda en un solo procedimiento','Un peeling químico profundo con tiempo de recuperación','Un masaje facial con corriente eléctrica'],c:1},
+    {q:'¿Cuáles son las 3 fases principales del tratamiento HydraFacial?',o:['Limpieza, bronceado y tonificación','Limpieza/exfoliación, extracción de impurezas e infusión de sueros hidratantes y antioxidantes','Depilación, hidratación y masaje','Peeling, láser y radiofrecuencia'],c:1},
+    {q:'¿El HydraFacial es un procedimiento invasivo?',o:['Sí, requiere anestesia local','Sí, usa microagujas','No, es completamente no invasivo y no requiere tiempo de recuperación','Sí, deja la piel en carne viva'],c:2},
+    {q:'¿Para qué tipo de piel está indicado el HydraFacial?',o:['Solo para piel grasa con acné severo','Solo para piel madura mayor de 50 años','Es apto para todo tipo de piel: grasa, seca, mixta, sensible y madura','Solo para pieles claras sin manchas'],c:2},
+    {q:'¿Cuánto dura una sesión estándar de HydraFacial?',o:['5 minutos','30 a 60 minutos según el protocolo y los potenciadores añadidos','3 horas','Solo 10 minutos'],c:1},
+    {q:'¿Con qué frecuencia se recomienda realizar el HydraFacial para mantenimiento?',o:['Una vez en la vida','Cada 2 años','Mensualmente o cada 4-6 semanas para resultados óptimos de mantenimiento','Cada semana obligatoriamente'],c:2},
+    {q:'¿Qué sensación describe el paciente durante el HydraFacial?',o:['Dolor intenso y ardor','Calor extremo similar a una quemadura','Sensación suave de succión y humedad, generalmente muy confortable','Corriente eléctrica molesta'],c:2},
+    {q:'¿Qué tipo de sueros se infunden durante el HydraFacial?',o:['Solo agua destilada','Ácidos fuertes sin diluir','Sueros con antioxidantes, péptidos, ácido hialurónico y otros activos según el objetivo del tratamiento','Aceites minerales espesos'],c:2},
+    {q:'¿Cuándo se notan los resultados del HydraFacial?',o:['Recién al mes','A los 6 meses','Inmediatamente después del tratamiento con piel más luminosa, hidratada y uniforme','Solo después de 10 sesiones'],c:2},
+    {q:'¿Cuál es una contraindicación del HydraFacial?',o:['Piel deshidratada','Tener más de 30 años','Rosacea activa severa, herpes activo, quemaduras solares recientes o heridas abiertas en la zona a tratar','Usar hidratante habitualmente'],c:2},
+    {q:'¿Qué cuidado post-HydraFacial es esencial?',o:['Exposición solar inmediata para potenciar el efecto','Aplicar maquillaje espeso inmediatamente','Protector solar SPF 50+ y evitar exposición solar directa las primeras 24-48 horas','Lavar la cara con agua muy caliente'],c:2},
+    {q:'¿Puede realizarse HydraFacial antes de un evento importante?',o:['No, deja la piel muy roja por días','Solo si se hace 2 semanas antes','Sí, es ideal realizarlo 1-2 días antes ya que no genera tiempo de inactividad y deja la piel luminosa','Solo si se combina con maquillaje permanente'],c:2},
+  ],
+};
+const EVAL_HYDRAFACIAL_AVANZADO = {
+  id:'hydrafacial-avanzado',
+  titulo:'Test Avanzado — HydraFacial',
+  categoria:'General',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es el mecanismo de la punta Vortex del HydraFacial y cómo logra la extracción sin irritar?',o:['Usa presión mecánica manual del operador','La punta en espiral genera un vórtice de succión que simultáneamente exfolia, desprende impurezas y las aspira hacia el recipiente de residuos, distribuyendo la presión uniformemente para minimizar irritación','Usa corriente eléctrica para disolver las impurezas','La presión es tan alta que rompe los poros'],c:1},
+    {q:'¿Qué función cumplen los ácidos glicólico y salicílico en la fase de exfoliación del HydraFacial?',o:['Solo hidratan la piel superficialmente','El ácido glicólico (AHA) exfolia la capa córnea rompiendo los enlaces entre corneocitos; el salicílico (BHA) penetra en los poros disolviendo sebum y queratina acumulada, preparando la piel para la extracción e infusión','Son solo vehículos para transportar los sueros','Solo actúan como conservantes de los sueros'],c:1},
+    {q:'¿Cómo deben adaptarse los sueros del HydraFacial según el fototipo y las necesidades de la piel?',o:['Siempre se usa el mismo protocolo estándar sin variación','Se seleccionan potenciadores (boosters) específicos: vitamina C y antioxidantes para manchas y luminosidad, ácido hialurónico para hidratación, péptidos para anti-aging, o activos específicos para acné según el diagnóstico cutáneo','Solo varía la duración del tratamiento','Solo se adapta en pieles con acné severo'],c:1},
+    {q:'¿Qué precaución especial requiere el HydraFacial en pieles con rosácea leve?',o:['Está completamente contraindicado en rosácea','Se puede realizar con parámetros de succión reducidos, evitando zonas de eritema activo, usando sueros calmantes y evitando activos irritantes; siempre evaluar la fase de la rosácea','Se aplica con máxima succión para limpiar los capilares','No hay ninguna precaución especial'],c:1},
+    {q:'¿Por qué el HydraFacial es compatible con pieles sensibles a diferencia de otros peelings?',o:['Porque no usa ningún ácido','La combinación de exfoliación mecánica suave con ácidos a concentraciones bajas, succión controlada e infusión inmediata de activos calmantes e hidratantes minimiza la irritación y el tiempo de exposición de los ácidos en la piel','Porque usa corriente eléctrica en lugar de ácidos','Porque solo actúa en la epidermis más superficial sin ningún efecto real'],c:1},
+    {q:'¿Cómo se integra el HydraFacial en un protocolo anti-aging completo?',o:['Es suficiente como único tratamiento para todos los signos de envejecimiento','Se combina con radiofrecuencia, HIFU, peelings médicos o bioestimuladores según la profundidad del envejecimiento: el HydraFacial aporta hidratación, luminosidad y textura mientras otros tratamientos actúan en capas más profundas','Solo funciona como tratamiento único','No se puede combinar con ningún otro tratamiento'],c:1},
+    {q:'¿Qué activos del suero LED/antioxidante del HydraFacial tienen evidencia para reducción de pigmentación?',o:['Solo la glicerina','Vitamina C estabilizada, ácido kójico, niacinamida y extractos botánicos antioxidantes que inhiben la tirosinasa y neutralizan radicales libres, reduciendo la producción y oxidación de melanina','Solo el agua de rosas','Los conservantes del suero'],c:1},
+    {q:'¿Cuándo está contraindicado el HydraFacial en una paciente que usa retinoides?',o:['Nunca, los retinoides potencian el efecto','Si usa retinoides tópicos de alta concentración o isotretinoína oral activa; se debe suspender los retinoides 5-7 días antes para evitar hipersensibilidad y riesgo de irritación excesiva por la exfoliación combinada','Solo si la paciente es menor de 18 años','Los retinoides no tienen ninguna interacción con el HydraFacial'],c:1},
+    {q:'¿Qué diferencia al HydraFacial de una limpieza facial convencional en términos de resultados clínicos?',o:['Son equivalentes en resultados','El HydraFacial combina exfoliación química controlada, extracción por vórtice e infusión de activos en presión, logrando penetración superior de los ingredientes activos y resultados clínicamente más significativos en hidratación, textura y luminosidad que la limpieza manual','La limpieza convencional es más efectiva','Solo difieren en el precio'],c:1},
+    {q:'¿Qué protocolo específico existe para tratar hiperpigmentación con HydraFacial?',o:['No existe protocolo para hiperpigmentación','Se usa el booster Britenol o equivalentes con alfa-arbutina y extracto de guanábana, combinando la exfoliación con ácido glicólico que aumenta la renovación celular y la infusión de inhibidores de tirosinasa para reducir progresivamente las manchas','Solo funciona si se combina con láser en la misma sesión','La hiperpigmentación no responde al HydraFacial'],c:1},
+    {q:'¿Cómo debe adaptarse el protocolo HydraFacial para piel con acné activo leve-moderado?',o:['Se contraindica completamente en acné activo','Se priorizan activos con ácido salicílico para la limpieza de poros, se evita la succión excesiva sobre lesiones inflamadas activas, se infunden sueros con niacinamida y zinc reguladores del sebo, y se evita tratar pústulas o quistes activos directamente','Se aplica máxima succión para vaciar todas las lesiones','Se agrega peróxido de benzoilo al suero'],c:1},
+    {q:'¿Qué ventaja clínica ofrece la infusión de ácido hialurónico durante el HydraFacial comparado con su aplicación tópica convencional?',o:['No hay ninguna diferencia','La apertura del poro post-exfoliación y la presión de infusión del HydraFacial permiten que el ácido hialurónico penetre más profundamente en la dermis superficial comparado con la aplicación tópica convencional que queda en la superficie epidérmica','El ácido hialurónico tópico penetra igual de profundo','El HydraFacial destruye el ácido hialurónico por la succión'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -586,7 +628,8 @@ async function saveEvaluacionTecnica(){
   const esNdYAG = evaluacion.id.startsWith('ndyag-');
   const esExilis = evaluacion.id.startsWith('exilis-');
   const esEmsculpt = evaluacion.id.startsWith('emsculpt-');
-  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado'].includes(evaluacion.id);
+  const esHydrafacial = evaluacion.id.startsWith('hydrafacial-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado'].includes(evaluacion.id);
 
   if(aprobada && esHabilitante){
     try{
@@ -611,11 +654,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -885,7 +928,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -906,13 +949,15 @@ function renderEvaluacionesRows(allResultados){
     </div>`;
   }).join('');
 
-  const ndyag    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
-  const exilis   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
-  const emsculpt = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
+  const ndyag       = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
+  const exilis      = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
+  const emsculpt    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
+  const hydrafacial = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hydrafacial-'));
   return rowsOtros
-    + renderCertificacionGroup(allResultados, laser,    '#1976d2', '⚡', 'Certificación Depilación Láser')
-    + renderCertificacionGroup(allResultados, ndyag,    '#0097a7', '🔵', 'Certificación Nd:YAG')
-    + renderCertificacionGroup(allResultados, exilis,   '#e65100', '🔶', 'Certificación Exilis Elite')
-    + renderCertificacionGroup(allResultados, emsculpt, '#2e7d32', '💪', 'Certificación Emsculpt')
-    + renderCertificacionGroup(allResultados, hifu,     '#9c27b0', '💜', 'Certificación HIFU');
+    + renderCertificacionGroup(allResultados, laser,       '#1976d2', '⚡', 'Certificación Depilación Láser')
+    + renderCertificacionGroup(allResultados, ndyag,       '#0097a7', '🔵', 'Certificación Nd:YAG')
+    + renderCertificacionGroup(allResultados, exilis,      '#e65100', '🔶', 'Certificación Exilis Elite')
+    + renderCertificacionGroup(allResultados, emsculpt,    '#2e7d32', '💪', 'Certificación Emsculpt')
+    + renderCertificacionGroup(allResultados, hydrafacial, '#00838f', '💧', 'Certificación HydraFacial')
+    + renderCertificacionGroup(allResultados, hifu,        '#9c27b0', '💜', 'Certificación HIFU');
 }
