@@ -301,7 +301,70 @@ const EVAL_EXILIS_AVANZADO = {
     {q:'¿Por qué el Exilis Elite está contraindicado sobre zonas con implantes de silicona o rellenos recientes?',o:['No está contraindicado en esas zonas','El calor generado por la RF puede alterar la integridad de los implantes de silicona o degradar/desplazar rellenos inyectables; se debe evitar tratar directamente sobre estas estructuras o esperar el tiempo recomendado post-procedimiento','Es obligatorio tratar sobre los implantes para mejores resultados','Los rellenos potencian el efecto del Exilis'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_EMSCULPT_BASICO = {
+  id:'emsculpt-basico',
+  titulo:'Test Básico — Emsculpt',
+  categoria:'Electroestimulación',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué tecnología utiliza el Emsculpt?',o:['Radiofrecuencia monopolar','Ultrasonido focalizado de alta intensidad','Electromagnetic High Intensity Focused Energy (HIFEM) — campo electromagnético de alta intensidad','Corriente galvánica continua'],c:2},
+    {q:'¿Cuál es el principal objetivo del Emsculpt?',o:['Eliminar grasa por congelación','Estimular contracciones musculares supramáximas para tonificar músculo y reducir grasa localizada simultáneamente','Depilación definitiva de zonas corporales','Rejuvenecimiento facial con colágeno'],c:1},
+    {q:'¿Cuántas contracciones musculares equivale una sesión de Emsculpt?',o:['100 abdominales','1.000 contracciones','Aproximadamente 20.000 contracciones musculares supramáximas en 30 minutos','500 sentadillas'],c:2},
+    {q:'¿El Emsculpt es un procedimiento invasivo?',o:['Sí, requiere agujas','Sí, requiere anestesia local','No, es completamente no invasivo','Sí, requiere incisiones pequeñas'],c:2},
+    {q:'¿En qué zonas del cuerpo se aplica principalmente el Emsculpt?',o:['Solo en el rostro','Abdomen, glúteos, brazos (bíceps/tríceps) y muslos','Solo en piernas','Exclusivamente en la zona lumbar'],c:1},
+    {q:'¿Cuántas sesiones se recomiendan para ver resultados con Emsculpt?',o:['1 sola sesión','20 sesiones diarias','4 sesiones de 30 minutos espaciadas cada 2-3 días, en un período de 2 semanas','10 sesiones semanales'],c:2},
+    {q:'¿Qué sensación describe el paciente durante la sesión de Emsculpt?',o:['Dolor intenso e insoportable','Contracciones musculares intensas acompañadas de sensación de calor, similares a un entrenamiento muy exigente','Frío intenso en toda la zona','Corriente eléctrica dolorosa en la piel'],c:1},
+    {q:'¿El Emsculpt puede usarse en personas con marcapasos?',o:['Sí, sin ningún problema','Solo si el marcapasos es moderno','No, el campo electromagnético contraindica su uso en personas con marcapasos o dispositivos electrónicos implantados','Solo con supervisión médica directa'],c:2},
+    {q:'¿Cuándo se empiezan a notar los resultados del Emsculpt?',o:['Inmediatamente durante la sesión','2-4 semanas después del tratamiento completo, con mejora progresiva hasta los 3 meses','A los 2 años','Solo si se combina con cirugía'],c:1},
+    {q:'¿Qué cuidado post-sesión es recomendable tras el Emsculpt?',o:['Reposo absoluto de 48 horas','Evitar ejercicio intenso las primeras 24-48 horas, hidratarse bien y mantener una alimentación saludable','Ayuno de 24 horas','Exposición solar para activar el músculo'],c:1},
+    {q:'¿Para qué tipo de paciente está indicado el Emsculpt?',o:['Solo para personas con obesidad severa','Personas con peso saludable o cercano al ideal que buscan tonificación muscular y reducción de grasa localizada sin cirugía','Solo para deportistas de élite','Solo para personas mayores de 60 años'],c:1},
+    {q:'¿Cuál es una contraindicación absoluta del Emsculpt?',o:['Tener músculo desarrollado','Embarazo, dispositivos metálicos implantados o marcapasos en la zona a tratar','Realizar ejercicio habitualmente','Tener menos de 30 años'],c:1},
+  ],
+};
+const EVAL_EMSCULPT_INTERMEDIO = {
+  id:'emsculpt-intermedio',
+  titulo:'Test Intermedio — Emsculpt',
+  categoria:'Electroestimulación',
+  nivel:'Intermedio',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué son las contracciones supramáximas que genera el Emsculpt?',o:['Contracciones similares a las del ejercicio voluntario normal','Contracciones de mayor intensidad que las que el sistema nervioso puede generar voluntariamente; reclutan casi el 100% de las fibras musculares simultáneamente, algo imposible con el ejercicio convencional','Contracciones eléctricas superficiales de la piel','Microcontracciones imperceptibles que solo actúan en la grasa'],c:1},
+    {q:'¿Qué proceso metabólico explica la reducción de grasa localizada durante el Emsculpt?',o:['La grasa se elimina por sudoración durante el tratamiento','Las contracciones musculares intensas generan alta demanda energética que desencadena lipólisis local acelerada, con liberación de ácidos grasos que son metabolizados','La corriente electromagnética congela los adipocitos','La radiofrecuencia asociada funde la grasa'],c:1},
+    {q:'¿Cuál es la diferencia entre el Emsculpt y la electroestimulación muscular (EMS) convencional?',o:['Son exactamente lo mismo','El Emsculpt usa HIFEM de alta intensidad que genera contracciones supramáximas en músculos profundos; la EMS convencional usa corrientes de baja intensidad que solo alcanzan músculos superficiales con contracciones subóptimas','El Emsculpt es más barato que la EMS','La EMS es más efectiva que el Emsculpt'],c:1},
+    {q:'¿Qué cambios histológicos produce el Emsculpt en el tejido muscular?',o:['Destruye las fibras musculares permanentemente','Hipertrofia de las fibras musculares existentes e hiperplasia (aumento del número de fibras); estudios muestran un aumento promedio del 16% de masa muscular','Solo produce calor sin cambio estructural','Convierte fibras tipo II en tipo I'],c:1},
+    {q:'¿Por qué el Emsculpt requiere sesiones cada 2-3 días y no diarias?',o:['Por razones económicas únicamente','El músculo necesita tiempo de recuperación entre sesiones de contracciones supramáximas; las sesiones muy seguidas no permiten la reparación y adaptación muscular necesaria para el remodelado','Porque el equipo necesita recargarse','Porque la grasa necesita ese tiempo para eliminarse'],c:1},
+    {q:'¿Qué porcentaje promedio de reducción de grasa abdominal reportan los estudios clínicos del Emsculpt?',o:['1-2%','Aproximadamente 19% de reducción de grasa abdominal según estudios clínicos controlados','50% en una sola sesión','Solo funciona en personas muy delgadas, no hay datos de reducción'],c:1},
+    {q:'¿Cuál es la diferencia entre el Emsculpt original y el Emsculpt NEO?',o:['No hay diferencia, son el mismo equipo','El Emsculpt NEO agrega radiofrecuencia sincronizada al HIFEM, permitiendo reducción de grasa adicional por calor y construcción muscular en la misma sesión, ampliando los resultados','El NEO solo funciona en glúteos','El NEO es una versión más antigua'],c:1},
+    {q:'¿Cómo actúa el Emsculpt sobre el diástasis abdominal (separación de rectos)?',o:['Lo empeora al contraer demasiado fuerte','Las contracciones supramáximas fortalecen la musculatura central incluyendo los rectos, lo que puede reducir la diástasis en casos leves a moderados; casos severos pueden requerir evaluación médica previa','No tiene ningún efecto sobre la diástasis','Solo funciona si hay diástasis severa'],c:1},
+    {q:'¿Qué tipo de fibras musculares se ven más beneficiadas por el Emsculpt?',o:['Solo las fibras tipo I (lentas)','Las fibras tipo II (rápidas o de contracción rápida) responden especialmente bien por su mayor capacidad de hipertrofia; también se benefician las fibras tipo I por el volumen de contracciones','Solo las fibras superficiales','El Emsculpt no diferencia entre tipos de fibras'],c:1},
+    {q:'¿Qué consideración debe tenerse al tratar la zona abdominal con Emsculpt en mujeres?',o:['No hay consideraciones específicas para mujeres','Verificar que no estén embarazadas, que no tengan DIU metálico en la zona de influencia, y evaluar si hay diástasis significativa que requiera protocolo específico','Solo verificar que no tengan marcapasos','El Emsculpt no puede usarse en mujeres'],c:1},
+    {q:'¿Por qué el Emsculpt no reemplaza la dieta y el ejercicio?',o:['Sí los reemplaza completamente','El Emsculpt es un complemento: tonifica y reduce grasa localizada, pero los resultados se mantienen y potencian con hábitos saludables; sin dieta adecuada el tejido adiposo general puede aumentar','No tiene relación con la dieta','Solo funciona si se hace ejercicio intenso en paralelo'],c:1},
+    {q:'¿Cuánto tiempo duran los resultados del Emsculpt sin mantenimiento?',o:['Los resultados son permanentes sin ningún mantenimiento','Los resultados pueden durar 6-12 meses; se recomiendan sesiones de mantenimiento periódicas y actividad física regular para prolongar los beneficios','Solo duran 1 semana','Los resultados son inmediatos pero desaparecen al día siguiente'],c:1},
+  ],
+};
+const EVAL_EMSCULPT_AVANZADO = {
+  id:'emsculpt-avanzado',
+  titulo:'Test Avanzado — Emsculpt',
+  categoria:'Electroestimulación',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es el mecanismo biofísico por el que el HIFEM genera contracciones supramáximas?',o:['Estimula el sistema nervioso central directamente','El campo electromagnético de alta intensidad induce corrientes eléctricas en el tejido muscular que despolarizar las membranas de las células musculares, generando potenciales de acción y contracción sin necesidad de mediación del sistema nervioso voluntario','Calienta el músculo hasta producir espasmo','Envía corriente galvánica directa al músculo'],c:1},
+    {q:'¿Qué evidencia científica respalda la eficacia del Emsculpt para reducción de grasa?',o:['No existen estudios clínicos','Múltiples estudios controlados con ultrasonido y MRI muestran reducción promedio de aproximadamente 19% de grasa abdominal y 16% de aumento de masa muscular en el protocolo estándar de 4 sesiones','Solo estudios anecdóticos sin control','Los estudios son financiados solo por el fabricante sin datos verificables'],c:1},
+    {q:'¿Cómo el Emsculpt NEO combina HIFEM y RF y qué ventaja clínica ofrece?',o:['Los aplica en sesiones separadas','Sincroniza la RF y el HIFEM en la misma sesión: la RF calienta el tejido adiposo facilitando su reducción mientras el HIFEM contrae el músculo, logrando mayor reducción de grasa (aproximadamente 30%) y construcción muscular en menos tiempo','El NEO usa RF para anestesiar y HIFEM para el efecto principal','Son tecnologías incompatibles aplicadas por separado en el mismo equipo'],c:1},
+    {q:'¿Por qué el Emsculpt es más efectivo que el ejercicio convencional para reclutar fibras musculares?',o:['Porque usa más energía que el ejercicio','El sistema nervioso voluntario tiene un límite fisiológico en el reclutamiento de unidades motoras (60-70% en atletas de élite); el HIFEM bypasea este límite activando casi el 100% de las fibras simultáneamente, generando estrés mecánico imposible de lograr voluntariamente','Porque el ejercicio es contraproducente','El ejercicio recluta más fibras que el Emsculpt'],c:1},
+    {q:'¿Cuál es el mecanismo molecular de la apoptosis de adipocitos inducida por el Emsculpt?',o:['Los adipocitos mueren por congelación','Las contracciones supramáximas generan alta demanda de ácidos grasos libres; la lipólisis acelerada produce concentraciones elevadas de ácidos grasos que superan la capacidad metabólica local, desencadenando apoptosis de adipocitos por lipotoxicidad','Los adipocitos son destruidos mecánicamente por las contracciones','La RF asociada funde la membrana de los adipocitos'],c:1},
+    {q:'¿Qué criterios de exclusión específicos deben verificarse antes de aplicar Emsculpt en zona abdominal?',o:['Solo verificar el peso del paciente','Embarazo, DIU metálico, hernia abdominal activa, implantes metálicos en la zona, marcapasos, epilepsia, neoplasias activas, infecciones o lesiones cutáneas en el área y diástasis severa (evaluar caso por caso)','Solo verificar que no tengan marcapasos','No hay criterios de exclusión específicos'],c:1},
+    {q:'¿Cómo se diferencia el remodelado muscular del Emsculpt del producido por el entrenamiento de fuerza convencional a nivel histológico?',o:['Son idénticos histológicamente','El Emsculpt produce hipertrofia e hiperplasia simultáneas; el entrenamiento de fuerza convencional produce principalmente hipertrofia. El HIFEM genera daño muscular difuso en todas las fibras simultáneamente, mientras el ejercicio recluta fibras secuencialmente','El entrenamiento produce más hiperplasia que el Emsculpt','El Emsculpt no produce cambios histológicos verificables'],c:1},
+    {q:'¿Qué parámetros deben ajustarse en el protocolo Emsculpt para glúteos vs abdomen?',o:['Son exactamente iguales, no hay diferencia','El aplicador para glúteos tiene diferente geometría; la intensidad puede ajustarse según la tolerancia; el protocolo glúteo busca primariamente hipertrofia mientras el abdominal equilibra tonificación y reducción de grasa; el posicionamiento del paciente también varía','Solo varía el tiempo de sesión','Solo varía si el paciente tiene dolor'],c:1},
+    {q:'¿Cuál es la base fisiológica de la sensación de agujetas (DOMS) post-Emsculpt?',o:['Las agujetas son señal de que el equipo funcionó mal','El DOMS post-Emsculpt responde al mismo mecanismo que el ejercicio: microlesiones en las fibras musculares por las contracciones supramáximas, respuesta inflamatoria local y síntesis proteica para reparación; indica respuesta muscular correcta al tratamiento','Las agujetas indican quemadura del músculo','El Emsculpt no produce agujetas nunca'],c:1},
+    {q:'¿Cómo interactúa el Emsculpt con la criolipólisis en protocolos combinados?',o:['Son incompatibles y nunca se combinan','La criolipólisis elimina adipocitos por frío y puede hacerse antes o después del Emsculpt; el Emsculpt potencia la tonificación muscular en la zona tratada; la combinación aborda simultaneamente reducción de grasa profunda y tonificación muscular','El Emsculpt anula el efecto de la criolipólisis','Solo se combinan si el paciente tiene obesidad'],c:1},
+    {q:'¿Qué implicaciones tiene el campo electromagnético del Emsculpt sobre implantes metálicos no relacionados con la zona tratada?',o:['Solo afecta implantes en la zona exacta de tratamiento','El campo electromagnético puede extenderse más allá de la zona de aplicación; implantes metálicos, DIU, marcapasos u otros dispositivos electrónicos en un radio relevante deben evaluarse caso por caso; el operador debe conocer la distribución del campo del equipo','Los implantes metálicos no interactúan con campos magnéticos','Solo afecta implantes de titanio'],c:1},
+    {q:'¿Cuál es la evidencia sobre el uso del Emsculpt en rehabilitación y fortalecimiento post-quirúrgico?',o:['Está completamente contraindicado en cualquier contexto postquirúrgico','Estudios exploratorios muestran potencial para recuperación muscular post-cirugía (ej. post-liposucción, post-parto cuando está cicatrizado) para restablecer tono muscular; requiere evaluación médica previa y protocolo conservador adaptado al estado del paciente','Se puede usar inmediatamente tras cualquier cirugía','No existe ninguna evidencia sobre uso post-quirúrgico'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -522,7 +585,8 @@ async function saveEvaluacionTecnica(){
   const esLaser = evaluacion.id.startsWith('laser-');
   const esNdYAG = evaluacion.id.startsWith('ndyag-');
   const esExilis = evaluacion.id.startsWith('exilis-');
-  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis) || evaluacion.id === 'hifu-avanzado' || evaluacion.id === 'laser-avanzado' || evaluacion.id === 'ndyag-avanzado' || evaluacion.id === 'exilis-avanzado';
+  const esEmsculpt = evaluacion.id.startsWith('emsculpt-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado'].includes(evaluacion.id);
 
   if(aprobada && esHabilitante){
     try{
@@ -547,11 +611,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -821,7 +885,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -842,11 +906,13 @@ function renderEvaluacionesRows(allResultados){
     </div>`;
   }).join('');
 
-  const ndyag   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
-  const exilis  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
+  const ndyag    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
+  const exilis   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
+  const emsculpt = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
   return rowsOtros
-    + renderCertificacionGroup(allResultados, laser,  '#1976d2', '⚡', 'Certificación Depilación Láser')
-    + renderCertificacionGroup(allResultados, ndyag,  '#0097a7', '🔵', 'Certificación Nd:YAG')
-    + renderCertificacionGroup(allResultados, exilis, '#e65100', '🔶', 'Certificación Exilis Elite')
-    + renderCertificacionGroup(allResultados, hifu,   '#9c27b0', '💜', 'Certificación HIFU');
+    + renderCertificacionGroup(allResultados, laser,    '#1976d2', '⚡', 'Certificación Depilación Láser')
+    + renderCertificacionGroup(allResultados, ndyag,    '#0097a7', '🔵', 'Certificación Nd:YAG')
+    + renderCertificacionGroup(allResultados, exilis,   '#e65100', '🔶', 'Certificación Exilis Elite')
+    + renderCertificacionGroup(allResultados, emsculpt, '#2e7d32', '💪', 'Certificación Emsculpt')
+    + renderCertificacionGroup(allResultados, hifu,     '#9c27b0', '💜', 'Certificación HIFU');
 }
