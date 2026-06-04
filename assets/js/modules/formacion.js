@@ -5,6 +5,9 @@
 const CAT_ICONS = {
   'Láser Depilación':'⚡','Radiofrecuencia / HIFU':'💜',
   'Pressoterapia':'🌊','Electroestimulación':'⚡','General':'📋',
+  'Bioseguridad':'📚','Skincare':'📚','Atención al Cliente':'📚',
+  'Masajes':'💆','Cavitación':'💆','Criolipólisis':'💆','Emsculpt':'💆','Bronceado':'💆',
+  'Aparatología':'🏅','Láser':'🏅','Nd:YAG':'🏅','Soprano':'🏅','Exilis':'🏅','HydraFacial':'🏅','HIFU':'🏅',
 };
 const MAT_ICONS = {manual:'📖',video:'🎬',guia:'📋',protocolo:'⚕️',presentacion:'📊',otro:'📌'};
 const CAP_RESULTADO = {aprobada:'✅ Aprobada',pendiente:'⏳ Pendiente',no_aprobada:'❌ No aprobada'};
@@ -14,6 +17,21 @@ const HAB_API_CATEGORIAS = {
   'Radiofrecuencia / HIFU':'hifu',
   'Pressoterapia':'Pressoterapia',
   'Electroestimulación':'electroestimulacion',
+  'Bioseguridad':'bioseguridad',
+  'Skincare':'skincare',
+  'Atención al Cliente':'atencion_cliente',
+  'Masajes':'masajes',
+  'Cavitación':'cavitacion',
+  'Criolipólisis':'criolipolisis',
+  'Emsculpt':'emsculpt',
+  'Bronceado':'bronceado',
+  'Aparatología':'aparatologia',
+  'Láser':'laser',
+  'Nd:YAG':'nd_yag',
+  'Soprano':'soprano',
+  'Exilis':'exilis',
+  'HydraFacial':'hydrafacial',
+  'HIFU':'hifu',
 };
 const EVAL_LASER_BASICO = {
   id:'laser-basico',
@@ -995,13 +1013,120 @@ const EVAL_RF_AVANZADO = {
   ],
 };
 const EVALUACIONES_TECNICAS = [EVAL_APARATOLOGIA_BASICO, EVAL_APARATOLOGIA_INTERMEDIO, EVAL_APARATOLOGIA_AVANZADO, EVAL_SKINCARE_BASICO, EVAL_SKINCARE_INTERMEDIO, EVAL_SKINCARE_AVANZADO, EVAL_ATENCION_BASICO, EVAL_ATENCION_INTERMEDIO, EVAL_ATENCION_AVANZADO, EVAL_BIOSEGURIDAD_BASICO, EVAL_BIOSEGURIDAD_INTERMEDIO, EVAL_BIOSEGURIDAD_AVANZADO, EVAL_MASAJES_BASICO, EVAL_MASAJES_INTERMEDIO, EVAL_MASAJES_AVANZADO, EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_CAVITACION_BASICO, EVAL_CAVITACION_AVANZADO, EVAL_CRIOLIPOLISIS_BASICO, EVAL_CRIOLIPOLISIS_INTERMEDIO, EVAL_CRIOLIPOLISIS_AVANZADO, EVAL_RF_BASICO, EVAL_RF_INTERMEDIO, EVAL_RF_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_BRONCEADO_BASICO, EVAL_BRONCEADO_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const CERT_NIVELES = [
+  {
+    id:'nivel-1',
+    titulo:'Nivel 1',
+    subtitulo:'Fundamentos',
+    icon:'📚',
+    certs:['Bioseguridad','Skincare','Atención al Cliente'],
+  },
+  {
+    id:'nivel-2',
+    titulo:'Nivel 2',
+    subtitulo:'Técnicas Corporales',
+    icon:'💆',
+    certs:['Masajes','Cavitación','Criolipólisis','Emsculpt','Bronceado'],
+  },
+  {
+    id:'nivel-3',
+    titulo:'Nivel 3',
+    subtitulo:'Aparatología Avanzada',
+    icon:'🏅',
+    certs:['Aparatología','Láser','Nd:YAG','Soprano','Exilis','HydraFacial','HIFU'],
+  },
+];
+const CERT_KEYWORDS = {
+  'Bioseguridad':['bioseguridad','higiene','desinfeccion','desinfección','seguridad'],
+  'Skincare':['skincare','skin care','facial','piel','limpieza facial'],
+  'Atención al Cliente':['atencion al cliente','atención al cliente','cliente','recepcion','recepción'],
+  'Masajes':['masaje','masajes','drenaje'],
+  'Cavitación':['cavitacion','cavitación'],
+  'Criolipólisis':['criolipolisis','criolipólisis','crio'],
+  'Emsculpt':['emsculpt','ems','electroestimulacion','electroestimulación'],
+  'Bronceado':['bronceado','bronceador'],
+  'Aparatología':['aparatologia','aparatología','equipo','equipos'],
+  'Láser':['laser','láser','depilacion laser','depilación láser','laser depilacion','láser depilación'],
+  'Nd:YAG':['nd:yag','nd yag','ndyag','ndyac'],
+  'Soprano':['soprano','titanium','ice'],
+  'Exilis':['exilis'],
+  'HydraFacial':['hydrafacial','hidrofacial','hydra facial'],
+  'HIFU':['hifu','12d','22d','liposonix'],
+};
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
 function catPill(cat){
   const cls={'Láser Depilación':'cat-laser','Radiofrecuencia / HIFU':'cat-hifu',
-             'Pressoterapia':'cat-presso','Electroestimulación':'cat-electro','General':'cat-laser'};
+             'Pressoterapia':'cat-presso','Electroestimulación':'cat-electro','General':'cat-laser',
+             'Bioseguridad':'cat-fund','Skincare':'cat-fund','Atención al Cliente':'cat-fund',
+             'Masajes':'cat-body','Cavitación':'cat-body','Criolipólisis':'cat-body','Emsculpt':'cat-body','Bronceado':'cat-body',
+             'Aparatología':'cat-advanced','Láser':'cat-advanced','Nd:YAG':'cat-advanced','Soprano':'cat-advanced',
+             'Exilis':'cat-advanced','HydraFacial':'cat-advanced','HIFU':'cat-advanced'};
   return `<span class="cat-pill ${cls[cat]||''}">${CAT_ICONS[cat]||'📋'} ${cat}</span>`;
+}
+function normCertText(v){
+  return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function materialCertText(m){
+  return normCertText([m.titulo,m.categoria,m.desc,m.tipo].filter(Boolean).join(' '));
+}
+function certMatchesText(cert,text){
+  const terms=[cert].concat(CERT_KEYWORDS[cert]||[]).map(normCertText);
+  return terms.some(term=>term&&text.includes(term));
+}
+function certMatchesMaterial(cert,m){
+  const text=materialCertText(m);
+  if(certMatchesText(cert,text)) return true;
+  if(cert==='Láser' && m.categoria==='Láser Depilación') return true;
+  if(cert==='HIFU' && m.categoria==='Radiofrecuencia / HIFU') return true;
+  if(cert==='Emsculpt' && m.categoria==='Electroestimulación') return true;
+  return false;
+}
+function certMatchesEvaluacion(cert,ev){
+  const text=materialCertText({titulo:ev.titulo,categoria:ev.categoria,desc:''});
+  if(certMatchesText(cert,text)) return true;
+  if(cert==='Láser' && ev.categoria==='Láser Depilación') return true;
+  if(cert==='HIFU' && ev.categoria==='Radiofrecuencia / HIFU') return true;
+  return false;
+}
+function certPassesFilter(cert,items,evals){
+  if(!matFilter) return true;
+  if(cert===matFilter) return true;
+  if(items.some(m=>m.categoria===matFilter || certMatchesMaterial(matFilter,m))) return true;
+  if(evals.some(ev=>ev.categoria===matFilter || certMatchesEvaluacion(matFilter,ev))) return true;
+  return false;
+}
+function renderCertMaterialRow(m){
+  return `<div class="material-row cert-subrow">
+    <div class="material-icon">${MAT_ICONS[m.tipo]||'📌'}</div>
+    <div class="material-body">
+      <div class="material-title">${m.titulo}</div>
+      <div class="material-sub">${m.desc||'—'}</div>
+    </div>
+    <div class="cert-actions">
+      <span class="badge ${m.obligatorio==='obligatorio'?'badge-obligatorio':'badge-opcional'}">${m.obligatorio==='obligatorio'?'Obligatorio':'Opcional'}</span>
+      <span class="badge ${m.estado==='activo'?'badge-green':'badge-gray'}">${m.estado}</span>
+      ${m.url?`<a href="${m.url}" target="_blank" class="action-btn" style="color:var(--blue)">🔗 Ver</a>`:''}
+      ${isSuperAdmin()||canEdit()?`<button class="action-btn" onclick="openMaterialModal(${m.id})" style="margin-left:2px">✏️</button>`:''}
+    </div>
+  </div>`;
+}
+function renderCertEvaluacionRow(ev,allResultados){
+  const resultados=allResultados.filter(r=>r.evaluacionId===ev.id);
+  const aprobadasEv=resultados.filter(r=>r.estado==='aprobada').length;
+  return `<div class="material-row cert-subrow">
+    <div class="material-icon">🧪</div>
+    <div class="material-body">
+      <div class="material-title">${ev.titulo}</div>
+      <div class="material-sub">${ev.preguntas.length} preguntas multiple choice. Aprobación: ${ev.minimoAprobacion}/${ev.preguntas.length}. ${aprobadasEv} aprobadas · ${resultados.length} intentos.</div>
+    </div>
+    <div class="cert-actions">
+      <span class="badge badge-obligatorio">Obligatorio</span>
+      <span class="badge badge-green">${ev.categoria}</span>
+      ${puedeTomarEvaluacion()?`<button class="action-btn" onclick="openEvaluacionModal('${ev.id}')" style="color:var(--blue)">Tomar evaluación</button>`:''}
+    </div>
+  </div>`;
 }
 
 // ── Habilitación check ──
@@ -1031,41 +1156,58 @@ function puedeTomarEvaluacion(){
   return !!(isSuperAdmin() || canEdit() || (typeof isOperadoraUser === 'function' && isOperadoraUser()));
 }
 function renderMateriales(){
-  const mats=(DB.get('materiales')||[]).filter(m=>
-    (!matFilter || m.categoria===matFilter) &&
-    (!matTipoFilter || matTipoFilter==='test' || m.tipo===matTipoFilter)
-  );
-  const cats=['Láser Depilación','Radiofrecuencia / HIFU','Pressoterapia','Electroestimulación','General'];
-
-  const bycat=cats.map(cat=>{
-    const items=mats.filter(m=>m.categoria===cat);
-    if(!items.length) return '';
-    return `<div class="table-container" style="margin-bottom:16px">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:13px;font-weight:700;color:var(--text)">${catPill(cat)}</div>
-        <span style="font-size:12px;color:var(--text3)">${items.filter(m=>m.estado==='activo').length} activos</span>
-      </div>
-      ${items.map(m=>`<div class="material-row">
-        <div class="material-icon">${MAT_ICONS[m.tipo]||'📌'}</div>
-        <div class="material-body">
-          <div class="material-title">${m.titulo}</div>
-          <div class="material-sub">${m.desc||'—'}</div>
+  const mats=(DB.get('materiales')||[]).filter(m=>!matTipoFilter || matTipoFilter==='test' || m.tipo===matTipoFilter);
+  const evals=(!matTipoFilter || matTipoFilter==='test') ? EVALUACIONES_TECNICAS : [];
+  const allResultados=getEvaluacionResultados();
+  const intentos=allResultados.length;
+  const aprobadas=allResultados.filter(r=>r.estado==='aprobada').length;
+  const niveles=CERT_NIVELES.map((nivel,nivelIndex)=>{
+    const certs=nivel.certs.map(cert=>{
+      const items=matTipoFilter==='test' ? [] : mats.filter(m=>certMatchesMaterial(cert,m));
+      const evs=evals.filter(ev=>certMatchesEvaluacion(cert,ev));
+      if(!certPassesFilter(cert,items,evs)) return '';
+      const total=items.length+evs.length;
+      return `<details class="cert-item">
+        <summary class="cert-item-summary">
+          <span class="cert-item-title">${cert}</span>
+          <span class="cert-count">${total ? `${total} contenido${total===1?'':'s'}` : 'Sin contenido cargado'}</span>
+        </summary>
+        <div class="cert-item-body">
+          ${evs.map(ev=>renderCertEvaluacionRow(ev,allResultados)).join('')}
+          ${items.map(renderCertMaterialRow).join('')}
+          ${!total?`<div class="cert-empty">
+            <span>Preparado para cargar materiales, videos o tests de ${cert}.</span>
+            ${isSuperAdmin()||canEdit()?`<button class="action-btn" onclick="openMaterialModal(null,'${cert}')">+ Agregar material</button>`:''}
+          </div>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <span class="badge ${m.obligatorio==='obligatorio'?'badge-obligatorio':'badge-opcional'}">${m.obligatorio==='obligatorio'?'Obligatorio':'Opcional'}</span>
-          <span class="badge ${m.estado==='activo'?'badge-green':'badge-gray'}">${m.estado}</span>
-          ${m.url?`<a href="${m.url}" target="_blank" class="action-btn" style="color:var(--blue)">🔗 Ver</a>`:''}
-          ${isSuperAdmin()||canEdit()?`<button class="action-btn" onclick="openMaterialModal(${m.id})" style="margin-left:2px">✏️</button>`:''}
-        </div>
-      </div>`).join('')}
-    </div>`;
-  }).join('');
-
-  const evalBlock = (!matTipoFilter || matTipoFilter==='test') ? renderEvaluaciones() : '';
-  const matsBlock = matTipoFilter==='test' ? '' : (bycat ||
-    `<div class="empty-state"><div class="icon">📚</div><h3>Sin materiales</h3></div>`
+      </details>`;
+    }).filter(Boolean).join('');
+    if(!certs) return '';
+    return `<details class="cert-level" ${nivelIndex===0?'open':''}>
+      <summary class="cert-level-summary">
+        <span class="cert-level-icon">${nivel.icon}</span>
+        <span>
+          <span class="cert-level-title">${nivel.titulo}</span>
+          <span class="cert-level-subtitle">${nivel.subtitulo}</span>
+        </span>
+        <span class="cert-level-total">${nivel.certs.length} certificaciones</span>
+      </summary>
+      <div class="cert-level-body">${certs}</div>
+    </details>`;
+  }).filter(Boolean).join('');
+  const header=`<div class="cert-overview">
+    <div>
+      <div class="cert-overview-title">Mapa de certificaciones DepiMóvil</div>
+      <div class="cert-overview-sub">Niveles colapsables con certificaciones individuales, tests y materiales asociados.</div>
+    </div>
+    <div class="cert-overview-stats">
+      <span>${aprobadas} aprobadas</span>
+      <span>${intentos} intentos</span>
+    </div>
+  </div>`;
+  document.getElementById('materialesContent').innerHTML = header + (niveles ||
+    `<div class="empty-state"><div class="icon">📚</div><h3>Sin certificaciones para el filtro seleccionado</h3></div>`
   );
-  document.getElementById('materialesContent').innerHTML = evalBlock + matsBlock;
 }
 function filterMateriales(cat){ matFilter=cat; renderMateriales(); }
 function filterMaterialesTipo(tipo){ matTipoFilter=tipo || ''; renderMateriales(); }
@@ -1284,7 +1426,7 @@ function openEvaluacionFromHash(){
   return true;
 }
 
-function openMaterialModal(id){
+function openMaterialModal(id,categoriaSugerida){
   document.getElementById('modalMaterialTitle').textContent = id ? 'Editar Material' : 'Nuevo Material';
   if(id){
     const m=getMaterial(id); if(!m)return;
@@ -1293,7 +1435,7 @@ function openMaterialModal(id){
     sv('materialUrl',m.url||''); sv('materialEstado',m.estado); sv('materialObligatorio',m.obligatorio);
   } else {
     sv('materialId',''); sv('materialTitulo',''); sv('materialTipo','manual');
-    sv('materialCategoria','General'); sv('materialDesc',''); sv('materialUrl','');
+    sv('materialCategoria',categoriaSugerida||'General'); sv('materialDesc',''); sv('materialUrl','');
     sv('materialEstado','activo'); sv('materialObligatorio','obligatorio');
   }
   openModal('modalMaterial');
@@ -1409,27 +1551,45 @@ async function saveHabilitacion(){
 
 // ── Panel HTML helpers for fichas ──
 function renderHabPanel(operadoraId){
-  const CATS=['Láser Depilación','Radiofrecuencia / HIFU','Pressoterapia','Electroestimulación'];
   const habs=getHabilitacionesByOp(operadoraId);
+  const categorias=CERT_NIVELES.flatMap(n=>n.certs);
   return `<div class="info-card full">
     <h4 style="display:flex;align-items:center;justify-content:space-between">
       ✅ Habilitaciones Técnicas
       ${canEdit()?`<button class="btn-add" style="font-size:12px;padding:5px 10px" onclick="openHabilitacionModal(${operadoraId})">+ Habilitar</button>`:''}
     </h4>
-    <div class="hab-grid">
-      ${CATS.map(cat=>{
-        const chk=estaHabilitada(operadoraId,cat);
-        const hab=habs.filter(h=>h.categoria===cat).slice(-1)[0];
-        return `<div class="hab-card ${chk.ok?'enabled':'disabled-hab'}">
-          <div class="hc-cat">${CAT_ICONS[cat]||'📋'} ${cat}</div>
-          <div class="hc-status" style="color:${chk.ok?'var(--green)':'var(--red)'}">
-            ${chk.ok?'✅ Habilitada':'❌ Sin habilitación'}
+    <div class="hab-levels">
+      ${CERT_NIVELES.map(nivel=>{
+        const activas=nivel.certs.filter(cat=>estaHabilitada(operadoraId,cat).ok).length;
+        return `<details class="hab-level" ${activas?'open':''}>
+          <summary class="hab-level-summary">
+            <span>${nivel.icon} ${nivel.titulo} — ${nivel.subtitulo}</span>
+            <span>${activas}/${nivel.certs.length}</span>
+          </summary>
+          <div class="hab-grid">
+            ${nivel.certs.map(cat=>{
+              const chk=estaHabilitada(operadoraId,cat);
+              const hab=habs.filter(h=>h.categoria===cat).slice(-1)[0];
+              return `<div class="hab-card ${chk.ok?'enabled':'disabled-hab'}">
+                <div class="hc-cat">${CAT_ICONS[cat]||'📋'} ${cat}</div>
+                <div class="hc-status" style="color:${chk.ok?'var(--green)':'var(--red)'}">
+                  ${chk.ok?'✅ Habilitada':'❌ Sin habilitación'}
+                </div>
+                ${hab?`<div class="hc-date">Desde: ${fmtDate(hab.fecha)}</div>`:''}
+                ${hab&&hab.estado!=='activa'?`<div class="hc-date" style="color:var(--red)">${HAB_ESTADOS[hab.estado]||hab.estado}</div>`:''}
+              </div>`;
+            }).join('')}
           </div>
-          ${hab?`<div class="hc-date">Desde: ${fmtDate(hab.fecha)}</div>`:''}
-          ${hab&&hab.estado!=='activa'?`<div class="hc-date" style="color:var(--red)">${HAB_ESTADOS[hab.estado]||hab.estado}</div>`:''}
-        </div>`;
+        </details>`;
       }).join('')}
     </div>
+    ${habs.some(h=>h.categoria&&!categorias.includes(h.categoria))?`<div class="hab-grid" style="margin-top:10px">
+      ${habs.filter(h=>h.categoria&&!categorias.includes(h.categoria)).map(h=>`<div class="hab-card ${h.estado==='activa'?'enabled':'disabled-hab'}">
+        <div class="hc-cat">${CAT_ICONS[h.categoria]||'📋'} ${h.categoria}</div>
+        <div class="hc-status" style="color:${h.estado==='activa'?'var(--green)':'var(--red)'}">${HAB_ESTADOS[h.estado]||h.estado}</div>
+        ${h.fecha?`<div class="hc-date">Desde: ${fmtDate(h.fecha)}</div>`:''}
+      </div>`).join('')}
+    </div>`:''}
     ${habs.length?`<details style="margin-top:12px"><summary style="font-size:12px;color:var(--text3);cursor:pointer">Ver historial (${habs.length})</summary>
       <div style="margin-top:8px">${habs.sort((a,b)=>b.ts.localeCompare(a.ts)).map(h=>`
         <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;display:flex;align-items:center;gap:10px">
