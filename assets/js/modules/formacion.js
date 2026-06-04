@@ -238,7 +238,70 @@ const EVAL_NDYAG_AVANZADO = {
     {q:'¿Qué diferencia al Nd:YAG pulsado en modo largo del Nd:YAG Q-Switched en términos de aplicación clínica en estética?',o:['Son idénticos en aplicación','El Nd:YAG Long Pulse (ms) genera calor difuso para depilación y lesiones vasculares; el Q-Switched (ns) genera ondas de presión fotoacústicas para fragmentar pigmentos de tatuajes y melanosomas. Son mecanismos y aplicaciones clínicas completamente distintos','El Q-Switched es mejor para depilación','El Long Pulse es mejor para tatuajes'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_EXILIS_BASICO = {
+  id:'exilis-basico',
+  titulo:'Test Básico — Exilis Elite',
+  categoria:'Radiofrecuencia / HIFU',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué tecnologías combina el equipo Exilis Elite?',o:['Láser y crioterapia','Radiofrecuencia monopolar y ultrasonido focalizado','Luz pulsada intensa y corriente galvánica','Cavitación y electropuntura'],c:1},
+    {q:'¿Para qué se usa principalmente el Exilis Elite?',o:['Depilación definitiva','Rejuvenecimiento facial, reafirmación y reducción de grasa localizada sin cirugía','Eliminación de tatuajes','Tratamiento de acné activo'],c:1},
+    {q:'¿El Exilis Elite es un procedimiento invasivo?',o:['Sí, requiere incisiones','Sí, requiere anestesia local','No, es completamente no invasivo','Sí, usa agujas'],c:2},
+    {q:'¿Qué sensación describe habitualmente el paciente durante el tratamiento?',o:['Dolor intenso y quemadura','Frío intenso en toda la zona','Calor suave y agradable, como una piedra tibia deslizándose por la piel','Corriente eléctrica fuerte'],c:2},
+    {q:'¿Cuántas sesiones se recomiendan generalmente con Exilis Elite?',o:['1 sola sesión','10 sesiones diarias','4 a 6 sesiones por zona','20 sesiones mínimo'],c:2},
+    {q:'¿Con qué frecuencia se realizan las sesiones de Exilis Elite?',o:['Cada 24 horas','Cada 7 a 21 días según la zona y el protocolo','Una vez al año','Cada 3 meses'],c:1},
+    {q:'¿En qué zonas del cuerpo se puede aplicar el Exilis Elite?',o:['Solo en el rostro','Solo en piernas y abdomen','Cara, cuello, escote y zonas corporales como abdomen, muslos y brazos','Solo en zonas con celulitis severa'],c:2},
+    {q:'¿Cuál es la temperatura objetivo en los tejidos durante el tratamiento corporal?',o:['20-25 °C','40-43 °C','70-80 °C','100 °C'],c:1},
+    {q:'¿Qué cuidado es recomendable después de cada sesión de Exilis?',o:['Exposición solar directa para potenciar el efecto','Hidratación abundante (2-3 litros de agua en las siguientes 24 horas) y aplicar crema hidratante','Ayuno estricto de 24 horas','Evitar toda actividad física por 2 semanas'],c:1},
+    {q:'¿Cuál es una contraindicación para el uso del Exilis Elite?',o:['Piel con flacidez leve','Marcapasos, implantes metálicos en la zona o embarazo','Tener más de 30 años','Usar crema hidratante habitualmente'],c:1},
+    {q:'¿Qué efecto tiene la radiofrecuencia del Exilis sobre el colágeno?',o:['Lo destruye permanentemente','Estimula los fibroblastos para sintetizar nuevo colágeno, mejorando firmeza y elasticidad','Lo congela para tensar la piel','No tiene efecto sobre el colágeno'],c:1},
+    {q:'¿Cuándo se empiezan a notar los resultados del Exilis Elite?',o:['Nunca, los resultados son solo estéticos temporales','Algunos días después de la primera sesión con mejora progresiva en las siguientes sesiones','Solo después de 20 sesiones','Al año de finalizar el tratamiento'],c:1},
+  ],
+};
+const EVAL_EXILIS_INTERMEDIO = {
+  id:'exilis-intermedio',
+  titulo:'Test Intermedio — Exilis Elite',
+  categoria:'Radiofrecuencia / HIFU',
+  nivel:'Intermedio',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cómo actúa la radiofrecuencia monopolar del Exilis Elite en el tejido?',o:['Destruye células por congelación','Genera corriente eléctrica alterna que produce calor por resistencia tisular, estimulando fibroblastos y síntesis de colágeno en dermis profunda','Actúa solo en la superficie epidérmica','Emite luz para fotoestimular las células'],c:1},
+    {q:'¿Qué función cumple el ultrasonido en el Exilis Elite?',o:['Solo mejora el confort del paciente','Permite acceder a capas más profundas de grasa, generando efecto mecánico y térmico sobre el tejido adiposo, complementando la acción de la radiofrecuencia','Enfría la piel durante el tratamiento','Desinfecta la zona tratada'],c:1},
+    {q:'¿Qué es el sistema de control de temperatura integrado en el Exilis Elite?',o:['Un termómetro manual que usa el operador','Un sistema automático que monitoriza la temperatura de la piel en tiempo real ajustando la energía para mantenerse en el rango terapéutico y evitar quemaduras','Un sistema de alarma que detiene el equipo si hay dolor','Solo una guía visual sin función de control real'],c:1},
+    {q:'¿Cuál es la diferencia entre el aplicador facial y el corporal del Exilis Elite?',o:['Son idénticos, solo cambia el nombre','El facial tiene menor superficie de contacto y parámetros más delicados para zonas sensibles; el corporal tiene mayor área de cobertura y energía para tejidos más profundos','El facial usa ultrasonido y el corporal solo radiofrecuencia','El corporal es más frío que el facial'],c:1},
+    {q:'¿Qué es la impedancia inteligente en el Exilis Elite?',o:['Un modo de ahorro de energía del equipo','Un sistema que ajusta automáticamente la entrega de energía según la resistencia del tejido de cada paciente, optimizando la eficacia y la seguridad','Un tipo de corriente galvánica especial','Una función decorativa del panel de control'],c:1},
+    {q:'¿Por qué se divide la zona a tratar en cuadrículas de aproximadamente 10x10 cm en el protocolo Exilis?',o:['Para hacer el tratamiento más rápido','Para asegurar cobertura uniforme y dosis de energía homogénea en toda la zona, evitando áreas sin tratar o con exceso de energía','Para que el paciente pueda ver el progreso','Solo es una sugerencia estética del fabricante'],c:1},
+    {q:'¿Qué efecto tiene el sistema de enfriamiento gradual del Exilis sobre la epidermis?',o:['Congela la grasa superficial','Protege la epidermis del daño térmico mientras la energía penetra en las capas más profundas, permitiendo trabajar con mayor seguridad','Aumenta la temperatura superficial','No tiene efecto real sobre la epidermis'],c:1},
+    {q:'¿Qué zonas del rostro responden mejor al tratamiento con Exilis Elite facial?',o:['Solo la frente','Mejillas, óvalo facial, cuello, zona periocular y escote, donde la flacidez y las arrugas responden bien al calor estimulante de colágeno','Solo los labios','Solo la nariz'],c:1},
+    {q:'¿Qué tratamientos complementan bien al Exilis Elite para potenciar resultados corporales?',o:['Cera depilatoria y crema solar','Cavitación, criolipólisis o carboxiterapia en sesiones diferenciadas, que actúan sobre distintas capas o mecanismos del tejido adiposo','Solo dieta hipocalórica sin ningún otro tratamiento','Electrólisis y depilación láser'],c:1},
+    {q:'¿Cuál es el perfil de paciente ideal para el Exilis Elite?',o:['Pacientes con obesidad severa que buscan reemplazar la cirugía bariátrica','Personas con flacidez leve a moderada, arrugas o pequeñas áreas de grasa localizada que buscan mejora no invasiva','Pacientes con enfermedades dermatológicas activas severas','Solo pacientes mayores de 60 años'],c:1},
+    {q:'¿Qué recomendación nutricional acompaña al tratamiento con Exilis para optimizar resultados?',o:['Dieta hipercalórica rica en grasas','Dieta hipocalórica rica en proteínas con suplementación de aminoácidos específicos para favorecer la síntesis de colágeno','Ayuno intermitente estricto durante el tratamiento','No hay recomendación nutricional específica'],c:1},
+    {q:'¿Por qué el Exilis Elite es una buena opción post-liposucción?',o:['Porque elimina los hematomas quirúrgicos','Porque actúa sobre la flacidez residual y la piel suelta que queda tras eliminar el volumen graso, reafirmando y mejorando la textura sin nueva cirugía','Porque desinfecta la zona operada','Porque duplica la eliminación de grasa lograda en la cirugía'],c:1},
+  ],
+};
+const EVAL_EXILIS_AVANZADO = {
+  id:'exilis-avanzado',
+  titulo:'Test Avanzado — Exilis Elite',
+  categoria:'Radiofrecuencia / HIFU',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es el mecanismo molecular por el que la radiofrecuencia del Exilis estimula la síntesis de colágeno?',o:['Activa melanocitos para producir melanina','El calor generado por la RF desnaturaliza parcialmente las fibras de colágeno existentes, activando fibroblastos que sintetizan nuevo colágeno tipo I y III en el proceso de reparación tisular','Congela las células para inducir apoptosis','Inhibe las metaloproteinasas de forma permanente'],c:1},
+    {q:'¿Cómo actúa el ultrasonido del Exilis Elite a nivel del tejido adiposo profundo?',o:['Solo produce calor superficial','El efecto mecánico de las ondas ultrasónicas genera cavitación y calor en el tejido adiposo profundo, disruptando membranas de adipocitos y facilitando la lipólisis, complementando la acción de la RF en capas más superficiales','Congela los adipocitos como en criolipólisis','Destruye el tejido adiposo por corriente eléctrica'],c:1},
+    {q:'¿Qué diferencia al Exilis Elite de la radiofrecuencia fraccionada en términos de mecanismo?',o:['Son idénticos','La RF fraccionada genera microlesiones térmicas puntuales en patrones separados; el Exilis aplica calor uniforme y controlado en toda la zona mediante movimiento continuo del aplicador, con monitorización de temperatura en tiempo real','El Exilis es menos efectivo que la RF fraccionada','La RF fraccionada solo funciona en rostro'],c:1},
+    {q:'¿Qué rol cumple la placa de retorno (plaquita de transmisión) en el Exilis Elite monopolar?',o:['Es solo un accesorio de sujeción','Completa el circuito eléctrico de la radiofrecuencia monopolar: la corriente fluye desde el aplicador a través del tejido hasta la placa de retorno colocada en una zona opuesta, generando calor en todo el trayecto tisular','No tiene ninguna función eléctrica','Solo mide la temperatura de la piel'],c:1},
+    {q:'¿Por qué el Exilis Elite es más seguro para la epidermis que otras RF de alta energía sin control de temperatura?',o:['Porque usa menor energía en total','El sistema de monitorización de temperatura en tiempo real, combinado con el enfriamiento simultáneo, permite mantener la epidermis en rangos seguros mientras las capas profundas alcanzan temperatura terapéutica','Porque el aplicador nunca toca la piel','Porque solo actúa a 1 mm de profundidad'],c:1},
+    {q:'¿Cuál es la base biofísica que explica por qué el ultrasonido puede tratar capas grasas que la RF sola no alcanza eficazmente?',o:['El ultrasonido es más caliente que la RF','El ultrasonido penetra selectivamente en tejido adiposo por su mayor coeficiente de absorción ultrasónica comparado con dermis y músculo, permitiendo focalizar energía en capas más profundas donde la RF pierde eficacia por atenuación','El ultrasonido tiene mayor longitud de onda','El ultrasonido actúa solo en la superficie'],c:1},
+    {q:'¿Qué implicaciones clínicas tiene la flacidez severa (grado III-IV) para el protocolo Exilis?',o:['Se trata igual que la flacidez leve','La flacidez severa puede requerir más sesiones, parámetros de mayor energía o combinación con otros procedimientos; el Exilis tiene límites en casos muy avanzados donde puede ser necesario derivar a procedimientos quirúrgicos','El Exilis siempre resuelve cualquier grado de flacidez','La flacidez severa contraindica el Exilis'],c:1},
+    {q:'¿Cómo interactúa el calor del Exilis con las fibras de elastina además del colágeno?',o:['No tiene efecto sobre la elastina','El calor terapéutico también estimula la síntesis de elastina por los fibroblastos, mejorando la elasticidad y la capacidad de retracción de la piel, complementando el efecto sobre el colágeno','Destruye la elastina permanentemente','Solo actúa sobre colágeno tipo II'],c:1},
+    {q:'¿Qué consideraciones especiales requiere el tratamiento Exilis en la zona periocular?',o:['No hay consideraciones especiales, se trata igual que el resto del rostro','La zona periocular requiere aplicadores específicos de menor tamaño, parámetros de energía reducidos y mayor cuidado para evitar el calor excesivo cercano al globo ocular; algunos protocolos incluyen protección ocular','Se contraindica completamente en esa zona','Solo se puede tratar con ultrasonido, no con RF'],c:1},
+    {q:'¿Cuál es el fundamento científico de combinar Exilis Elite con carboxiterapia en protocolos corporales?',o:['No tiene fundamento científico','La carboxiterapia mejora la microcirculación y la oxigenación tisular, potenciando el metabolismo de los lípidos liberados por la acción del Exilis; actúan en mecanismos complementarios sobre el tejido adiposo y la flacidez','Son incompatibles en el mismo ciclo de tratamiento','La carboxiterapia enfría el efecto del Exilis'],c:1},
+    {q:'¿Qué parámetros debe ajustar el operador según el fototipo y el grosor del tejido en el Exilis Elite?',o:['No se ajusta ningún parámetro, el equipo lo hace todo automáticamente','La potencia de RF y ultrasonido, la velocidad de movimiento del aplicador y la temperatura objetivo; pieles más finas o sensibles requieren parámetros más conservadores; tejidos más gruesos pueden requerir mayor energía y más tiempo por cuadrícula','Solo se ajusta el tiempo de sesión','Solo se ajusta si el paciente siente dolor'],c:1},
+    {q:'¿Por qué el Exilis Elite está contraindicado sobre zonas con implantes de silicona o rellenos recientes?',o:['No está contraindicado en esas zonas','El calor generado por la RF puede alterar la integridad de los implantes de silicona o degradar/desplazar rellenos inyectables; se debe evitar tratar directamente sobre estas estructuras o esperar el tiempo recomendado post-procedimiento','Es obligatorio tratar sobre los implantes para mejores resultados','Los rellenos potencian el efecto del Exilis'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -458,7 +521,8 @@ async function saveEvaluacionTecnica(){
   const esHIFU = evaluacion.id.startsWith('hifu-');
   const esLaser = evaluacion.id.startsWith('laser-');
   const esNdYAG = evaluacion.id.startsWith('ndyag-');
-  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG) || evaluacion.id === 'hifu-avanzado' || evaluacion.id === 'laser-avanzado' || evaluacion.id === 'ndyag-avanzado';
+  const esExilis = evaluacion.id.startsWith('exilis-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis) || evaluacion.id === 'hifu-avanzado' || evaluacion.id === 'laser-avanzado' || evaluacion.id === 'ndyag-avanzado' || evaluacion.id === 'exilis-avanzado';
 
   if(aprobada && esHabilitante){
     try{
@@ -483,11 +547,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser || esNdYAG)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -757,7 +821,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -778,9 +842,11 @@ function renderEvaluacionesRows(allResultados){
     </div>`;
   }).join('');
 
-  const ndyag = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
+  const ndyag   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
+  const exilis  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
   return rowsOtros
-    + renderCertificacionGroup(allResultados, laser, '#1976d2', '⚡', 'Certificación Depilación Láser')
-    + renderCertificacionGroup(allResultados, ndyag, '#0097a7', '🔵', 'Certificación Nd:YAG')
-    + renderCertificacionGroup(allResultados, hifu,  '#9c27b0', '💜', 'Certificación HIFU');
+    + renderCertificacionGroup(allResultados, laser,  '#1976d2', '⚡', 'Certificación Depilación Láser')
+    + renderCertificacionGroup(allResultados, ndyag,  '#0097a7', '🔵', 'Certificación Nd:YAG')
+    + renderCertificacionGroup(allResultados, exilis, '#e65100', '🔶', 'Certificación Exilis Elite')
+    + renderCertificacionGroup(allResultados, hifu,   '#9c27b0', '💜', 'Certificación HIFU');
 }
