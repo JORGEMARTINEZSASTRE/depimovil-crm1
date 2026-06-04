@@ -175,7 +175,70 @@ const EVAL_HIFU_AVANZADO = {
     {q:'¿Cuál es la base científica para combinar HIFU con radiofrecuencia?',o:['No tiene base científica','HIFU actúa en profundidad (SMAS/grasa) y RF en dermis superficial — capas complementarias','La RF enfría el HIFU','La RF amplifica ultrasonido'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_NDYAG_BASICO = {
+  id:'ndyag-basico',
+  titulo:'Test Básico — Láser Nd:YAG',
+  categoria:'Láser Depilación',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué significa Nd:YAG?',o:['Neodymium-doped Yttrium Aluminium Garnet','Neutral Dynamic Yellow Adjustable Gain','Non-destructive Yielding Active Gel','Nano-density Yttrium Argon Generator'],c:0},
+    {q:'¿A qué longitud de onda opera el láser Nd:YAG para depilación?',o:['532 nm','755 nm','810 nm','1064 nm'],c:3},
+    {q:'¿Para qué tipo de piel está especialmente indicado el Nd:YAG?',o:['Solo para pieles muy claras (fototipo I)','Pieles oscuras (fototipos IV-VI) por su menor absorción epidérmica de melanina','Solo para pieles con vello rubio','Exclusivamente para la zona facial'],c:1},
+    {q:'¿Por qué el Nd:YAG es más seguro en pieles oscuras que el láser Alexandrita?',o:['Porque tiene menor potencia en general','Porque a 1064 nm la melanina epidérmica absorbe mucho menos energía, reduciendo el riesgo de quemaduras','Porque penetra menos profundo','Porque el spot es más pequeño'],c:1},
+    {q:'¿Qué sensación es habitual durante una sesión de Nd:YAG?',o:['No se siente absolutamente nada','Calor intenso y pinchazos más pronunciados que otros láseres, por su mayor penetración','Solo frío por el sistema de enfriamiento','Hormigueo eléctrico suave'],c:1},
+    {q:'¿Cuál es la preparación correcta antes de una sesión de Nd:YAG?',o:['Broncearse para activar la melanina','Afeitar la zona 24-48 horas antes y evitar exposición solar','Aplicar cera el día anterior','No hacer ninguna preparación especial'],c:1},
+    {q:'¿Qué tipo de vello puede tratar el Nd:YAG que otros láseres no pueden tan bien?',o:['Vello blanco o canoso','Vello en pieles muy oscuras donde otros láseres generarían riesgo de quemadura','Vello rubio','Vello muy fino y transparente'],c:1},
+    {q:'¿El Nd:YAG puede usarse para otras aplicaciones además de depilación?',o:['No, solo sirve para depilación','Sí, también para tratamiento de lesiones vasculares, rejuvenecimiento y pigmentaciones','Solo para depilación y nada más','Solo para uso médico hospitalario'],c:1},
+    {q:'¿Qué cuidado post-sesión es indispensable con el Nd:YAG?',o:['Exponerse al sol para ver mejor los resultados','Aplicar protector solar SPF 50+ y evitar exposición solar directa','Usar cera para eliminar restos de vello','Aplicar agua caliente en la zona tratada'],c:1},
+    {q:'¿Cuántas sesiones se necesitan generalmente con Nd:YAG?',o:['1 sola sesión es suficiente','3 sesiones máximo','6-8 sesiones o más según la zona y el fototipo','20 sesiones mínimo'],c:2},
+    {q:'¿Cuál es una contraindicación para el uso del Nd:YAG?',o:['Piel oscura (fototipo V-VI)','Piel bronceada activamente, heridas abiertas o infección en la zona','Vello oscuro y grueso','Ser mayor de 18 años'],c:1},
+    {q:'¿Qué protección ocular se requiere durante la sesión de Nd:YAG?',o:['No se necesita ninguna','Lentes de sol comunes','Gafas certificadas para 1064 nm tanto para el operador como para el paciente','Solo el operador necesita protección'],c:2},
+  ],
+};
+const EVAL_NDYAG_INTERMEDIO = {
+  id:'ndyag-intermedio',
+  titulo:'Test Intermedio — Láser Nd:YAG',
+  categoria:'Láser Depilación',
+  nivel:'Intermedio',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Por qué el Nd:YAG penetra más profundo que el Alexandrita 755 nm?',o:['Porque tiene mayor potencia de salida','A mayor longitud de onda, menor absorción por melanina y agua, lo que permite mayor penetración en el tejido','Porque el spot es más grande','Porque usa pulsos más cortos'],c:1},
+    {q:'¿Qué es la fluencia y por qué es crítica en el Nd:YAG?',o:['La velocidad de movimiento del cabezal','La energía por unidad de área (J/cm²); en Nd:YAG se usan fluencias más altas que en otros láseres para compensar la menor absorción por melanina','La frecuencia de repetición de disparos','El tamaño del spot'],c:1},
+    {q:'¿Cuál es el intervalo recomendado entre sesiones de Nd:YAG en zona corporal?',o:['Cada semana','Cada 15 días','Cada 6-8 semanas, siguiendo el ciclo de crecimiento del vello','Cada 6 meses'],c:2},
+    {q:'¿Qué riesgo específico existe al usar Nd:YAG sobre piel muy oscura con fluencia excesiva?',o:['Ningún riesgo específico','Hipopigmentación por destrucción de melanocitos epidérmicos, más difícil de tratar que la hiperpigmentación','Solo eritema transitorio','Aumento del crecimiento del vello'],c:1},
+    {q:'¿Qué es el modo de disparo QS (Q-Switched) en Nd:YAG y para qué se usa en estética?',o:['Es el modo estándar de depilación','Es un modo de pulsos ultracortos (nanosegundos) usado para eliminación de tatuajes y pigmentaciones, no para depilación','Es el modo de mayor energía para depilación profunda','Es el modo de enfriamiento del equipo'],c:1},
+    {q:'¿Por qué el Nd:YAG requiere fluencias más altas que el diodo 808 nm para lograr el mismo efecto?',o:['Porque el equipo es menos potente','Porque a 1064 nm la absorción por melanina es significativamente menor, requiriendo más energía para destruir el folículo','Porque el spot es más pequeño','Porque la piel oscura refleja más la luz'],c:1},
+    {q:'¿Qué papel cumple el sistema de enfriamiento (contact cooling o criógeno) en el Nd:YAG?',o:['Solo para confort del paciente','Protege la epidermis permitiendo usar fluencias más altas, esencial dado que el Nd:YAG penetra profundo y genera calor considerable en tejidos intermedios','No tiene efecto real','Aumenta la absorción del láser'],c:1},
+    {q:'¿Cuándo está indicado el Nd:YAG sobre el láser diodo para depilación?',o:['Siempre, es superior en todos los casos','En fototipos IV-VI donde el riesgo de daño epidérmico con diodo o alexandrita es mayor','Solo en zonas faciales','Nunca, el diodo siempre es mejor'],c:1},
+    {q:'¿Qué es la hipertricosis paradójica y por qué puede ocurrir con Nd:YAG?',o:['Un error de calibración','Estimulación de folículos adyacentes por fluencias subóptimas; más frecuente en pieles oscuras con vello fino donde la energía activa en lugar de destruir','Un efecto decorativo buscado','La caída total del vello corporal'],c:1},
+    {q:'¿Qué deben verificar antes de tratar una zona con Nd:YAG si la paciente usa medicación?',o:['Solo si la medicación es para el corazón','Verificar fotosensibilizantes (tetraciclinas, isotretinoína, etc.) que aumentan el riesgo de reacciones adversas y pueden contraindicar el tratamiento','Solo anticoagulantes','No hay medicación que contraindique el láser'],c:1},
+    {q:'¿Qué diferencia práctica hay entre tratar con Nd:YAG en modo milisegundos (ms) vs nanosegundos (ns)?',o:['No hay diferencia práctica','Los ms se usan para depilación (destrucción térmica del folículo); los ns (Q-Switched) para fragmentar pigmentos de tatuajes y melanina superficial sin efecto sobre el folículo','Los ns son más efectivos para depilación','Los ms solo sirven para rejuvenecimiento'],c:1},
+    {q:'¿Qué zona del cuerpo presenta mayor desafío para el Nd:YAG y por qué?',o:['Las piernas, por su tamaño','La zona hormonal (mentón, patillas, línea alba en mujeres) por la influencia androgénica que puede regenerar el vello tratado','La espalda, por el grosor de la piel','Los brazos, por el vello fino'],c:1},
+  ],
+};
+const EVAL_NDYAG_AVANZADO = {
+  id:'ndyag-avanzado',
+  titulo:'Test Avanzado — Láser Nd:YAG',
+  categoria:'Láser Depilación',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es el coeficiente de absorción de la melanina a 1064 nm comparado con 755 nm?',o:['Es igual en ambas longitudes de onda','A 1064 nm el coeficiente de absorción de la melanina es aproximadamente 5-10 veces menor que a 755 nm, lo que explica la mayor seguridad epidérmica pero la necesidad de mayor fluencia','A 1064 nm la melanina absorbe más energía','El coeficiente no tiene relación con la longitud de onda'],c:1},
+    {q:'¿Cómo determina el TRT (tiempo de relajación térmica) los parámetros del pulso en Nd:YAG?',o:['El TRT no aplica al Nd:YAG','El pulso debe ser ≤ TRT del folículo (~10-100 ms) para confinar el calor en el objetivo; el Nd:YAG usa pulsos en este rango para depilación segura','El TRT solo importa en equipos de baja potencia','El TRT del Nd:YAG es siempre de 1 segundo'],c:1},
+    {q:'¿Qué fenómeno físico explica la mayor penetración del Nd:YAG 1064 nm en tejido biológico?',o:['Mayor reflexión en la superficie','Menor coeficiente de scattering y absorción por los cromóforos tisulares a 1064 nm, resultando en menor atenuación y mayor penetración efectiva','Mayor temperatura de emisión','El spot más pequeño que concentra la energía'],c:1},
+    {q:'¿Cuál es el mecanismo histológico por el que el Nd:YAG logra depilación definitiva?',o:['Destrucción de la cutícula del vello únicamente','Necrosis térmica del bulge (células madre foliculares) y la papila dérmica mediante calor focal a 1064 nm, con menor absorción epidérmica','Congelación del bulbo folicular','Destrucción química del folículo por el gel conductor'],c:1},
+    {q:'¿Qué es la tecnología de pulso largo (Long Pulse) en Nd:YAG y cuál es su ventaja para depilación?',o:['Pulsos de más de 1 segundo que queman la piel','Pulsos de 10-100 ms que permiten calentamiento gradual del folículo respetando el TRT, generando necrosis selectiva sin dañar estructuras adyacentes','Pulsos ultracortos para mayor precisión','Pulsos continuos sin descanso térmico'],c:1},
+    {q:'¿Cómo se combina el Nd:YAG con el diodo 808 nm en equipos de doble longitud de onda?',o:['No se pueden combinar','El diodo actúa con mayor eficacia sobre la melanina folicular y el Nd:YAG protege la epidermis en fototipos altos; la combinación amplía el rango seguro de tratamiento en una sola sesión','Se usan en sesiones separadas siempre','El Nd:YAG reemplaza completamente al diodo'],c:1},
+    {q:'¿Qué consideraciones especiales requiere el tratamiento con Nd:YAG en zona de barba masculina?',o:['No hay consideraciones especiales','La barba tiene folículos más profundos, vello más grueso y alta carga androgénica; requiere fluencias más altas, más sesiones y los resultados nunca son 100% definitivos por la estimulación hormonal continua','El Nd:YAG no funciona en barba','Solo se puede tratar con Alexandrita en barba'],c:1},
+    {q:'¿Qué es el test de parche con Nd:YAG y cómo se interpreta la respuesta tisular?',o:['Es solo un requisito burocrático sin valor clínico','Se aplican disparos con fluencia creciente; eritema perifólicular y edema leve = respuesta correcta; ampollas, despigmentación inmediata o blanqueamiento = fluencia excesiva. Se individualiza el parámetro antes del tratamiento completo','Se usa siempre la fluencia máxima sin test previo','Solo se realiza en la primera sesión de por vida'],c:1},
+    {q:'¿Cuál es la base científica del uso de Nd:YAG para tratamiento de lesiones vasculares además de depilación?',o:['No tiene base científica para lesiones vasculares','A 1064 nm existe buena absorción por la oxihemoglobina, permitiendo la fotocoagulación selectiva de vasos sanguíneos superficiales sin dañar significativamente la epidermis','El Nd:YAG solo absorbe melanina','Las lesiones vasculares se tratan con ultrasonido'],c:1},
+    {q:'¿Qué implica la regulación de seguridad láser clase IV para el operador de Nd:YAG?',o:['No hay regulación específica para láseres estéticos','El Nd:YAG es un láser clase IV; implica obligatoriedad de EPP certificado (gafas de OD adecuado para 1064 nm), señalización de área, protocolo de seguridad y capacitación documentada del operador','Solo se necesita tener cuidado general','La regulación solo aplica a hospitales'],c:1},
+    {q:'¿Cómo afecta la profundidad focal del Nd:YAG al tratamiento de folículos en zonas con tejido adiposo grueso (espalda, muslos)?',o:['No afecta, la profundidad es siempre la misma','A 1064 nm la mayor penetración permite alcanzar folículos profundos en zonas con mayor espesor de tejido; puede requerir ajuste de fluencia para compensar la atenuación en tejido más grueso','El Nd:YAG no puede tratar folículos profundos','En zonas gruesas el láser no penetra'],c:1},
+    {q:'¿Qué diferencia al Nd:YAG pulsado en modo largo del Nd:YAG Q-Switched en términos de aplicación clínica en estética?',o:['Son idénticos en aplicación','El Nd:YAG Long Pulse (ms) genera calor difuso para depilación y lesiones vasculares; el Q-Switched (ns) genera ondas de presión fotoacústicas para fragmentar pigmentos de tatuajes y melanosomas. Son mecanismos y aplicaciones clínicas completamente distintos','El Q-Switched es mejor para depilación','El Long Pulse es mejor para tatuajes'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -394,7 +457,8 @@ async function saveEvaluacionTecnica(){
   // Evaluaciones HIFU: solo nivel avanzado habilita y certifica; básico e intermedio solo informe
   const esHIFU = evaluacion.id.startsWith('hifu-');
   const esLaser = evaluacion.id.startsWith('laser-');
-  const esHabilitante = (!esHIFU && !esLaser) || evaluacion.id === 'hifu-avanzado' || evaluacion.id === 'laser-avanzado';
+  const esNdYAG = evaluacion.id.startsWith('ndyag-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG) || evaluacion.id === 'hifu-avanzado' || evaluacion.id === 'laser-avanzado' || evaluacion.id === 'ndyag-avanzado';
 
   if(aprobada && esHabilitante){
     try{
@@ -419,11 +483,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -693,7 +757,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -714,7 +778,9 @@ function renderEvaluacionesRows(allResultados){
     </div>`;
   }).join('');
 
+  const ndyag = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
   return rowsOtros
     + renderCertificacionGroup(allResultados, laser, '#1976d2', '⚡', 'Certificación Depilación Láser')
+    + renderCertificacionGroup(allResultados, ndyag, '#0097a7', '🔵', 'Certificación Nd:YAG')
     + renderCertificacionGroup(allResultados, hifu,  '#9c27b0', '💜', 'Certificación HIFU');
 }
