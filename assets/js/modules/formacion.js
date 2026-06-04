@@ -1116,6 +1116,10 @@ const CERT_KEYWORDS = {
   'HydraFacial':['hydrafacial','hidrofacial','hydra facial'],
   'HIFU':['hifu','12d','22d','liposonix'],
 };
+const CAPACITACION_REGLAS = {
+  descansoDias: 7,
+  maxHabilitacionesDia: 3,
+};
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -1175,21 +1179,135 @@ function renderCertMaterialRow(m){
     </div>
   </div>`;
 }
+function certEscapeHTML(value){
+  if(typeof escapeHTML==='function') return escapeHTML(value);
+  return String(value??'').replace(/[&<>"']/g,function(ch){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch];
+  });
+}
 function renderCertEvaluacionRow(ev,allResultados){
   const resultados=allResultados.filter(r=>r.evaluacionId===ev.id);
   const aprobadasEv=resultados.filter(r=>r.estado==='aprobada').length;
+  const opIdActual=getOperadoraIdCapacitacionActual();
+  const regla=opIdActual ? validarReglasCapacitacion(opIdActual,ev) : {ok:true,motivos:[]};
+  const bloqueada=opIdActual && !regla.ok && !puedeOmitirReglasCapacitacion();
+  const accion=puedeTomarEvaluacion()
+    ? bloqueada
+      ? `<button class="action-btn" disabled title="${certEscapeHTML(regla.motivos.join(' '))}" style="opacity:.55;cursor:not-allowed">Bloqueada</button>`
+      : `<button class="action-btn" onclick="openEvaluacionModal('${ev.id}')" style="color:var(--blue)">Tomar evaluación</button>`
+    : '';
   return `<div class="material-row cert-subrow">
     <div class="material-icon">🧪</div>
     <div class="material-body">
       <div class="material-title">${ev.titulo}</div>
-      <div class="material-sub">${ev.preguntas.length} preguntas multiple choice. Aprobación: ${ev.minimoAprobacion}/${ev.preguntas.length}. ${aprobadasEv} aprobadas · ${resultados.length} intentos.</div>
+      <div class="material-sub">${ev.preguntas.length} preguntas multiple choice. Aprobación: ${ev.minimoAprobacion}/${ev.preguntas.length}. ${aprobadasEv} aprobadas · ${resultados.length} intentos.${bloqueada?` ${certEscapeHTML(regla.motivos[0]||'Acceso bloqueado por criterio de capacitación.')}`:''}</div>
     </div>
     <div class="cert-actions">
       <span class="badge badge-obligatorio">Obligatorio</span>
       <span class="badge badge-green">${ev.categoria}</span>
-      ${puedeTomarEvaluacion()?`<button class="action-btn" onclick="openEvaluacionModal('${ev.id}')" style="color:var(--blue)">Tomar evaluación</button>`:''}
+      ${accion}
     </div>
   </div>`;
+}
+
+function getOperadoraIdCapacitacionActual(){
+  if(typeof isOperadoraUser==='function' && isOperadoraUser() && !isSuperAdmin() && !canEdit()){
+    return parseInt(currentUser?.operadora_id)||0;
+  }
+  return 0;
+}
+function puedeOmitirReglasCapacitacion(){
+  return !!(isSuperAdmin() || canEdit());
+}
+function normalizarFechaCapacitacion(v){
+  const raw=String(v||'').slice(0,10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
+}
+function diasEntreFechas(a,b){
+  const da=new Date(`${normalizarFechaCapacitacion(a)}T00:00:00`);
+  const db=new Date(`${normalizarFechaCapacitacion(b)}T00:00:00`);
+  if(Number.isNaN(da.getTime())||Number.isNaN(db.getTime())) return 999;
+  return Math.floor((db-da)/(24*60*60*1000));
+}
+function fechaMasDias(fecha,dias){
+  const d=new Date(`${normalizarFechaCapacitacion(fecha)}T00:00:00`);
+  if(Number.isNaN(d.getTime())) return '';
+  d.setDate(d.getDate()+dias);
+  return d.toISOString().slice(0,10);
+}
+function evalCertBaseId(ev){
+  return String(ev?.id||'').replace(/-(basico|intermedio|avanzado)$/,'');
+}
+function evalNivelIndex(ev){
+  const id=String(ev?.id||'');
+  if(id.endsWith('-basico')) return 0;
+  if(id.endsWith('-intermedio')) return 1;
+  if(id.endsWith('-avanzado')) return 2;
+  const nivel=normCertText(ev?.nivel||'');
+  if(nivel.includes('basico')) return 0;
+  if(nivel.includes('intermedio')) return 1;
+  if(nivel.includes('avanzado')) return 2;
+  return 0;
+}
+function evaluacionesPreviasRequeridas(ev){
+  const base=evalCertBaseId(ev);
+  const nivel=evalNivelIndex(ev);
+  return EVALUACIONES_TECNICAS
+    .filter(e=>evalCertBaseId(e)===base && evalNivelIndex(e)<nivel)
+    .sort((a,b)=>evalNivelIndex(a)-evalNivelIndex(b));
+}
+function evaluacionAprobadaPorOperadora(opId,evId){
+  return getEvaluacionResultados().some(r=>
+    parseInt(r.operadoraId)===parseInt(opId) &&
+    r.evaluacionId===evId &&
+    r.estado==='aprobada'
+  );
+}
+function capacitacionesAprobadasOperadora(opId){
+  return (DB.get('capacitaciones')||[]).filter(c=>
+    parseInt(c.operadoraId)===parseInt(opId) &&
+    c.resultado==='aprobada'
+  );
+}
+function ultimaCapacitacionAprobada(opId){
+  const caps=capacitacionesAprobadasOperadora(opId)
+    .map(c=>({fecha:normalizarFechaCapacitacion(c.fecha||c.ts),titulo:c.obs||c.categoria||'capacitación'}))
+    .filter(c=>c.fecha)
+    .sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  return caps[0]||null;
+}
+function capacitacionesAprobadasEnFecha(opId,fecha){
+  const ymd=normalizarFechaCapacitacion(fecha);
+  return capacitacionesAprobadasOperadora(opId).filter(c=>normalizarFechaCapacitacion(c.fecha||c.ts)===ymd).length;
+}
+function validarReglasCapacitacion(opId,evaluacion){
+  const motivos=[];
+  const hoy=today();
+  const previas=evaluacionesPreviasRequeridas(evaluacion);
+  const faltantes=previas.filter(ev=>!evaluacionAprobadaPorOperadora(opId,ev.id));
+  if(faltantes.length){
+    motivos.push(`Debe aprobar primero: ${faltantes.map(ev=>ev.nivel||ev.titulo).join(', ')}.`);
+  }
+  const ultima=ultimaCapacitacionAprobada(opId);
+  if(ultima){
+    const pasaron=diasEntreFechas(ultima.fecha,hoy);
+    if(pasaron<CAPACITACION_REGLAS.descansoDias){
+      const desde=fechaMasDias(ultima.fecha,CAPACITACION_REGLAS.descansoDias);
+      motivos.push(`Debe descansar ${CAPACITACION_REGLAS.descansoDias} días entre capacitaciones. Próxima disponible: ${fmtDate(desde)}.`);
+    }
+  }
+  const hechasHoy=capacitacionesAprobadasEnFecha(opId,hoy);
+  if(hechasHoy>=CAPACITACION_REGLAS.maxHabilitacionesDia){
+    motivos.push(`Máximo diario alcanzado: ${CAPACITACION_REGLAS.maxHabilitacionesDia} habilitaciones/capacitaciones aprobadas en un día.`);
+  }
+  return {ok:!motivos.length,motivos};
+}
+function confirmarExcepcionCapacitacion(opId,evaluacion,regla){
+  if(regla.ok) return true;
+  if(!puedeOmitirReglasCapacitacion()) return false;
+  const op=getOp(opId);
+  const nombre=op ? `${op.nombre||''} ${op.apellido||''}`.trim() : `operadora #${opId}`;
+  return confirm(`Esta capacitación está bloqueada para ${nombre} por criterio interno:\n\n- ${regla.motivos.join('\n- ')}\n\n¿Autorizar excepción administrativa para "${evaluacion.titulo}"?`);
 }
 
 // ── Habilitación check ──
@@ -1341,6 +1459,13 @@ function openEvaluacionModal(evaluacionId){
   const opId=isOpUser ? parseInt(currentUser?.operadora_id) : 0;
   const opActual=opId ? (getOp(opId)||ops.find(o=>parseInt(o.id)===opId)) : null;
   if(isOpUser&&!opId){showToast('⚠️ Tu usuario no tiene ficha de operadora vinculada','warn');return;}
+  if(isOpUser){
+    const regla=validarReglasCapacitacion(opId,evaluacion);
+    if(!regla.ok){
+      showToast('⚠️ '+regla.motivos[0],'warn');
+      return;
+    }
+  }
   document.getElementById('evalId').value=evaluacionId;
   document.getElementById('evalTitulo').textContent=evaluacion.titulo;
   const evalOpWrap=document.getElementById('evalOperadora')?.closest('.form-field');
@@ -1369,6 +1494,12 @@ async function saveEvaluacionTecnica(){
   if(!evaluacion){showToast('⚠️ Evaluación no encontrada','warn');return;}
   const opId=parseInt(gv('evalOperadora'));
   if(!opId){showToast('⚠️ Seleccioná una operadora','warn');return;}
+  const reglaCapacitacion=validarReglasCapacitacion(opId,evaluacion);
+  const excepcionAdministrativa=!reglaCapacitacion.ok && confirmarExcepcionCapacitacion(opId,evaluacion,reglaCapacitacion);
+  if(!reglaCapacitacion.ok && !excepcionAdministrativa){
+    showToast('⚠️ '+reglaCapacitacion.motivos[0],'warn');
+    return;
+  }
   let correctas=0;
   const respuestas=[];
   for(let i=0;i<evaluacion.preguntas.length;i++){
@@ -1409,7 +1540,7 @@ async function saveEvaluacionTecnica(){
     fecha:today(),
     resultado:aprobada?'aprobada':'no_aprobada',
     modalidad:'evaluacion',
-    obs:`${evaluacion.titulo}: ${correctas}/${evaluacion.preguntas.length} (${resultado.porcentaje}%).`,
+    obs:`${evaluacion.titulo}: ${correctas}/${evaluacion.preguntas.length} (${resultado.porcentaje}%).${excepcionAdministrativa?' Excepción administrativa autorizada.':''}`,
     responsable:currentUser?.email||'—',
     ts:resultado.ts,
   });
@@ -1444,7 +1575,7 @@ async function saveEvaluacionTecnica(){
           categoria:evaluacion.categoria,
           estado:'activa',
           fecha_otorgamiento:today(),
-          obs:`Habilitación automática por evaluación aprobada: ${correctas}/${evaluacion.preguntas.length}.`,
+          obs:`Habilitación automática por evaluación aprobada: ${correctas}/${evaluacion.preguntas.length}.${excepcionAdministrativa?' Excepción administrativa autorizada.':''}`,
         })
       });
       const habs=(DB.get('habilitaciones')||[]).filter(h=>!(h.id&&saved.id&&parseInt(h.id)===parseInt(saved.id)));
