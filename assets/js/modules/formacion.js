@@ -1483,33 +1483,56 @@ function renderEvaluacionesRows(allResultados){
     </div>`;
   }).join('');
 
-  const ndyag       = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
-  const soprano     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('soprano-'));
-  const exilis      = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
-  const emsculpt    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
-  const hydrafacial = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hydrafacial-'));
-  const bronceado     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bronceado-'));
-  const aparatologia  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('aparatologia-'));
-  const masajes       = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('masajes-'));
-  const cavitacion    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('cavitacion-'));
-  const skincare        = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('skincare-'));
-  const criolipolisis   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('criolipolisis-'));
-  const atencion        = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('atencion-'));
-  const bioseguridad    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bioseguridad-'));
+  const ndyag        = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
+  const soprano      = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('soprano-'));
+  const exilis       = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
+  const emsculpt     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
+  const hydrafacial  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hydrafacial-'));
+  const bronceado    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bronceado-'));
+  const aparatologia = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('aparatologia-'));
+  const masajes      = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('masajes-'));
+  const cavitacion   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('cavitacion-'));
+  const skincare     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('skincare-'));
+  const criolipolisis= EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('criolipolisis-'));
+  const atencion     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('atencion-'));
+  const bioseguridad = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bioseguridad-'));
+
+  // Agrupador de nivel
+  function renderNivelCategoria(uid, titulo, subtitulo, color, grupos){
+    const rows = grupos.map(g => renderCertificacionGroup(allResultados, g.evs, g.color, g.icono, g.nombre)).join('');
+    return `<div style="border:2px solid ${color};border-radius:12px;margin-bottom:12px;overflow:hidden">
+      <div style="background:${color};padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+           onclick="toggleCertGroup('nivel_${uid}')">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#fff">${titulo}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:2px">${subtitulo}</div>
+        </div>
+        <span id="arrow_nivel_${uid}" style="font-size:18px;color:#fff;transition:transform .2s">▶</span>
+      </div>
+      <div id="group_nivel_${uid}" style="display:none">${rows}</div>
+    </div>`;
+  }
+
   return rowsOtros
-    + renderCertificacionGroup(allResultados, aparatologia, '#37474f', '🏅', 'Certificación en Aparatología Estética')
-    + renderCertificacionGroup(allResultados, skincare,     '#ad1457', '✨', 'Certificación Skincare y Cuidado de la Piel')
-    + renderCertificacionGroup(allResultados, atencion,      '#f57f17', '📋', 'Certificación Atención al Cliente y Ventas')
-    + renderCertificacionGroup(allResultados, bioseguridad,  '#558b2f', '🛡️', 'Certificación Bioseguridad e Higiene')
-    + renderCertificacionGroup(allResultados, masajes,      '#6a1b9a', '💆', 'Certificación Masajes y Drenaje Linfático')
-    + renderCertificacionGroup(allResultados, cavitacion,     '#0288d1', '🌊', 'Certificación Cavitación Ultrasónica')
-    + renderCertificacionGroup(allResultados, criolipolisis,  '#00acc1', '❄️', 'Certificación Criolipólisis')
-    + renderCertificacionGroup(allResultados, laser,        '#1976d2', '⚡', 'Certificación Depilación Láser')
-    + renderCertificacionGroup(allResultados, ndyag,        '#0097a7', '🔵', 'Certificación Nd:YAG')
-    + renderCertificacionGroup(allResultados, soprano,      '#c62828', '🔴', 'Certificación Soprano Titanium ICE')
-    + renderCertificacionGroup(allResultados, exilis,       '#e65100', '🔶', 'Certificación Exilis Elite')
-    + renderCertificacionGroup(allResultados, emsculpt,     '#2e7d32', '💪', 'Certificación Emsculpt')
-    + renderCertificacionGroup(allResultados, hydrafacial,  '#00838f', '💧', 'Certificación HydraFacial')
-    + renderCertificacionGroup(allResultados, bronceado,    '#f9a825', '🌟', 'Certificación Bronceado Orgánico')
-    + renderCertificacionGroup(allResultados, hifu,         '#9c27b0', '💜', 'Certificación HIFU');
+    + renderNivelCategoria('1', '📚 Nivel 1 — Fundamentos', 'Bases para cualquier operadora: higiene, piel y atención al cliente', '#455a64', [
+        {evs:bioseguridad,  color:'#558b2f', icono:'🛡️', nombre:'Certificación Bioseguridad e Higiene'},
+        {evs:skincare,      color:'#ad1457', icono:'✨', nombre:'Certificación Skincare y Cuidado de la Piel'},
+        {evs:atencion,      color:'#f57f17', icono:'📋', nombre:'Certificación Atención al Cliente y Ventas'},
+      ])
+    + renderNivelCategoria('2', '💆 Nivel 2 — Técnicas Corporales', 'Masajes, drenaje, reducción y bronceado', '#4527a0', [
+        {evs:masajes,       color:'#6a1b9a', icono:'💆', nombre:'Certificación Masajes y Drenaje Linfático'},
+        {evs:cavitacion,    color:'#0288d1', icono:'🌊', nombre:'Certificación Cavitación Ultrasónica'},
+        {evs:criolipolisis, color:'#00acc1', icono:'❄️', nombre:'Certificación Criolipólisis'},
+        {evs:emsculpt,      color:'#2e7d32', icono:'💪', nombre:'Certificación Emsculpt'},
+        {evs:bronceado,     color:'#f9a825', icono:'🌟', nombre:'Certificación Bronceado Orgánico'},
+      ])
+    + renderNivelCategoria('3', '🏅 Nivel 3 — Aparatología Avanzada', 'Equipos de alta tecnología: láser, HIFU, RF y más', '#1a237e', [
+        {evs:aparatologia,  color:'#37474f', icono:'🏅', nombre:'Certificación en Aparatología Estética'},
+        {evs:laser,         color:'#1976d2', icono:'⚡', nombre:'Certificación Depilación Láser'},
+        {evs:ndyag,         color:'#0097a7', icono:'🔵', nombre:'Certificación Nd:YAG'},
+        {evs:soprano,       color:'#c62828', icono:'🔴', nombre:'Certificación Soprano Titanium ICE'},
+        {evs:exilis,        color:'#e65100', icono:'🔶', nombre:'Certificación Exilis Elite'},
+        {evs:hydrafacial,   color:'#00838f', icono:'💧', nombre:'Certificación HydraFacial'},
+        {evs:hifu,          color:'#9c27b0', icono:'💜', nombre:'Certificación HIFU'},
+      ]);
 }
