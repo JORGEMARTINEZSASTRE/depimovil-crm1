@@ -406,7 +406,70 @@ const EVAL_HYDRAFACIAL_AVANZADO = {
     {q:'¿Qué ventaja clínica ofrece la infusión de ácido hialurónico durante el HydraFacial comparado con su aplicación tópica convencional?',o:['No hay ninguna diferencia','La apertura del poro post-exfoliación y la presión de infusión del HydraFacial permiten que el ácido hialurónico penetre más profundamente en la dermis superficial comparado con la aplicación tópica convencional que queda en la superficie epidérmica','El ácido hialurónico tópico penetra igual de profundo','El HydraFacial destruye el ácido hialurónico por la succión'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_SOPRANO_BASICO = {
+  id:'soprano-basico',
+  titulo:'Test Básico — Diodo Soprano Titanium ICE',
+  categoria:'Láser Depilación',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué tecnología utiliza el Soprano Titanium ICE para la depilación?',o:['Luz pulsada intensa (IPL)','Triple longitud de onda diodo (755 nm Alexandrita + 810 nm Diodo + 1064 nm Nd:YAG) con sistema ICE de enfriamiento simultáneo','Radiofrecuencia monopolar','Ultrasonido focalizado'],c:1},
+    {q:'¿Qué significa ICE en el Soprano Titanium ICE?',o:['Integrated Cooling Energy — sistema de enfriamiento integrado en el cabezal que enfría la piel simultáneamente al disparo','Intense Concentrated Energy','Internal Circuit Engine','Infrared Cooling Element'],c:0},
+    {q:'¿Cuál es la ventaja principal del sistema ICE del Soprano?',o:['Aumenta la potencia del láser','Permite tratar la piel bronceada sin ningún riesgo','Protege la epidermis del calor durante el disparo, haciendo el tratamiento más cómodo y seguro, especialmente en pieles oscuras','Solo sirve para decoración del equipo'],c:2},
+    {q:'¿Qué modo de disparo usa el Soprano Titanium ICE?',o:['Pulso único de alta energía fija','Modo SHR (Super Hair Removal) de disparos múltiples en movimiento a baja fluencia acumulativa','Solo disparos puntuales manuales','Modo automático sin intervención del operador'],c:1},
+    {q:'¿Para qué fototipos de piel está indicado el Soprano Titanium ICE?',o:['Solo para fototipos I y II (pieles muy claras)','Solo para fototipos IV-VI','Para todos los fototipos I-VI, incluyendo pieles bronceadas, gracias a la triple longitud de onda y el sistema ICE','Solo para pieles sin vello oscuro'],c:2},
+    {q:'¿Qué sensación es habitual durante el tratamiento con Soprano Titanium ICE?',o:['Dolor intenso similar a quemaduras','Sensación de calor progresivo con enfriamiento simultáneo, mucho más tolerable que láseres convencionales de pulso único','Frío intenso sin ningún calor','Corriente eléctrica en la piel'],c:1},
+    {q:'¿Qué preparación debe hacer el paciente antes de una sesión con Soprano?',o:['Broncearse para activar la melanina del folículo','Depilarse con cera el día anterior','Afeitar la zona 24-48 horas antes y evitar exposición solar al menos 2 semanas previas','Aplicar crema depilatoria el mismo día'],c:2},
+    {q:'¿Cuántas sesiones se necesitan generalmente con el Soprano Titanium ICE?',o:['1 sola sesión definitiva','6 a 8 sesiones espaciadas según el ciclo del vello de cada zona','20 sesiones mínimo','Solo 2 sesiones en total'],c:1},
+    {q:'¿Cuál es la contraindicación más importante para el Soprano Titanium ICE?',o:['Tener vello oscuro y piel clara','Embarazo, marcapasos, implantes metálicos en la zona y lesiones activas en el área a tratar','Ser mayor de 25 años','Usar protector solar habitualmente'],c:1},
+    {q:'¿Qué cuidado es indispensable después de cada sesión?',o:['Exposición solar directa para ver los resultados','Protector solar SPF 50+ y evitar exposición solar y calor intenso (sauna, vapor) las primeras 48 horas','Cera para eliminar el vello tratado','Aplicar agua muy caliente en la zona'],c:1},
+    {q:'¿Qué hace que el Soprano Titanium ICE sea más rápido que otros equipos de depilación láser?',o:['Usa mayor potencia que destruye todos los folículos de una vez','El cabezal grande y el modo SHR permiten tratar áreas extensas en menos tiempo con movimiento continuo','El equipo trabaja solo sin operador','Solo es más rápido en piernas'],c:1},
+    {q:'¿Qué protección ocular se requiere durante la sesión con Soprano Titanium ICE?',o:['No se necesita ninguna protección','Lentes de sol comunes','Gafas de protección certificadas para las longitudes de onda del equipo tanto para el operador como para el paciente','Solo el operador necesita protección'],c:2},
+  ],
+};
+const EVAL_SOPRANO_INTERMEDIO = {
+  id:'soprano-intermedio',
+  titulo:'Test Intermedio — Diodo Soprano Titanium ICE',
+  categoria:'Láser Depilación',
+  nivel:'Intermedio',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cómo actúan simultáneamente las 3 longitudes de onda del Soprano Titanium?',o:['Se usan en sesiones separadas, no simultáneamente','755 nm (Alexandrita) actúa en la melanina superficial del folículo; 810 nm (Diodo) penetra en profundidad media; 1064 nm (Nd:YAG) alcanza folículos profundos y es seguro en pieles oscuras. La emisión simultánea cubre todo el espectro de profundidades y fototipos','Las 3 longitudes actúan exactamente igual','Solo el 810 nm tiene efecto real sobre el folículo'],c:1},
+    {q:'¿Qué ventaja clínica ofrece la triple longitud de onda sobre los equipos monolongitud de onda?',o:['No ofrece ninguna ventaja clínica comprobada','Permite tratar eficazmente todo el rango de fototipos y profundidades foliculares en un solo equipo, reduciendo el riesgo en pieles oscuras y mejorando la eficacia en vellos de diferentes profundidades','Solo es una estrategia de marketing','Es más rápido pero menos efectivo'],c:1},
+    {q:'¿Cómo funciona el modo SHR (Super Hair Removal) del Soprano en comparación con el modo HR convencional?',o:['SHR usa pulsos únicos de máxima energía','SHR aplica múltiples disparos de baja fluencia en movimiento continuo, acumulando calor progresivamente en el folículo (calentamiento in-motion); HR usa pulsos únicos de mayor energía en posición estática. SHR es más cómodo y seguro en pieles oscuras','Son exactamente iguales en mecanismo','HR es más moderno que SHR'],c:1},
+    {q:'¿Cuál es la temperatura óptima que debe alcanzar el folículo durante el tratamiento SHR con Soprano?',o:['20-30 °C','37 °C (temperatura corporal normal)','Entre 45-50 °C acumulativos en el folículo para lograr la destrucción térmica sin dañar la epidermis gracias al ICE','100 °C para garantizar la destrucción'],c:2},
+    {q:'¿Cómo se ajusta la fluencia en el Soprano según el fototipo de Fitzpatrick?',o:['La fluencia es siempre la misma para todos los fototipos','A mayor fototipo (piel más oscura), se reduce la fluencia y se prioriza el Nd:YAG 1064 nm; en fototipos bajos (piel clara) se puede usar mayor fluencia con 755 nm y 810 nm','Se usa siempre la fluencia máxima','Solo varía la velocidad de movimiento'],c:1},
+    {q:'¿Qué es el cabezal "In-Motion" del Soprano y cómo debe usarse correctamente?',o:['Es un cabezal estático que se coloca y no se mueve','Es un cabezal que se desliza continuamente en movimiento circular o lineal sobre la piel, disparando a alta frecuencia; debe mantenerse siempre en contacto y movimiento para distribuir el calor uniformemente y evitar acumulación térmica excesiva','Se usa golpeando la piel repetidamente','Solo funciona en zonas pequeñas'],c:1},
+    {q:'¿Por qué el Soprano Titanium ICE puede tratar piel ligeramente bronceada con mayor seguridad que otros equipos?',o:['Porque tiene menos potencia','La combinación del sistema ICE que protege la epidermis y la triple longitud de onda permite ajustar parámetros para reducir el riesgo de daño epidérmico, aunque siempre se debe evaluar el grado de bronceado','El bronceado no afecta ningún láser','Porque usa solo Nd:YAG en pieles bronceadas'],c:1},
+    {q:'¿Cuál es el intervalo correcto entre sesiones de Soprano para la zona del cuerpo?',o:['Cada semana','Cada 15 días siempre','Cada 6-8 semanas para zonas corporales (ciclo anágeno más largo) y cada 4 semanas para zonas faciales','Cada 6 meses'],c:2},
+    {q:'¿Qué indica el "efecto peppering" 7-14 días después de una sesión con Soprano?',o:['Una quemadura superficial que requiere consulta médica','La aparición de puntos oscuros que representan el vello destruido emergiendo hacia la superficie antes de caer; es señal de respuesta correcta al tratamiento','Que el equipo no funcionó correctamente','Que se debe aumentar la fluencia en la próxima sesión'],c:1},
+    {q:'¿Qué contraindicación relativa requiere evaluación especial antes de usar el Soprano?',o:['Tener la piel hidratada','Uso de medicación fotosensibilizante (tetraciclinas, isotretinoína), patología hormonal activa no controlada (SOP) o antecedentes de queloides en la zona','Hacer ejercicio regularmente','Usar desodorante en axilas'],c:1},
+    {q:'¿Cómo debe tratarse la zona de tatuajes con el Soprano Titanium ICE?',o:['Se trata igual que el resto de la piel','Se debe evitar disparar sobre el tatuaje ya que los pigmentos absorben la energía láser pudiendo decolorar o dañar el tatuaje; se puede tratar el vello alrededor del tatuaje con cuidado','Se aumenta la fluencia sobre el tatuaje para mejor resultado','Los tatuajes no interactúan con el láser diodo'],c:1},
+    {q:'¿Qué ventaja ofrece el Soprano Titanium ICE para el tratamiento de zonas extensas como espalda o piernas completas?',o:['No tiene ventajas especiales en zonas extensas','El cabezal grande combinado con el modo SHR in-motion permite cubrir grandes superficies rápidamente sin perder eficacia, reduciendo significativamente el tiempo de sesión comparado con equipos de disparo puntual','Solo es rápido en zonas pequeñas','El tamaño del cabezal no influye en el tiempo'],c:1},
+  ],
+};
+const EVAL_SOPRANO_AVANZADO = {
+  id:'soprano-avanzado',
+  titulo:'Test Avanzado — Diodo Soprano Titanium ICE',
+  categoria:'Láser Depilación',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es el fundamento físico del calentamiento acumulativo en el modo SHR del Soprano Titanium?',o:['Cada disparo individual destruye el folículo de forma independiente','Los múltiples pulsos de baja fluencia elevan progresivamente la temperatura del folículo por debajo del umbral de daño epidérmico en cada pulso individual, pero acumulando calor hasta superar el umbral de necrosis folicular (45-50 °C); el ICE simultáneo mantiene la epidermis por debajo del umbral de daño','El calentamiento es aleatorio sin control térmico','El folículo no necesita alcanzar temperatura específica'],c:1},
+    {q:'¿Cómo interactúan las 3 longitudes de onda del Soprano con los diferentes cromóforos del tejido?',o:['Todas actúan sobre el mismo cromóforo de la misma manera','755 nm tiene máxima absorción por melanina (ideal para folículos superficiales en pieles claras); 810 nm equilibra absorción por melanina y penetración (versatilidad); 1064 nm tiene mínima absorción epidérmica pero penetra más profundo (seguridad en pieles oscuras y folículos profundos)','Solo la melanina del vello absorbe energía','Las 3 longitudes tienen coeficientes de absorción idénticos'],c:1},
+    {q:'¿Qué implica el TRT (tiempo de relajación térmica) en el diseño del modo SHR del Soprano?',o:['El TRT no aplica al modo SHR','Los pulsos individuales del SHR son más cortos que el TRT de la epidermis pero la frecuencia de repetición permite que el calor se acumule en el folículo (mayor masa térmica) más que en la epidermis (menor masa, se disipa más rápido); el ICE acelera la disipación epidérmica ampliando el margen de seguridad','El TRT solo importa en equipos de pulso único','El SHR ignora el TRT por diseño'],c:1},
+    {q:'¿Cuál es la diferencia clínica entre tratar con el Soprano en modo SHR vs modo HR en piel de fototipo V?',o:['Son equivalentes en seguridad y eficacia','En fototipo V, el SHR es significativamente más seguro: la fluencia individual baja reduce la absorción por la melanina epidérmica oscura en cada pulso, mientras el ICE mantiene la temperatura epidérmica en rango seguro; el HR de pulso único requiere fluencias más altas con mayor riesgo de hipopigmentación','El HR es siempre preferido en pieles oscuras','No hay diferencia por fototipo'],c:1},
+    {q:'¿Qué es la hipertricosis paradójica y en qué contexto puede ocurrir con el Soprano Titanium?',o:['Un efecto buscado para densificar el vello','Estimulación de crecimiento de vello en zonas adyacentes al área tratada, posiblemente por fluencias subóptimas que activan folículos latentes; más frecuente en pieles oscuras con vello fino; solución: aumentar fluencia o cambiar protocolo','Un error de calibración del equipo','La caída total del vello post-sesión'],c:1},
+    {q:'¿Cómo debe evaluarse la respuesta tisular correcta durante el tratamiento con Soprano Titanium ICE?',o:['No se evalúa durante el tratamiento','Se busca eritema perifólicular leve e inmediato durante/post-sesión como señal de respuesta correcta. Ausencia total de reacción indica fluencia insuficiente; eritema difuso, edema excesivo o cambios epidérmicos indican fluencia excesiva; se ajusta en tiempo real','Se evalúa solo al mes de la sesión','El dolor del paciente es el único indicador'],c:1},
+    {q:'¿Qué protocolo es correcto para el tratamiento de zona facial masculina (barba) con Soprano Titanium ICE?',o:['Se trata igual que cualquier otra zona corporal','La barba masculina tiene folículos más profundos, vello muy grueso y alta densidad; requiere fluencias más altas, mayor número de sesiones (puede superar 10), y nunca se logra resultado 100% definitivo por la alta carga androgénica; se recomienda al paciente expectativas realistas','El Soprano no puede tratar barba masculina','Se usa solo el modo HR en barba nunca SHR'],c:1},
+    {q:'¿Qué consideración técnica especifica el protocolo para el tratamiento de zona perianal con Soprano Titanium ICE?',o:['No hay consideraciones especiales','Requiere consentimiento informado específico, parámetros conservadores (menor fluencia en mucosa adyacente), verificación de ausencia de lesiones activas (herpes, HPV), posicionamiento adecuado del paciente y cuidado especial para no irradiar mucosa directamente','Se usa máxima fluencia para mejor resultado','El Soprano no puede tratar esa zona'],c:1},
+    {q:'¿Cómo afecta el SOP (síndrome de ovario poliquístico) a los resultados del Soprano Titanium ICE y qué se debe comunicar a la paciente?',o:['El SOP no tiene ningún efecto sobre los resultados','El exceso androgénico del SOP estimula continuamente nuevos folículos terminales; aunque el Soprano destruye los folículos tratados, nuevos pueden activarse; se debe informar que el tratamiento requerirá más sesiones, mantenimientos periódicos y que los resultados son más limitados sin tratamiento hormonal paralelo','El Soprano es más efectivo en pacientes con SOP','El SOP mejora la absorción del láser'],c:1},
+    {q:'¿Cuál es la base científica del sistema de enfriamiento por contacto del ICE y cómo protege la epidermis durante el SHR?',o:['El enfriamiento solo sirve para el confort del paciente','El enfriamiento por contacto extrae calor de la epidermis continuamente durante el tratamiento, reduciendo su temperatura por debajo del umbral de daño (aproximadamente 45 °C) mientras el calor se acumula en el folículo más profundo; la conductividad térmica diferencial entre epidermis enfriada y folículo profundo crea el gradiente térmico selectivo que hace posible el SHR seguro','El enfriamiento reduce la eficacia del tratamiento','El ICE solo actúa antes del disparo, no durante'],c:1},
+    {q:'¿Qué ventaja ofrece el Soprano Titanium ICE sobre el Soprano XL o versiones anteriores para protocolos de zonas oscuras?',o:['No hay diferencias significativas entre versiones','El Titanium integra las 3 longitudes de onda en un solo cabezal (vs aplicadores separados en versiones anteriores), mejora el sistema ICE y optimiza el algoritmo de control de temperatura en tiempo real, permitiendo protocolos más seguros y eficaces en todo el rango de fototipos en menos tiempo','El Soprano XL es superior al Titanium','Las versiones anteriores son más precisas'],c:1},
+    {q:'¿Cómo debe documentarse correctamente cada sesión de Soprano Titanium ICE en la ficha del paciente?',o:['Solo se registra si hubo algún incidente','Se documenta: zona tratada, fototipo evaluado, parámetros usados (fluencia J/cm², frecuencia Hz, modo SHR/HR), número de pasadas, respuesta tisular observada, incidencias si las hay, recomendaciones post-sesión y fecha de próxima sesión','Solo se registra el nombre de la zona','La documentación es opcional y no tiene valor clínico'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -629,7 +692,8 @@ async function saveEvaluacionTecnica(){
   const esExilis = evaluacion.id.startsWith('exilis-');
   const esEmsculpt = evaluacion.id.startsWith('emsculpt-');
   const esHydrafacial = evaluacion.id.startsWith('hydrafacial-');
-  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado'].includes(evaluacion.id);
+  const esSoprano = evaluacion.id.startsWith('soprano-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial && !esSoprano) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado','soprano-avanzado'].includes(evaluacion.id);
 
   if(aprobada && esHabilitante){
     try{
@@ -654,11 +718,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -928,7 +992,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-') && !e.id.startsWith('soprano-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -950,12 +1014,14 @@ function renderEvaluacionesRows(allResultados){
   }).join('');
 
   const ndyag       = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('ndyag-'));
+  const soprano     = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('soprano-'));
   const exilis      = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
   const emsculpt    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
   const hydrafacial = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hydrafacial-'));
   return rowsOtros
     + renderCertificacionGroup(allResultados, laser,       '#1976d2', '⚡', 'Certificación Depilación Láser')
     + renderCertificacionGroup(allResultados, ndyag,       '#0097a7', '🔵', 'Certificación Nd:YAG')
+    + renderCertificacionGroup(allResultados, soprano,     '#c62828', '🔴', 'Certificación Soprano Titanium ICE')
     + renderCertificacionGroup(allResultados, exilis,      '#e65100', '🔶', 'Certificación Exilis Elite')
     + renderCertificacionGroup(allResultados, emsculpt,    '#2e7d32', '💪', 'Certificación Emsculpt')
     + renderCertificacionGroup(allResultados, hydrafacial, '#00838f', '💧', 'Certificación HydraFacial')
