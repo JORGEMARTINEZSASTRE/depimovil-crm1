@@ -360,7 +360,11 @@ async function saveEvaluacionTecnica(){
   });
   DB.set('capacitaciones',caps);
 
-  if(aprobada){
+  // Evaluaciones HIFU: solo nivel avanzado habilita y certifica; básico e intermedio solo informe
+  const esHIFU = evaluacion.id.startsWith('hifu-');
+  const esHabilitante = !esHIFU || evaluacion.id === 'hifu-avanzado';
+
+  if(aprobada && esHabilitante){
     try{
       const saved=await api('/api/operadoras/'+opId+'/habilitaciones',{
         method:'POST',
@@ -383,6 +387,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
+  }else if(aprobada && esHIFU){
+    // Niveles básico e intermedio: solo informe, sin habilitación
+    auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
+    const nivel = evaluacion.nivel || '';
+    showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación HIFU debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
     showToast(`❌ No aprobada (${correctas}/${evaluacion.preguntas.length}). No se otorgó habilitación.`,'warn');
