@@ -1513,6 +1513,87 @@ function renderEvaluaciones(){
   </div>`;
 }
 
+
+// ── Control de intentos y temporizador de evaluación ──
+const EVAL_MAX_INTENTOS = 3;
+const EVAL_TIEMPO_MINUTOS = 10;
+const EVAL_BLOQUEO_HORAS = 24;
+let evalTimer = null;
+let evalTiempoRestante = 0;
+
+function getEvalIntentosKey(opId, evalId){ return `eval_intentos_${opId}_${evalId}`; }
+function getEvalBloqueKey(opId, evalId){ return `eval_bloqueo_${opId}_${evalId}`; }
+
+function getEvalEstado(opId, evalId){
+  const bloqueoKey = getEvalBloqueKey(opId, evalId);
+  const intentosKey = getEvalIntentosKey(opId, evalId);
+  const bloqueoData = DB.get(bloqueoKey);
+  if(bloqueoData){
+    const bloqueoTs = new Date(bloqueoData.ts);
+    const ahora = new Date();
+    const diffHoras = (ahora - bloqueoTs) / (1000*60*60);
+    if(diffHoras < EVAL_BLOQUEO_HORAS){
+      const restoMin = Math.ceil((EVAL_BLOQUEO_HORAS - diffHoras) * 60);
+      const restoHoras = Math.floor(restoMin / 60);
+      const restoMinutos = restoMin % 60;
+      return { bloqueado: true, intentos: bloqueoData.intentos, restoHoras, restoMinutos };
+    } else {
+      // Bloqueo expirado, resetear
+      DB.set(intentosKey, 0);
+      DB.set(bloqueoKey, null);
+    }
+  }
+  const intentos = parseInt(DB.get(intentosKey) || 0);
+  return { bloqueado: false, intentos };
+}
+
+function registrarIntentoEval(opId, evalId){
+  const intentosKey = getEvalIntentosKey(opId, evalId);
+  const bloqueoKey = getEvalBloqueKey(opId, evalId);
+  const intentos = (parseInt(DB.get(intentosKey) || 0)) + 1;
+  DB.set(intentosKey, intentos);
+  if(intentos >= EVAL_MAX_INTENTOS){
+    DB.set(bloqueoKey, { ts: new Date().toISOString(), intentos });
+  }
+  return intentos;
+}
+
+function resetearIntentosEval(opId, evalId){
+  DB.set(getEvalIntentosKey(opId, evalId), 0);
+  DB.set(getEvalBloqueKey(opId, evalId), null);
+}
+
+function iniciarTimerEval(){
+  clearInterval(evalTimer);
+  evalTiempoRestante = EVAL_TIEMPO_MINUTOS * 60;
+  actualizarTimerUI();
+  evalTimer = setInterval(function(){
+    evalTiempoRestante--;
+    actualizarTimerUI();
+    if(evalTiempoRestante <= 0){
+      clearInterval(evalTimer);
+      showToast('⏰ Tiempo agotado. El test se enviará automáticamente.','warn');
+      setTimeout(function(){ saveEvaluacionTecnica(); }, 1500);
+    }
+  }, 1000);
+}
+
+function detenerTimerEval(){
+  clearInterval(evalTimer);
+  evalTimer = null;
+}
+
+function actualizarTimerUI(){
+  const el = document.getElementById('evalTimerDisplay');
+  if(!el) return;
+  const m = Math.floor(evalTiempoRestante / 60);
+  const s = evalTiempoRestante % 60;
+  const texto = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.textContent = texto;
+  el.style.color = evalTiempoRestante <= 60 ? '#e53935' : evalTiempoRestante <= 180 ? '#f57f17' : 'var(--text)';
+  el.style.fontWeight = evalTiempoRestante <= 60 ? '700' : '600';
+}
+
 function openEvaluacionModal(evaluacionId){
   if(!puedeTomarEvaluacion()){showToast('⚠️ Sin permisos','warn');return;}
   const evaluacion=getEvaluacionById(evaluacionId);
@@ -1529,6 +1610,19 @@ function openEvaluacionModal(evaluacionId){
       return;
     }
   }
+  // Verificar intentos y bloqueo
+  const checkOpId = opId || 0;
+  if(checkOpId){
+    const estado = getEvalEstado(checkOpId, evaluacionId);
+    if(estado.bloqueado){
+      showToast(`🔒 Alcanzaste el límite de ${EVAL_MAX_INTENTOS} intentos. Podés volver a intentar en ${estado.restoHoras}h ${estado.restoMinutos}min.`,'warn');
+      return;
+    }
+    const intentosRestantes = EVAL_MAX_INTENTOS - estado.intentos;
+    if(estado.intentos > 0){
+      showToast(`ℹ️ Intentos disponibles: ${intentosRestantes} de ${EVAL_MAX_INTENTOS}`,'info');
+    }
+  }
   document.getElementById('evalId').value=evaluacionId;
   document.getElementById('evalTitulo').textContent=evaluacion.titulo;
   const evalOpWrap=document.getElementById('evalOperadora')?.closest('.form-field');
@@ -1537,8 +1631,16 @@ function openEvaluacionModal(evaluacionId){
     ? `<option value="${opId}" selected>${opActual ? `${opActual.nombre||''} ${opActual.apellido||''}`.trim() : 'Mi ficha'}</option>`
     : `<option value="">Seleccionar operadora...</option>`+
       ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido}</option>`).join('');
+  const estadoActual = checkOpId ? getEvalEstado(checkOpId, evaluacionId) : {intentos:0};
+  const intentosRestantes = EVAL_MAX_INTENTOS - estadoActual.intentos;
   document.getElementById('evalResumen').innerHTML=
-    `Aprobación mínima: <strong>${evaluacion.minimoAprobacion}/${evaluacion.preguntas.length}</strong>. Si aprueba, queda habilitada para <strong>${evaluacion.categoria}</strong>.`;
+    `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>Aprobación mínima: <strong>${evaluacion.minimoAprobacion}/${evaluacion.preguntas.length}</strong>. Si aprueba, queda habilitada para <strong>${evaluacion.categoria}</strong>.</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="font-size:12px;color:var(--text3)">Intentos: <strong style="color:${intentosRestantes<=1?'#e53935':'var(--text)'}">${intentosRestantes}/${EVAL_MAX_INTENTOS}</strong></div>
+        <div style="font-size:12px;color:var(--text3)">⏱ Tiempo: <strong id="evalTimerDisplay" style="font-size:15px;color:var(--text)">10:00</strong></div>
+      </div>
+    </div>`;
   document.getElementById('evalPreguntas').innerHTML=evaluacion.preguntas.map((p,i)=>`
     <div style="padding:12px 0;border-bottom:1px solid var(--border)">
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">${i+1}. ${p.q}</div>
@@ -1550,13 +1652,17 @@ function openEvaluacionModal(evaluacionId){
       </div>
     </div>`).join('');
   openModal('modalEvaluacion');
+  iniciarTimerEval();
 }
 
 async function saveEvaluacionTecnica(){
+  detenerTimerEval();
   const evaluacion=getEvaluacionById(gv('evalId'));
   if(!evaluacion){showToast('⚠️ Evaluación no encontrada','warn');return;}
   const opId=parseInt(gv('evalOperadora'));
   if(!opId){showToast('⚠️ Seleccioná una operadora','warn');return;}
+  // Registrar intento
+  const intentoActual = registrarIntentoEval(opId, evaluacion.id);
   const reglaCapacitacion=validarReglasCapacitacion(opId,evaluacion);
   const excepcionAdministrativa=!reglaCapacitacion.ok && confirmarExcepcionCapacitacion(opId,evaluacion,reglaCapacitacion);
   if(!reglaCapacitacion.ok && !excepcionAdministrativa){
@@ -1648,6 +1754,7 @@ async function saveEvaluacionTecnica(){
       });
       DB.set('habilitaciones',habs);
       auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${correctas}/${evaluacion.preguntas.length}`);
+      resetearIntentosEval(opId, evaluacion.id);
       showToast(`✅ Evaluación aprobada (${correctas}/${evaluacion.preguntas.length}). Operadora habilitada.`);
       await emitirCertificadoOperadora(opId,resultado,evaluacion);
     }catch(e){
@@ -1655,14 +1762,21 @@ async function saveEvaluacionTecnica(){
     }
   }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano || esBronceado || esAparatologia || esMasajes || esCavitacion || esSkincare || esCriolipolisis || esAtencion || esBioseguridad || esRF || esGestion || esCoaching)){
     // Niveles básico e intermedio: solo informe, sin habilitación
+    resetearIntentosEval(opId, evaluacion.id);
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
     const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : esBronceado ? 'Bronceado Orgánico' : esAparatologia ? 'Aparatología Estética' : esMasajes ? 'Masajes y Drenaje Linfático' : esCavitacion ? 'Cavitación Ultrasónica' : esSkincare ? 'Skincare y Cuidado de la Piel' : esCriolipolisis ? 'Criolipólisis' : esAtencion ? 'Atención al Cliente y Ventas en Estética' : esBioseguridad ? 'Bioseguridad e Higiene en Estética' : esRF ? 'Radiofrecuencia Corporal y Facial' : esGestion ? 'Gestión de Agenda y Administración' : esCoaching ? 'Coaching de Bienestar y Hábitos Saludables' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
-    showToast(`❌ No aprobada (${correctas}/${evaluacion.preguntas.length}). No se otorgó habilitación.`,'warn');
+    const intentosRestantesPost = EVAL_MAX_INTENTOS - intentoActual;
+    if(intentosRestantesPost <= 0){
+      showToast(`❌ No aprobada (${correctas}/${evaluacion.preguntas.length}). Agotaste los ${EVAL_MAX_INTENTOS} intentos. Podés volver a intentar en ${EVAL_BLOQUEO_HORAS} horas.`,'warn');
+    } else {
+      showToast(`❌ No aprobada (${correctas}/${evaluacion.preguntas.length}). Te quedan ${intentosRestantesPost} intento(s) antes del bloqueo de ${EVAL_BLOQUEO_HORAS}h.`,'warn');
+    }
   }
+  detenerTimerEval();
   closeModal('modalEvaluacion');
   renderMateriales();
   const fichaEl=document.getElementById('view-operadora-ficha');
