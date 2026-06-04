@@ -15,39 +15,70 @@ const HAB_API_CATEGORIAS = {
   'Pressoterapia':'Pressoterapia',
   'Electroestimulación':'electroestimulacion',
 };
-const EVAL_DEPILACION_LASER = {
-  id:'depilacion-definitiva-basico',
-  titulo:'Test básico de Depilación Definitiva',
+const EVAL_LASER_BASICO = {
+  id:'laser-basico',
+  titulo:'Test Básico — Depilación Láser',
   categoria:'Láser Depilación',
-  minimoAprobacion:20,
+  nivel:'Básico',
+  minimoAprobacion:10,
   preguntas:[
-    {q:'¿Cuál es el principal objetivo de la depilación definitiva con láser?',o:['Arrancar el vello desde la raíz','Debilitar progresivamente el folículo piloso','Exfoliar la piel antes del crecimiento','Cambiar el color natural del vello'],c:1},
-    {q:'¿Qué estructura absorbe principalmente la energía del láser en el vello?',o:['Colágeno','Melanina','Queratinocito','Glándula sebácea'],c:1},
-    {q:'¿En qué fase del crecimiento del vello el tratamiento suele ser más efectivo?',o:['Telógena','Anágena','Catágena','Reposo prolongado'],c:1},
-    {q:'¿Por qué se necesitan varias sesiones?',o:['Porque todos los vellos están siempre en anágena','Porque el vello crece en diferentes fases','Porque el láser solo actúa en piel seca','Porque la piel se acostumbra al láser'],c:1},
-    {q:'Antes de una sesión, la zona debe estar:',o:['Depilada con cera el mismo día','Rasurada y limpia','Bronceada para ver mejor el vello','Con crema corporal abundante'],c:1},
-    {q:'¿Qué método debe evitarse entre sesiones?',o:['Rasurado','Cera o pinza','Limpieza suave','Hidratación indicada'],c:1},
-    {q:'¿Cuál es una contraindicación habitual para realizar la sesión?',o:['Vello rasurado','Bronceado reciente o quemadura solar','Piel limpia','Uso de ropa cómoda'],c:1},
-    {q:'Si la clienta está usando medicación fotosensibilizante, corresponde:',o:['Subir la potencia','Consultar y posponer si corresponde','Aplicar igual con gel frío','Realizar doble pasada'],c:1},
-    {q:'¿Qué debe usarse siempre para proteger los ojos?',o:['Lentes de sol comunes','Protección ocular específica para láser','Algodón sobre los párpados','Ninguna protección si la zona no es facial'],c:1},
-    {q:'¿Qué información debe revisarse antes de iniciar el tratamiento?',o:['Solo forma de pago','Ficha, antecedentes y consentimiento informado','Color de uñas','Preferencia musical'],c:1},
-    {q:'¿Qué reacción puede ser esperable después de una sesión?',o:['Enrojecimiento leve y sensación de calor','Herida profunda inmediata','Manchas negras obligatorias','Dolor intenso persistente siempre'],c:0},
-    {q:'¿Qué se recomienda después de la sesión?',o:['Sol directo sin protección','Evitar calor intenso y usar protección solar','Cera a las 24 horas','Exfoliación agresiva inmediata'],c:1},
-    {q:'¿Se debe disparar láser sobre tatuajes?',o:['Sí, siempre','No, se deben evitar y proteger','Solo si el tatuaje es negro','Solo con potencia máxima'],c:1},
-    {q:'En fototipos altos o piel más oscura, se debe:',o:['Ignorar el fototipo','Ajustar parámetros y extremar cuidados','Aplicar la misma potencia siempre','No usar gel nunca'],c:1},
-    {q:'¿Cuál es una señal para detener la sesión y evaluar?',o:['Ligero olor a vello','Dolor excesivo, ampolla o reacción inusual','Cliente tranquila','Piel rasurada'],c:1},
-    {q:'¿Qué debe hacerse con lunares o lesiones sospechosas?',o:['Disparar encima','Evitar la zona y derivar si corresponde','Aumentar frecuencia','Tapar con maquillaje'],c:1},
-    {q:'¿Por qué se realiza una evaluación inicial de piel y vello?',o:['Para elegir parámetros y detectar riesgos','Para vender más zonas únicamente','Para evitar registrar datos','Para definir música de cabina'],c:0},
-    {q:'¿Qué significa trabajar con parámetros seguros?',o:['Usar siempre el nivel más alto','Ajustar energía, pulso y frecuencia según caso y equipo','Hacer pasadas ilimitadas','Omitir prueba en piel sensible'],c:1},
-    {q:'Si una clienta se expuso al sol recientemente, corresponde:',o:['Tratar igual','Evaluar riesgo y reprogramar si es necesario','Aplicar doble gel y continuar','Usar cera antes'],c:1},
-    {q:'¿Qué zona requiere especial cuidado por cercanía ocular?',o:['Piernas','Rostro y cejas/periocular','Brazos','Espalda baja'],c:1},
-    {q:'¿Cuál es una buena práctica durante la sesión?',o:['No preguntar sensaciones','Mantener comunicación y observar la piel','Tapar la zona y disparar rápido','Cambiar parámetros sin registrar'],c:1},
-    {q:'¿Qué dato conviene registrar luego de la sesión?',o:['Solo clima del día','Zona tratada, parámetros, reacción y observaciones','Color de ropa','Tiempo de espera en recepción'],c:1},
-    {q:'¿Qué debe explicarse a la clienta sobre resultados?',o:['Que será 100% definitivo en una sesión','Que hay reducción progresiva y puede requerir mantenimiento','Que no importa el ciclo del vello','Que el vello cae todo inmediatamente'],c:1},
-    {q:'¿Qué se debe hacer si hay duda sobre una condición médica?',o:['Proceder rápido','Consultar, pedir autorización o derivar antes de tratar','Bajar luz de cabina','Aplicar crema anestésica sin indicación'],c:1},
-    {q:'Para aprobar esta habilitación interna, la operadora debe:',o:['Responder sin leer la ficha','Demostrar criterio de seguridad y protocolo','Saber vender promociones únicamente','Elegir cualquier parámetro al azar'],c:1},
+    {q:'¿En qué se basa el principio de la depilación láser?',o:['Termólisis selectiva: el láser calienta la melanina del folículo sin dañar la piel circundante','Congelación del folículo piloso','Exfoliación química de la raíz','Corriente eléctrica que destruye el bulbo'],c:0},
+    {q:'¿En qué fase del ciclo del vello es efectivo el láser?',o:['Catágena','Telógena','Anágena','Exógena'],c:2},
+    {q:'¿Por qué se necesitan varias sesiones de depilación láser?',o:['Porque el láser pierde potencia con el uso','Porque no todos los vellos están en fase anágena al mismo tiempo','Porque la piel necesita descanso entre sesiones','Porque el equipo se calienta y hay que apagarlo'],c:1},
+    {q:'¿Cuántas sesiones se recomiendan generalmente?',o:['1-2 sesiones','3-4 sesiones','6-8 sesiones','20 sesiones'],c:2},
+    {q:'¿Qué tipo de vello responde mejor al láser?',o:['Vello rubio fino','Vello blanco o canoso','Vello oscuro y grueso','Vello rojizo'],c:2},
+    {q:'¿Cuál es la contraindicación más importante?',o:['Piel hidratada','Piel bronceada o con exposición solar reciente','Piel con vello oscuro','Piel con vello fino'],c:1},
+    {q:'¿Qué longitud de onda usa el láser Alexandrita?',o:['532 nm','755 nm','1064 nm','810 nm'],c:1},
+    {q:'¿Qué se debe hacer antes de una sesión?',o:['Depilarse con cera','Exponerse al sol para activar la melanina','Afeitar la zona 24-48 horas antes','Aplicar crema depilatoria'],c:2},
+    {q:'¿El láser elimina el vello de forma permanente?',o:['Sí, con una sola sesión','Logra reducción permanente significativa con el ciclo completo','No, el vello siempre vuelve igual','Solo funciona en hombres'],c:1},
+    {q:'¿Qué sensación es normal durante la sesión?',o:['Ninguna sensación','Calor y pinchazos similares a un elástico','Frío intenso','Entumecimiento total'],c:1},
+    {q:'¿Con qué frecuencia se realizan las sesiones en cuerpo?',o:['Cada semana','Cada 15 días siempre','Cada 4-8 semanas según la zona','Cada 6 meses'],c:2},
+    {q:'¿Qué cuidado es esencial después de cada sesión?',o:['Exponerse al sol para activar los resultados','Aplicar protector solar SPF 50+ y evitar el sol','Usar cera para eliminar los restos de vello','Aplicar agua caliente en la zona'],c:1},
   ],
 };
+const EVAL_LASER_INTERMEDIO = {
+  id:'laser-intermedio',
+  titulo:'Test Intermedio — Depilación Láser',
+  categoria:'Láser Depilación',
+  nivel:'Intermedio',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es la diferencia entre el láser diodo 808 nm y el Nd:YAG 1064 nm?',o:['El diodo es para pieles oscuras y el Nd:YAG para pieles claras','El diodo 808 nm es versátil para pieles intermedias; el Nd:YAG 1064 nm es más seguro en pieles oscuras tipo IV-VI','Son idénticos en resultados','El Nd:YAG no funciona en vello oscuro'],c:1},
+    {q:'¿Qué es la fluencia en depilación láser?',o:['La velocidad de disparo del láser','La energía entregada por unidad de área (J/cm²)','La frecuencia de la luz','El tamaño del spot'],c:1},
+    {q:'¿Por qué el láser no es efectivo en vello blanco o rubio claro?',o:['Porque ese vello es más grueso','Porque no contiene melanina suficiente para absorber la energía','Porque crece más rápido','Porque está en fase telógena siempre'],c:1},
+    {q:'¿Qué es el spot size y cómo afecta el tratamiento?',o:['Es la temperatura del láser','Es el diámetro del haz; un spot mayor cubre más área y penetra más profundo','Es la duración del pulso','Es el número de disparos por sesión'],c:1},
+    {q:'¿Cuál es el riesgo principal en pieles fototipos IV-VI con láser de alta fluencia?',o:['Mayor crecimiento del vello','Hiperpigmentación o hipopigmentación post-inflamatoria','Alergia al gel conductor','Caída del cabello'],c:1},
+    {q:'¿Qué es la duración del pulso y por qué importa?',o:['El tiempo total de la sesión','El tiempo de cada disparo; debe ser menor al tiempo de relajación térmica del folículo','La frecuencia de los disparos','La potencia máxima del equipo'],c:1},
+    {q:'¿Qué zona del cuerpo suele requerir más sesiones?',o:['Piernas','Zona hormonal (bikini, axilas, cara en mujeres)','Espalda','Brazos'],c:1},
+    {q:'¿Cuál es la diferencia entre depilación láser e IPL?',o:['Son exactamente lo mismo','El láser emite luz monocromática coherente; el IPL emite luz pulsada de amplio espectro, siendo menos preciso','El IPL es más potente que el láser','El láser es más barato que el IPL'],c:1},
+    {q:'¿Qué cuidado debe tener una paciente que usa retinoides antes de la sesión?',o:['No hay ningún cuidado especial','Suspender los retinoides 5-7 días antes para evitar hipersensibilidad','Aplicar más retinoide para potenciar el efecto','Usar retinoide inmediatamente después'],c:1},
+    {q:'¿Qué es el efecto de peppering en depilación láser?',o:['Un efecto decorativo en la piel','Puntos oscuros temporales cuando el vello tratado emerge fragmentado antes de caer','Una quemadura superficial','Un patrón de disparo del equipo'],c:1},
+    {q:'¿Cuándo está contraindicado el láser en mujeres con vello facial?',o:['Nunca','Durante embarazo, con medicación fotosensibilizante activa o patología hormonal no controlada','Solo en mujeres mayores de 50 años','Solo si la piel es clara'],c:1},
+    {q:'¿Cuál es el intervalo recomendado entre sesiones en la cara?',o:['Cada 2 semanas','Cada 3-4 semanas','Cada 3 meses','Cada 6 meses'],c:1},
+  ],
+};
+const EVAL_LASER_AVANZADO = {
+  id:'laser-avanzado',
+  titulo:'Test Avanzado — Depilación Láser',
+  categoria:'Láser Depilación',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué es el tiempo de relajación térmica (TRT)?',o:['El tiempo que tarda el equipo en enfriarse','El tiempo que tarda la estructura objetivo en perder la mitad del calor absorbido; el pulso debe ser ≤ TRT para confinamiento selectivo','La duración total de la sesión','El intervalo entre sesiones'],c:1},
+    {q:'¿Qué mecanismo explica que el Nd:YAG 1064 nm sea más seguro en fototipos altos?',o:['Tiene menos potencia','A 1064 nm la absorción por melanina es mucho menor, reduciendo el riesgo de daño epidérmico','Tiene un spot más pequeño','Genera menos calor en total'],c:1},
+    {q:'¿Qué es la teoría del cromóforo competitivo?',o:['Es una teoría obsoleta','La melanina epidérmica compite con la folicular por absorber energía láser, reduciendo eficacia y aumentando riesgo en pieles oscuras','Es el mecanismo por el que el láser destruye el colágeno','Solo aplica al IPL'],c:1},
+    {q:'¿Cómo afecta el ciclo hormonal al resultado del láser en mujeres?',o:['No tiene ningún efecto','Los andrógenos estimulan folículos latentes; en SOP el vello regenera, requiriendo más sesiones y mantenimiento','Los estrógenos potencian el efecto del láser','Solo afecta a mujeres menopáusicas'],c:1},
+    {q:'¿Qué diferencia al láser SHR del modo convencional?',o:['El SHR usa mayor fluencia por disparo','El SHR aplica múltiples pulsos de baja fluencia en movimiento, calentando el folículo gradualmente','El SHR solo funciona en pieles claras','El SHR es menos efectivo'],c:1},
+    {q:'¿Cuál es la base histológica del daño permanente al folículo?',o:['Se destruye la cutícula del vello','Se produce necrosis térmica del bulge y/o la papila dérmica, eliminando la capacidad regenerativa','Se calcifica la raíz del vello','Se destruye solo la vaina radicular externa'],c:1},
+    {q:'¿Qué es la hipertricosis paradójica inducida por láser?',o:['Un error de calibración del equipo','El aumento del crecimiento de vello en zonas adyacentes, posiblemente por fluencias subóptimas que estimulan en lugar de destruir','Un efecto buscado en tratamientos capilares','La caída total del vello corporal'],c:1},
+    {q:'¿Cómo se determina la fluencia correcta en el test de parche?',o:['Se usa siempre la fluencia máxima','Se aplican disparos con fluencia creciente evaluando eritema perifólicular (adecuado) vs quemadura (exceso) a las 24-48 horas','Se usa la fluencia del fabricante sin ajustar','Se elige la fluencia más baja siempre'],c:1},
+    {q:'¿Qué rol cumple el sistema de enfriamiento en la depilación láser?',o:['Solo mejora el confort del paciente','Protege la epidermis, permitiendo usar fluencias más altas con mayor seguridad','Aumenta la absorción del láser en el folículo','No tiene efecto real en la seguridad'],c:1},
+    {q:'¿Cuál es la diferencia clínica entre hipopigmentación e hiperpigmentación post-láser?',o:['Son exactamente lo mismo','La hiperpigmentación es aumento de melanina reactiva (generalmente reversible); la hipopigmentación es destrucción de melanocitos (más permanente y difícil de tratar)','La hipopigmentación es más común','Ambas desaparecen solas en 1 semana'],c:1},
+    {q:'¿Qué deben conocer los operadores sobre protección ocular?',o:['No es necesaria ninguna protección','Operador y paciente deben usar gafas certificadas para la longitud de onda específica; la exposición ocular puede causar daño retinal irreversible','Solo el operador necesita protección','Solo con potencias mayores de 100W'],c:1},
+    {q:'¿Qué consideración especial requiere la zona perianal o genital?',o:['No hay ninguna consideración especial','Requiere consentimiento informado específico, parámetros conservadores, evitar mucosa directa y verificar ausencia de lesiones activas (HPV, herpes)','Solo se puede tratar en mujeres','El láser no funciona en esa zona'],c:1},
+  ],
+};
+const EVAL_DEPILACION_LASER = EVAL_LASER_BASICO;
 const EVAL_PRESOTERAPIA = {
   id:'presoterapia-basico',
   titulo:'Test básico de Presoterapia',
@@ -144,7 +175,7 @@ const EVAL_HIFU_AVANZADO = {
     {q:'¿Cuál es la base científica para combinar HIFU con radiofrecuencia?',o:['No tiene base científica','HIFU actúa en profundidad (SMAS/grasa) y RF en dermis superficial — capas complementarias','La RF enfría el HIFU','La RF amplifica ultrasonido'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_DEPILACION_LASER, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -362,7 +393,8 @@ async function saveEvaluacionTecnica(){
 
   // Evaluaciones HIFU: solo nivel avanzado habilita y certifica; básico e intermedio solo informe
   const esHIFU = evaluacion.id.startsWith('hifu-');
-  const esHabilitante = !esHIFU || evaluacion.id === 'hifu-avanzado';
+  const esLaser = evaluacion.id.startsWith('laser-');
+  const esHabilitante = (!esHIFU && !esLaser) || evaluacion.id === 'hifu-avanzado' || evaluacion.id === 'laser-avanzado';
 
   if(aprobada && esHabilitante){
     try{
@@ -387,11 +419,12 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && esHIFU){
+  }else if(aprobada && (esHIFU || esLaser)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación HIFU debés completar los 3 niveles.`);
+    const cert = esHIFU ? 'HIFU' : 'Depilación Láser';
+    showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
     showToast(`❌ No aprobada (${correctas}/${evaluacion.preguntas.length}). No se otorgó habilitación.`,'warn');
@@ -614,15 +647,57 @@ function renderMaqHabPanel(maquinaId){
 }
 
 // ── Helper render evaluaciones con agrupamiento por certificación ──
+function renderCertificacionGroup(allResultados, evs, color, icono, titulo){
+  const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
+  const aprobadas = evs.filter(ev=>allResultados.some(r=>r.evaluacionId===ev.id&&r.estado==='aprobada')).length;
+  const completo = aprobadas === evs.length;
+  const rows = evs.map(ev=>{
+    const resultados=allResultados.filter(r=>r.evaluacionId===ev.id);
+    const aprobada=resultados.some(r=>r.estado==='aprobada');
+    const intentos=resultados.length;
+    return `<div class="material-row" style="padding-left:24px;border-left:3px solid ${aprobada?'var(--green)':'var(--border)'}">
+      <div class="material-icon">${aprobada?'✅':'🧪'}</div>
+      <div class="material-body">
+        <div class="material-title">${ev.titulo}</div>
+        <div class="material-sub">${ev.preguntas.length} preguntas · Aprobación: ${ev.minimoAprobacion}/${ev.preguntas.length} · ${aprobada?'<strong style=\'color:var(--green)\'>Aprobada ✅</strong>':'Pendiente'} · ${intentos} intentos</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span class="badge ${nivelBadge[ev.nivel]||'badge-green'}">${ev.nivel||''}</span>
+        ${puedeTomarEvaluacion()?`<button class="action-btn" onclick="openEvaluacionModal('${ev.id}')" style="color:var(--blue)">Tomar evaluación</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const uid = titulo.replace(/\s+/g,'_');
+  return `<div style="border-left:4px solid ${color};margin:0">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--bg2,#f8f8f8)"
+         onclick="toggleCertGroup('${uid}')">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${icono} ${titulo} — 3 Niveles</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">
+          ${completo?'<strong style="color:var(--green)">¡Certificación completa!</strong>':`${aprobadas}/3 niveles aprobados. El nivel 3 otorga habilitación y certificado.`}
+        </div>
+      </div>
+      <span id="arrow_${uid}" style="font-size:16px;transition:transform .2s">▶</span>
+    </div>
+    <div id="group_${uid}" style="display:none">${rows}</div>
+  </div>`;
+}
+function toggleCertGroup(uid){
+  const el=document.getElementById('group_'+uid);
+  const ar=document.getElementById('arrow_'+uid);
+  if(!el) return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(ar) ar.style.transform=open?'':'rotate(90deg)';
+}
 function renderEvaluacionesRows(allResultados){
-  // Evaluaciones sueltas (no HIFU)
-  const sueltas = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('hifu-'));
-  const hifu    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
+  const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
+  const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-'));
 
-  const nivelColor = {Básico:'var(--green)',Intermedio:'#f57f17',Avanzado:'var(--red)'};
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
-  const rowsSueltas = sueltas.map(ev=>{
+  const rowsOtros = otros.map(ev=>{
     const resultados=allResultados.filter(r=>r.evaluacionId===ev.id);
     const aprobadas=resultados.filter(r=>r.estado==='aprobada').length;
     return `<div class="material-row">
@@ -639,35 +714,7 @@ function renderEvaluacionesRows(allResultados){
     </div>`;
   }).join('');
 
-  // Sección HIFU agrupada con los 3 niveles
-  const hifuAprobadas = hifu.filter(ev=>allResultados.some(r=>r.evaluacionId===ev.id&&r.estado==='aprobada')).length;
-  const hifuCompleto = hifuAprobadas === hifu.length;
-  const rowsHifu = hifu.map(ev=>{
-    const resultados=allResultados.filter(r=>r.evaluacionId===ev.id);
-    const aprobada=resultados.some(r=>r.estado==='aprobada');
-    const intentos=resultados.length;
-    return `<div class="material-row" style="padding-left:24px;border-left:3px solid ${aprobada?'var(--green)':'var(--border)'}">
-      <div class="material-icon">${aprobada?'✅':'🧪'}</div>
-      <div class="material-body">
-        <div class="material-title">${ev.titulo}</div>
-        <div class="material-sub">${ev.preguntas.length} preguntas. Aprobación: ${ev.minimoAprobacion}/${ev.preguntas.length}. ${aprobada?'Aprobada ✅':'Pendiente'} · ${intentos} intentos.</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <span class="badge ${nivelBadge[ev.nivel]||'badge-green'}">${ev.nivel||''}</span>
-        ${puedeTomarEvaluacion()?`<button class="action-btn" onclick="openEvaluacionModal('${ev.id}')" style="color:var(--blue)">Tomar evaluación</button>`:''}
-      </div>
-    </div>`;
-  }).join('');
-
-  const hifuSection = `<div style="background:var(--bg2,#f8f8f8);border-left:4px solid #9c27b0;margin:0">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--text)">💜 Certificación HIFU — 3 Niveles</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:3px">Debés aprobar los 3 niveles para obtener el certificado de habilitación HIFU.${hifuCompleto?' <strong style="color:var(--green)">¡Certificación completa!</strong>':` ${hifuAprobadas}/3 niveles aprobados.`}</div>
-      </div>
-    </div>
-    ${rowsHifu}
-  </div>`;
-
-  return rowsSueltas + hifuSection;
+  return rowsOtros
+    + renderCertificacionGroup(allResultados, laser, '#1976d2', '⚡', 'Certificación Depilación Láser')
+    + renderCertificacionGroup(allResultados, hifu,  '#9c27b0', '💜', 'Certificación HIFU');
 }
