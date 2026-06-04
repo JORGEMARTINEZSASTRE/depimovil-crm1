@@ -469,7 +469,49 @@ const EVAL_SOPRANO_AVANZADO = {
     {q:'¿Cómo debe documentarse correctamente cada sesión de Soprano Titanium ICE en la ficha del paciente?',o:['Solo se registra si hubo algún incidente','Se documenta: zona tratada, fototipo evaluado, parámetros usados (fluencia J/cm², frecuencia Hz, modo SHR/HR), número de pasadas, respuesta tisular observada, incidencias si las hay, recomendaciones post-sesión y fecha de próxima sesión','Solo se registra el nombre de la zona','La documentación es opcional y no tiene valor clínico'],c:1},
   ],
 };
-const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
+const EVAL_BRONCEADO_BASICO = {
+  id:'bronceado-basico',
+  titulo:'Test Básico — Bronceado Orgánico',
+  categoria:'General',
+  nivel:'Básico',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Qué es el bronceado orgánico o autobronceante?',o:['Un bronceado obtenido por exposición solar controlada','Un método de coloración temporal de la piel mediante activos naturales como la DHA que reacciona con las proteínas de la epidermis sin exposición a rayos UV','Un tatuaje temporal de color marrón','Un tratamiento con láser que oscurece la piel'],c:1},
+    {q:'¿Cuál es el ingrediente activo principal del bronceado orgánico?',o:['Melanina sintética inyectada','DHA (dihidroxiacetona), un azúcar derivado de plantas que reacciona con los aminoácidos de la capa córnea produciendo coloración marrón','Yodo y agua oxigenada','Betacaroteno aplicado en forma de spray'],c:1},
+    {q:'¿El bronceado orgánico protege la piel del sol?',o:['Sí, equivale a SPF 50','Sí, protege completamente de los rayos UV','No, no proporciona protección solar; es solo coloración cosmética y debe complementarse siempre con protector solar','Solo protege de rayos UVA'],c:2},
+    {q:'¿Cuánto tiempo tarda en desarrollarse el color del bronceado orgánico?',o:['Es instantáneo al aplicarlo','Entre 4 y 8 horas para ver el color completo, con desarrollo progresivo hasta las 24 horas','Tarda 3 días en aparecer','El color aparece solo después de lavarse'],c:1},
+    {q:'¿Cuánto dura el bronceado orgánico en la piel?',o:['Es permanente','Solo dura 24 horas','Entre 5 y 10 días según el tipo de piel, la preparación y los cuidados posteriores','Dura exactamente 30 días'],c:2},
+    {q:'¿Qué preparación es esencial antes de aplicar el bronceado orgánico?',o:['Broncearse al sol para activar la melanina','Exfoliar bien la piel 24 horas antes para eliminar células muertas y lograr un resultado uniforme','Aplicar crema hidratante espesa justo antes del tratamiento','Depilarse con cera el mismo día'],c:1},
+    {q:'¿Cuánto tiempo debe esperar el cliente antes de ducharse tras la aplicación?',o:['Puede ducharse inmediatamente','Entre 6 y 12 horas según el producto y el nivel de color deseado','Exactamente 2 minutos','No puede ducharse en 3 días'],c:1},
+    {q:'¿Qué zonas requieren menor cantidad de producto durante la aplicación?',o:['Las piernas y el abdomen','Rodillas, codos, tobillos y muñecas, por ser zonas de piel más gruesa y seca que absorben más producto y oscurecen desproporcionadamente','Solo la cara','Solo las axilas'],c:1},
+    {q:'¿Qué ropa debe usar el cliente después de la aplicación?',o:['Ropa ajustada oscura para que no se note','Ropa suelta, oscura y holgada para evitar marcas y manchas mientras el producto se desarrolla','Ropa blanca para ver el resultado','No importa el tipo de ropa'],c:1},
+    {q:'¿Cuál es una contraindicación del bronceado orgánico?',o:['Tener piel oscura naturalmente','Alergia conocida a la DHA o componentes del producto, heridas abiertas o irritación activa en la zona a tratar','Ser mayor de 30 años','Usar desodorante habitualmente'],c:1},
+    {q:'¿Qué cuidado post-aplicación prolonga el bronceado orgánico?',o:['Exfoliar diariamente para renovar el color','Hidratación diaria de la piel, evitar baños largos con agua muy caliente y no exfoliar hasta que el cliente quiera eliminar el bronceado','Exposición solar directa para fijar el color','Aplicar aceite mineral en abundancia'],c:1},
+    {q:'¿Se puede aplicar bronceado orgánico sobre piel con psoriasis activa?',o:['Sí, sin ningún problema','Sí, mejora la psoriasis','No, las lesiones activas de psoriasis contraindican la aplicación; el resultado sería irregular y puede irritar las lesiones','Solo si las lesiones son pequeñas'],c:2},
+  ],
+};
+const EVAL_BRONCEADO_AVANZADO = {
+  id:'bronceado-avanzado',
+  titulo:'Test Avanzado — Bronceado Orgánico',
+  categoria:'General',
+  nivel:'Avanzado',
+  minimoAprobacion:10,
+  preguntas:[
+    {q:'¿Cuál es el mecanismo químico por el que la DHA produce coloración en la piel?',o:['Estimula los melanocitos para producir melanina','La DHA reacciona con los grupos amino libres de los aminoácidos de la queratina en la capa córnea mediante la reacción de Maillard (glicación), produciendo compuestos coloreados llamados melanoidinas que generan el tono marrón','Oxida la hemoglobina superficial de los capilares','Se une a los lípidos de la membrana celular y los oscurece'],c:1},
+    {q:'¿Por qué el resultado del bronceado orgánico varía según el tipo de piel?',o:['No varía, es siempre igual en todos los tipos de piel','El contenido de aminoácidos en la queratina varía según el tipo de piel, el pH cutáneo y el grosor de la capa córnea; pieles más secas o con mayor capa córnea pueden absorber más DHA y oscurecer desproporcionadamente en ciertas zonas','Solo varía el color, no la intensidad','La variación es solo estética sin base científica'],c:1},
+    {q:'¿Cómo debe adaptarse la técnica de aplicación en spray para lograr un resultado uniforme en zonas difíciles como rodillas y codos?',o:['Se aplica más producto en esas zonas para compensar','Se aplica una capa más fina y se difumina inmediatamente con guante o esponja; se puede aplicar una capa de hidratante ligero previo en esas zonas para reducir la absorción excesiva de DHA en piel más gruesa','Se evitan completamente esas zonas','Se aplica con pincel fino en lugar de spray'],c:1},
+    {q:'¿Qué pH cutáneo favorece un resultado más oscuro y duradero con la DHA?',o:['pH alcalino (mayor de 7)','pH ácido (menor de 5.5) ya que la reacción de Maillard se ve favorecida en ambiente ligeramente ácido; por eso se recomienda no aplicar desodorante o productos alcalinos antes del tratamiento','pH neutro exactamente de 7','El pH no tiene ningún efecto sobre el resultado'],c:0},
+    {q:'¿Cómo se gestiona la aplicación del bronceado orgánico en clientes con piel muy clara (fototipo I) vs piel más oscura (fototipo IV)?',o:['Se aplica el mismo protocolo sin variación','En fototipos claros se puede usar DHA de mayor concentración para lograr el resultado deseado; en fototipos oscuros se recomienda concentración menor o igual para evitar tonos anaranjados o poco naturales; además el desarrollo del color será más sutil en pieles más oscuras','Solo funciona en fototipos I y II','En fototipos oscuros se duplica la dosis'],c:1},
+    {q:'¿Qué causa el tono anaranjado no deseado en el bronceado orgánico y cómo se previene?',o:['Es inevitable en todos los casos','El tono anaranjado ocurre por exceso de DHA, mala exfoliación previa, piel muy seca o concentración inadecuada para el fototipo; se previene con buena preparación de la piel, concentración correcta de DHA y formulaciones con pigmentos correctores (bronzers) que compensan el tono','Solo ocurre en pieles oscuras','Solo se puede corregir con maquillaje'],c:1},
+    {q:'¿Cómo se combina correctamente el bronceado orgánico con otros tratamientos estéticos en un protocolo?',o:['No se puede combinar con ningún otro tratamiento','El bronceado orgánico debe realizarse después de depilación láser (mínimo 48-72 horas), después de tratamientos exfoliantes (mínimo 24-48 horas) y antes de tratamientos hidratantes; nunca el mismo día que peelings o radiofrecuencia que pueden alterar el pH y la reacción de la DHA','Se puede hacer el mismo día que cualquier tratamiento','Debe hacerse siempre antes de la depilación'],c:1},
+    {q:'¿Qué diferencia a los productos de bronceado orgánico con DHA natural (caña de azúcar/remolacha) vs DHA sintética en términos de resultado?',o:['No hay ninguna diferencia práctica','La DHA de origen natural puede tener mayor biocompatibilidad y menor riesgo de irritación; algunas formulaciones naturales incluyen activos botánicos que mejoran la uniformidad y durabilidad; sin embargo la concentración y el vehículo (gel, mousse, spray) impactan más en el resultado final que el origen de la DHA','La DHA sintética siempre da mejor resultado','La DHA natural no funciona en pieles claras'],c:0},
+    {q:'¿Cómo debe manejarse una reacción alérgica post-aplicación de bronceado orgánico?',o:['Aplicar más producto para cubrir la reacción','Retirar el producto con agua abundante, aplicar calmante sin fragancia, consultar al paciente sobre alergias conocidas y derivar si la reacción es severa; registrar el incidente y contraindicar el producto en futuras sesiones','Esperar a que la reacción desaparezca sola sin hacer nada','Aplicar crema con corticoides sin consultar'],c:1},
+    {q:'¿Qué técnica de aplicación en cabina garantiza la mayor uniformidad en todo el cuerpo?',o:['Aplicar en cualquier orden sin técnica específica','Aplicar de abajo hacia arriba (pies a cabeza), en secciones, con movimientos circulares y lineales uniformes, difuminando inmediatamente bordes y zonas de transición; el operador debe usar guantes para evitar teñir las manos y verificar la cobertura antes de que el cliente se vista','Aplicar solo en las zonas que pide el cliente','Usar brocha gruesa en lugar de guante o spray'],c:1},
+    {q:'¿Qué diferencia al bronceado orgánico profesional de cabina del autobronceante de farmacia y qué valor agregado ofrece el servicio profesional?',o:['Son exactamente lo mismo','El servicio profesional usa formulaciones de mayor calidad y concentración, técnica de aplicación experta que garantiza uniformidad, preparación adecuada de la piel, personalización según fototipo y objetivo del cliente, y asesoramiento en cuidados posteriores; el resultado es significativamente más natural, uniforme y duradero','Solo difieren en el precio','El de farmacia siempre da mejor resultado'],c:1},
+    {q:'¿Cómo se evalúa y certifica la competencia técnica de una operadora en bronceado orgánico según estándares de calidad?',o:['Solo con un examen teórico sin práctica','La evaluación debe incluir conocimiento teórico del mecanismo de la DHA, protocolos de preparación y aplicación, manejo de contraindicaciones, técnica práctica supervisada con resultado uniforme y natural, y capacidad de asesoramiento al cliente; la certificación acredita que la operadora puede ofrecer el servicio con calidad y seguridad','Solo se requiere haber aplicado una vez','No existe certificación para bronceado orgánico'],c:1},
+  ],
+};
+const EVALUACIONES_TECNICAS = [EVAL_LASER_BASICO, EVAL_LASER_INTERMEDIO, EVAL_LASER_AVANZADO, EVAL_NDYAG_BASICO, EVAL_NDYAG_INTERMEDIO, EVAL_NDYAG_AVANZADO, EVAL_SOPRANO_BASICO, EVAL_SOPRANO_INTERMEDIO, EVAL_SOPRANO_AVANZADO, EVAL_EXILIS_BASICO, EVAL_EXILIS_INTERMEDIO, EVAL_EXILIS_AVANZADO, EVAL_EMSCULPT_BASICO, EVAL_EMSCULPT_INTERMEDIO, EVAL_EMSCULPT_AVANZADO, EVAL_HYDRAFACIAL_BASICO, EVAL_HYDRAFACIAL_AVANZADO, EVAL_BRONCEADO_BASICO, EVAL_BRONCEADO_AVANZADO, EVAL_PRESOTERAPIA, EVAL_HIFU_BASICO, EVAL_HIFU_INTERMEDIO, EVAL_HIFU_AVANZADO];
 
 // ── Core helpers ──
 function getMaterial(id){ return (DB.get('materiales')||[]).find(m=>m.id===parseInt(id)); }
@@ -693,7 +735,8 @@ async function saveEvaluacionTecnica(){
   const esEmsculpt = evaluacion.id.startsWith('emsculpt-');
   const esHydrafacial = evaluacion.id.startsWith('hydrafacial-');
   const esSoprano = evaluacion.id.startsWith('soprano-');
-  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial && !esSoprano) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado','soprano-avanzado'].includes(evaluacion.id);
+  const esBronceado = evaluacion.id.startsWith('bronceado-');
+  const esHabilitante = (!esHIFU && !esLaser && !esNdYAG && !esExilis && !esEmsculpt && !esHydrafacial && !esSoprano && !esBronceado) || ['hifu-avanzado','laser-avanzado','ndyag-avanzado','exilis-avanzado','emsculpt-avanzado','hydrafacial-avanzado','soprano-avanzado','bronceado-avanzado'].includes(evaluacion.id);
 
   if(aprobada && esHabilitante){
     try{
@@ -718,11 +761,11 @@ async function saveEvaluacionTecnica(){
     }catch(e){
       showToast('⚠️ Aprobó, pero no se pudo crear la habilitación: '+e.message,'warn');
     }
-  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano)){
+  }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano || esBronceado)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
-    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : 'Depilación Láser';
+    const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : esBronceado ? 'Bronceado Orgánico' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
     auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
@@ -992,7 +1035,7 @@ function toggleCertGroup(uid){
 function renderEvaluacionesRows(allResultados){
   const laser = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('laser-'));
   const hifu  = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hifu-'));
-  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-') && !e.id.startsWith('soprano-'));
+  const otros = EVALUACIONES_TECNICAS.filter(e => !e.id.startsWith('laser-') && !e.id.startsWith('hifu-') && !e.id.startsWith('ndyag-') && !e.id.startsWith('exilis-') && !e.id.startsWith('emsculpt-') && !e.id.startsWith('hydrafacial-') && !e.id.startsWith('soprano-') && !e.id.startsWith('bronceado-'));
 
   const nivelBadge = {Básico:'badge-green',Intermedio:'badge-yellow',Avanzado:'badge-red'};
 
@@ -1018,6 +1061,7 @@ function renderEvaluacionesRows(allResultados){
   const exilis      = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('exilis-'));
   const emsculpt    = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('emsculpt-'));
   const hydrafacial = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('hydrafacial-'));
+  const bronceado   = EVALUACIONES_TECNICAS.filter(e => e.id.startsWith('bronceado-'));
   return rowsOtros
     + renderCertificacionGroup(allResultados, laser,       '#1976d2', '⚡', 'Certificación Depilación Láser')
     + renderCertificacionGroup(allResultados, ndyag,       '#0097a7', '🔵', 'Certificación Nd:YAG')
@@ -1025,5 +1069,6 @@ function renderEvaluacionesRows(allResultados){
     + renderCertificacionGroup(allResultados, exilis,      '#e65100', '🔶', 'Certificación Exilis Elite')
     + renderCertificacionGroup(allResultados, emsculpt,    '#2e7d32', '💪', 'Certificación Emsculpt')
     + renderCertificacionGroup(allResultados, hydrafacial, '#00838f', '💧', 'Certificación HydraFacial')
+    + renderCertificacionGroup(allResultados, bronceado,   '#f9a825', '🌟', 'Certificación Bronceado Orgánico')
     + renderCertificacionGroup(allResultados, hifu,        '#9c27b0', '💜', 'Certificación HIFU');
 }
