@@ -35,6 +35,67 @@ function badgeLead(estado){
 }
 
 function getLead(id){return (DB.get('leads')||[]).find(l=>l.id===parseInt(id));}
+function leadNombre(l){return `${l?.nombre||''} ${l?.apellido||''}`.trim()||'Contacto sin nombre';}
+function leadTelefonoDigits(l){return String(l?.whatsapp||l?.telefono||'').replace(/\D/g,'');}
+function leadFunnelPos(l){
+  const idx=LEAD_PIPELINE.indexOf(l?.estado);
+  return idx>=0 ? `${idx+1}/${LEAD_PIPELINE.length}` : '—';
+}
+function leadUrgencia(l){
+  const hoy=today();
+  if(l?.proxFecha && l.proxFecha<hoy) return {cls:'urgente',label:'Vencido',icon:'🔴'};
+  if(l?.proxFecha===hoy) return {cls:'hoy',label:'Hoy',icon:'🟡'};
+  if(Number(l?.whatsappScore||0)>=45 || ['pendiente_sena','reserva_confirmada'].includes(l?.estado)) return {cls:'caliente',label:'Prioridad alta',icon:'🔥'};
+  if(l?.proxFecha) return {cls:'pendiente',label:'Agendado',icon:'🔵'};
+  return {cls:'neutro',label:'Sin agenda',icon:'⚪'};
+}
+function leadMensajeWhatsApp(l,tipo){
+  const nombre=leadNombre(l).split(' ')[0]||'';
+  const tecnologia=l.tecnologia||l.interes||'tu consulta';
+  const fecha=l.proxFecha?fmtDate(l.proxFecha):'la fecha acordada';
+  const prox=l.proxAccion||'seguir con el próximo paso';
+  const marca='_Equipo DepiMóvil_';
+  if(tipo==='agendado'){
+    return `Hola ${nombre}, te confirmo que tengo agendado contactarte el *${fecha}* por: *${prox}*.\n\nSi preferís resolverlo antes, respondeme por acá.\n${marca}`;
+  }
+  if(tipo==='seguimiento'){
+    return `Hola ${nombre}, te escribo por tu consulta en DepiMóvil sobre *${tecnologia}*.\n\nPara avanzar, el próximo paso sería: *${prox}*.\n\n¿Te queda cómodo seguirlo por acá?\n${marca}`;
+  }
+  return `Hola ${nombre}, soy de DepiMóvil.\n\nVi tu consulta sobre *${tecnologia}* y te escribo para ayudarte con disponibilidad, modalidad y precios.\n\n¿Querés que lo veamos por acá?\n${marca}`;
+}
+function openLeadWhatsApp(leadId,tipo){
+  const l=getLead(leadId);
+  if(!l) return;
+  const tel=leadTelefonoDigits(l);
+  if(!tel){showToast('⚠️ Este lead no tiene WhatsApp cargado','warn');return;}
+  const msg=encodeURIComponent(leadMensajeWhatsApp(l,tipo));
+  window.open(`https://wa.me/${tel}?text=${msg}`,'_blank');
+}
+function lead360HTML(l){
+  const urg=leadUrgencia(l);
+  const nombre=leadNombre(l);
+  const fuente=LEAD_FUENTES[l.fuente]||l.fuente||'—';
+  const contactoAgendado=l.proxFecha||l.proxAccion;
+  return `<div class="lead360-panel">
+    <div class="lead360-main">
+      <div class="lead360-kicker">Vista 360 del lead</div>
+      <div class="lead360-title">${escapeHTML(nombre)}</div>
+      <div class="lead360-sub">${escapeHTML(l.gabinete||'Sin gabinete')} · ${escapeHTML(l.ciudad||'Sin ciudad')} · ${escapeHTML(fuente)}</div>
+    </div>
+    <div class="lead360-metrics">
+      <div class="lead360-metric"><span>Etapa</span><strong>${escapeHTML(leadFunnelPos(l))}</strong></div>
+      <div class="lead360-metric"><span>Estado</span><strong>${escapeHTML(LEAD_ESTADOS[l.estado]?.label||l.estado||'—')}</strong></div>
+      <div class="lead360-metric ${urg.cls}"><span>Prioridad</span><strong>${urg.icon} ${urg.label}</strong></div>
+      <div class="lead360-metric"><span>Score WA</span><strong>${Number(l.whatsappScore||0)}</strong></div>
+    </div>
+    <div class="lead360-actions">
+      <button class="action-btn" onclick="openLeadWhatsApp(${l.id},'saludo')">Primer WhatsApp</button>
+      <button class="action-btn" onclick="openLeadWhatsApp(${l.id},'seguimiento')">Seguimiento</button>
+      ${contactoAgendado?`<button class="action-btn lead-wa-agendado" onclick="openLeadWhatsApp(${l.id},'agendado')">Contacto agendado</button>`:''}
+      ${canEditLead()?`<button class="btn-add" onclick="openNotaModal(${l.id})">+ Registrar gestión</button>`:''}
+    </div>
+  </div>`;
+}
 function mapLeadApi(l){
   return {
     id:l.id,nombre:l.nombre||'',apellido:l.apellido||'',gabinete:l.gabinete||'',
@@ -153,7 +214,8 @@ function filterReactivar(){
 function showLeadFicha(id){
   const l = getLead(id); if(!l) return;
   const st = LEAD_ESTADOS[l.estado]||{};
-  const nombreCompleto = `${escapeHTML(l.nombre)} ${escapeHTML(l.apellido)}`;
+  const nombrePlano = leadNombre(l);
+  const nombreCompleto = escapeHTML(nombrePlano);
 
   // Embudo visual — estado actual en el pipeline
   const pipeline = LEAD_PIPELINE;
@@ -195,12 +257,13 @@ function showLeadFicha(id){
       </div>
     </div>
     ${embudoHTML}
+    ${lead360HTML(l)}
     <div class="ficha-grid">
       <div class="info-card">
         <h4>📋 Datos de Contacto</h4>
         ${ir('Nombre completo',nombreCompleto)}
         ${ir('Gabinete / Negocio',escapeHTML(l.gabinete||'—'))}
-        ${ir('WhatsApp',l.whatsapp?`<a href="https://wa.me/${l.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--green)">💬 ${escapeHTML(l.whatsapp)}</a>`:'—')}
+        ${ir('WhatsApp',l.whatsapp?`<a href="https://wa.me/${leadTelefonoDigits(l)}" target="_blank" style="color:var(--green)">💬 ${escapeHTML(l.whatsapp)}</a>`:'—')}
         ${ir('Teléfono',escapeHTML(l.telefono||'—'))}
         ${ir('Email',l.email?`<a href="mailto:${escapeAttr(l.email)}" style="color:var(--blue)">${escapeHTML(l.email)}</a>`:'—')}
         ${ir('Ciudad',escapeHTML(l.ciudad||'—'))}
@@ -230,8 +293,10 @@ function showLeadFicha(id){
         const ico = vencida ? '🔴 Vencida' : esHoy ? '🟡 Hoy' : '🔵 Programada';
         return `<div class="${panelCls}">
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📌 Próxima Acción</div>
+          <div class="lead-agenda-name">${escapeHTML(nombrePlano)}</div>
           <div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:6px">${escapeHTML(l.proxAccion||'—')}</div>
           ${l.proxFecha ? `<div style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px">${ico} <strong>${fmtDate(l.proxFecha)}</strong></div>` : ''}
+          ${l.whatsapp?`<div style="margin-top:10px"><button class="action-btn lead-wa-agendado" onclick="openLeadWhatsApp(${l.id},'agendado')">Enviar WhatsApp agendado</button></div>`:''}
           ${canEditLead() ? `<div style="margin-top:10px"><button class="action-btn" onclick="openNotaModal(${l.id})" style="color:var(--accent);border-color:rgba(212,169,106,.3)">+ Registrar seguimiento</button></div>` : ''}
         </div>`;
       })()}
@@ -272,7 +337,7 @@ function showLeadFicha(id){
       </div>` : ''}
       <div class="info-card full">
         <h4 style="display:flex;align-items:center;justify-content:space-between">
-          📝 Notas de Seguimiento
+          💬 Conversación 360
           ${canEditLead()?`<button class="btn-add" style="font-size:12px;padding:6px 12px" onclick="openNotaModal(${l.id})">+ Nota</button>`:''}
         </h4>
         <div id="notas-lead-${l.id}"><div style="color:var(--text3);font-size:13px;padding:8px 0">Cargando notas...</div></div>
@@ -307,13 +372,13 @@ async function renderNotasLead(leadId){
   const container = document.getElementById('notas-lead-'+leadId);
   if(!container) return;
   try{
-    const notas = await api('/api/leads/'+leadId+'/notas');
+    const notas = (await api('/api/leads/'+leadId+'/notas')).sort((a,b)=>String(a.created_at||a.ts||'').localeCompare(String(b.created_at||b.ts||'')));
     const tipoMap={llamada:'📞 Llamada',whatsapp:'💬 WhatsApp',email:'✉️ Email',reunion:'🤝 Reunión',otro:'📌 Otro'};
     if(!notas.length){
-      container.innerHTML=`<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin notas aún. Registrá el primer contacto con el botón + Nota.</div>`;
+      container.innerHTML=`<div class="lead-conversation-empty">Sin conversación todavía. Registrá el primer contacto o abrí WhatsApp desde la ficha.</div>`;
       return;
     }
-    container.innerHTML=notas.map(n=>{
+    container.innerHTML=`<div class="lead-conversation">${notas.map(n=>{
       // Extraer mensaje limpio para notas de WA
       const esWA = n.tipo==='whatsapp';
       const textoLimpio = n.texto
@@ -322,17 +387,20 @@ async function renderNotasLead(leadId){
       const fecha = (n.created_at||n.ts||'').slice(0,10);
       const hora  = (n.created_at||n.ts||'').slice(11,16);
       const usuario = (n.usuario_email||n.usuario||'sistema').split('@')[0];
-      return `<div class="seguimiento-card${esWA?' sc-wa':''}">
-        <div class="sc-head">
-          <span class="sc-tipo sc-tipo-${n.tipo}">${tipoMap[n.tipo]||n.tipo}</span>
-          <span class="nc-date">${fmtDate(fecha)}${hora?' — '+hora:''}</span>
+      const saliente=!esWA || ['sistema','admin','crm'].some(x=>usuario.toLowerCase().includes(x));
+      return `<div class="lead-chat-row ${saliente?'out':'in'}">
+        <div class="lead-chat-bubble${esWA?' wa':''}">
+          <div class="lead-chat-head">
+            <span>${tipoMap[n.tipo]||n.tipo}</span>
+            <span>${fmtDate(fecha)}${hora?' · '+hora:''}</span>
+          </div>
+          <div class="lead-chat-text">${escapeHTML(textoLimpio||n.texto||'')}</div>
+          ${n.resultado&&n.resultado!=='mensaje_whatsapp'?`<div class="lead-chat-result">Resultado: ${escapeHTML(n.resultado)}</div>`:''}
+          ${(n.prox_accion&&n.prox_accion!=='Revisar conversación de WhatsApp y responder')||n.prox_fecha?`<div class="lead-chat-next">Próxima acción: ${escapeHTML(n.prox_accion||'—')}${n.prox_fecha?` · ${fmtDate(n.prox_fecha)}`:''}</div>`:''}
+          <div class="lead-chat-meta">${escapeHTML(usuario)}</div>
         </div>
-        <div class="sc-nota">${escapeHTML(textoLimpio||n.texto||'')}</div>
-        ${n.resultado&&n.resultado!=='mensaje_whatsapp'?`<div class="sc-resultado">✅ ${escapeHTML(n.resultado)}</div>`:''}
-        ${(n.prox_accion&&n.prox_accion!=='Revisar conversación de WhatsApp y responder')||n.prox_fecha?`<div class="sc-prox">📌 <strong>Próxima acción:</strong> ${escapeHTML(n.prox_accion||'—')}${n.prox_fecha?` · <strong>${fmtDate(n.prox_fecha)}</strong>`:''}</div>`:''}
-        <div class="sc-meta"><span>👤 ${escapeHTML(usuario)}</span></div>
       </div>`;
-    }).join('');
+    }).join('')}</div>`;
   }catch(e){
     container.innerHTML=`<div style="color:var(--text3);font-size:13px">Error cargando notas.</div>`;
   }
