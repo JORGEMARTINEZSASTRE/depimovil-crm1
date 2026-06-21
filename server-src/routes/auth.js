@@ -692,6 +692,7 @@ router.post('/operadora/register', async (req, res) => {
     };
     const nombreUsuario = `${payload.nombre} ${payload.apellido}`.trim();
     let usuarioResult;
+    // Buscar usuario operadora reutilizable (sin operadora_id asignada)
     const { rows: reusableUsers } = await client.query(
       `SELECT id FROM usuarios
        WHERE rol='operadora'
@@ -713,15 +714,36 @@ router.post('/operadora/register', async (req, res) => {
         [nombreUsuario, email, passwordHash, payload.whatsapp, operadora.id, metadata, reusableUsers[0].id]
       );
     } else {
-      usuarioResult = await client.query(
-        `INSERT INTO usuarios (
-          nombre, email, password_hash, rol, whatsapp, operadora_id, registro_origen,
-          requiere_revision_admin, revision_admin_estado, metadata
-        )
-         VALUES ($1,$2,$3,'operadora',$4,$5,'registro_web_operadora',true,'pendiente',$6)
-         RETURNING id, nombre, email, rol, operadora_id, whatsapp`,
-        [nombreUsuario, email, passwordHash, payload.whatsapp, operadora.id, metadata]
+      // Verificar si ya existe un usuario con ese WhatsApp en cualquier rol (evita duplicate key)
+      const { rows: conflictUsers } = await client.query(
+        `SELECT id, rol FROM usuarios
+         WHERE regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
+         LIMIT 1`,
+        [variants]
       );
+      if (conflictUsers.length) {
+        // WhatsApp pertenece a otro usuario (ej: admin). Crear sin whatsapp en usuarios.
+        const emailAlt = `operadora.${operadora.id}.${payload.whatsapp.replace(/\D/g, '')}@whatsapp.depimovil.local`;
+        usuarioResult = await client.query(
+          `INSERT INTO usuarios (
+            nombre, email, password_hash, rol, whatsapp, operadora_id, registro_origen,
+            requiere_revision_admin, revision_admin_estado, metadata
+          )
+           VALUES ($1,$2,$3,'operadora',NULL,$4,'registro_web_operadora',true,'pendiente',$5)
+           RETURNING id, nombre, email, rol, operadora_id, whatsapp`,
+          [nombreUsuario, emailAlt, passwordHash, operadora.id, metadata]
+        );
+      } else {
+        usuarioResult = await client.query(
+          `INSERT INTO usuarios (
+            nombre, email, password_hash, rol, whatsapp, operadora_id, registro_origen,
+            requiere_revision_admin, revision_admin_estado, metadata
+          )
+           VALUES ($1,$2,$3,'operadora',$4,$5,'registro_web_operadora',true,'pendiente',$6)
+           RETURNING id, nombre, email, rol, operadora_id, whatsapp`,
+          [nombreUsuario, email, passwordHash, payload.whatsapp, operadora.id, metadata]
+        );
+      }
     }
     await client.query(
       'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, ip) VALUES ($1,$2,$3,$4,$5)',
