@@ -55,10 +55,11 @@ function metaConfig() {
 }
 
 function getProvider() {
-  const { url } = evoBase();
-  if (url && process.env.EVOLUTION_KEY) return 'evolution';
+  // Meta tiene prioridad — Evolution en Hetzner es bloqueado por Meta/WhatsApp
   const { phoneId, token } = metaConfig();
   if (phoneId && token) return 'meta';
+  const { url } = evoBase();
+  if (url && process.env.EVOLUTION_KEY) return 'evolution';
   return 'none';
 }
 
