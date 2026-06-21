@@ -60,6 +60,9 @@ async function ensureCertificadosTable() {
   `);
   await pool.query('ALTER TABLE documentos_operadora ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT \'{}\'::jsonb');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_documentos_operadora_certificados ON documentos_operadora(operadora_id, tipo, created_at DESC)');
+  // Nivel progresivo operadora (1=bienvenida, 2=activa, 3=experimentada, 4=avanzada)
+  await pool.query('ALTER TABLE operadoras ADD COLUMN IF NOT EXISTS nivel_operadora SMALLINT NOT NULL DEFAULT 1');
+  await pool.query('ALTER TABLE operadoras ADD COLUMN IF NOT EXISTS nivel_operadora_updated_at TIMESTAMP');
 }
 
 function buildCertificadoHtml({ op, categoria, evaluacionTitulo, correctas, total, porcentaje, codigo, fecha }) {
@@ -210,6 +213,7 @@ function publicOperadora(row) {
     departamento: row.departamento || '',
     estado: row.estado,
     nivel: row.nivel || 'Inicial',
+    nivel_operadora: parseInt(row.nivel_operadora || 1, 10),
     equipos_alquila: equipos.map(e => ({
       equipo: e.equipo,
       jornadas: e.jornadas,
@@ -281,7 +285,7 @@ router.get('/', auth, async (req, res) => {
     if (!isOpsRole(req.user.rol)) return res.json([]);
     const { rows } = await pool.query(`
       SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
-             whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+             whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, nivel_operadora, obs,
              direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila, portal_token,
              updated_at, created_at,
              GREATEST(
@@ -372,7 +376,7 @@ router.get('/:id', auth, async (req, res) => {
     }
     const { rows } = await pool.query(`
       SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
-             whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+             whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, nivel_operadora, obs,
              direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila, portal_token
       FROM operadoras WHERE id = $1
     `, [req.params.id]);
@@ -390,7 +394,7 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const {
     nombre, apellido, gabinete, ciudad, departamento, pais,
-    whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+    whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, nivel_operadora, obs,
     direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila
   } = req.body;
 
@@ -408,7 +412,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res
     const { rows } = await client.query(`
       INSERT INTO operadoras (
         nombre, apellido, gabinete, ciudad, departamento, pais,
-        whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+        whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, nivel_operadora, obs,
         direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING *
@@ -455,7 +459,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res
 router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const {
     nombre, apellido, gabinete, ciudad, departamento, pais,
-    whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, obs,
+    whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, nivel_operadora, obs,
     direccion_entrega, tipo_direccion, direcciones_entrega, equipos_alquila
   } = req.body;
 
@@ -875,6 +879,84 @@ router.delete('/:id/habilitaciones/:habId', auth, requireRole('superadmin', 'ope
   } catch (err) {
     console.error('DELETE habilitaciones error:', err);
     res.status(500).json({ error: 'Error al eliminar habilitación' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// PATCH /api/operadoras/:id/nivel — subir/bajar nivel progresivo
+// ─────────────────────────────────────────────
+router.patch('/:id/nivel', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+  const nivel = parseInt(req.body.nivel, 10);
+  if (![1, 2, 3, 4].includes(nivel)) {
+    return res.status(400).json({ error: 'Nivel inválido. Debe ser 1, 2, 3 o 4.' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `UPDATE operadoras SET nivel_operadora=$1, nivel_operadora_updated_at=NOW(), updated_at=NOW()
+       WHERE id=$2 RETURNING id, nombre, apellido, nivel_operadora`,
+      [nivel, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Operadora no encontrada' });
+    await pool.query(
+      `INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle)
+       VALUES ($1,$2,'NIVEL_OPERADORA','operadora',$3,$4)`,
+      [req.user.id, req.user.email, req.params.id, `Nivel cambiado a ${nivel}: ${rows[0].nombre} ${rows[0].apellido}`]
+    ).catch(() => {});
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('PATCH nivel operadora error:', err);
+    res.status(500).json({ error: 'Error al actualizar nivel' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/operadoras/:id/nivel/auto — evalúa y sube nivel automáticamente
+// ─────────────────────────────────────────────
+router.post('/:id/nivel/auto', auth, async (req, res) => {
+  // Solo la propia operadora o admin puede llamar esto
+  if (!isOpsRole(req.user.rol) && String(req.user.operadora_id) !== String(req.params.id)) {
+    return res.status(403).json({ error: 'Sin permisos' });
+  }
+  try {
+    const { rows: opRows } = await pool.query(
+      'SELECT id, nivel_operadora FROM operadoras WHERE id=$1',
+      [req.params.id]
+    );
+    if (!opRows.length) return res.status(404).json({ error: 'Operadora no encontrada' });
+    const op = opRows[0];
+    const nivelActual = op.nivel_operadora || 1;
+
+    // Calcular reservas completadas
+    const { rows: resRows } = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM reservas
+       WHERE operadora_id=$1 AND estado IN ('completada','finalizada')`,
+      [req.params.id]
+    );
+    const reservasCompletadas = parseInt(resRows[0].cnt, 10);
+
+    // Calcular documentos subidos
+    const { rows: docRows } = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM documentos_operadora WHERE operadora_id=$1`,
+      [req.params.id]
+    );
+    const tieneDocumentos = parseInt(docRows[0].cnt, 10) > 0;
+
+    // Reglas de nivel automático
+    let nivelNuevo = nivelActual;
+    if (nivelActual < 2 && tieneDocumentos && reservasCompletadas >= 1) nivelNuevo = 2;
+    if (nivelActual < 3 && reservasCompletadas >= 3) nivelNuevo = 3;
+    if (nivelActual < 4 && reservasCompletadas >= 10) nivelNuevo = 4;
+
+    if (nivelNuevo !== nivelActual) {
+      await pool.query(
+        'UPDATE operadoras SET nivel_operadora=$1, nivel_operadora_updated_at=NOW(), updated_at=NOW() WHERE id=$2',
+        [nivelNuevo, req.params.id]
+      );
+    }
+    res.json({ nivel_anterior: nivelActual, nivel_nuevo: nivelNuevo, subio: nivelNuevo > nivelActual });
+  } catch (err) {
+    console.error('POST nivel/auto error:', err);
+    res.status(500).json({ error: 'Error al evaluar nivel' });
   }
 });
 
