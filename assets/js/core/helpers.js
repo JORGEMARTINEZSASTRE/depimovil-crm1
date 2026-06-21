@@ -49,6 +49,12 @@ const VIEW_PERMISSIONS={
   administrador:['*'],
   operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','materiales'],
   comercial:['dashboard','whatsapp'],
+  // Niveles progresivos de operadora
+  operadora_n1:['dashboard'],                                                          // Nivel 1: solo bienvenida
+  operadora_n2:['dashboard','maquinas','maquina-ficha','materiales'],                  // Nivel 2: máquinas + formación básica
+  operadora_n3:['dashboard','maquinas','maquina-ficha','reservas','reserva-ficha','pagos','pago-ficha','materiales'], // Nivel 3: + reservas y pagos
+  operadora_n4:['dashboard','maquinas','maquina-ficha','reservas','reserva-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'], // Nivel 4: completo
+  // Roles legacy (compatibilidad)
   operadora_habilitada:['dashboard','reservas','reserva-ficha','maquinas','maquina-ficha','pagos','pago-ficha','envios','envio-ficha','materiales'],
   operadora:['dashboard','maquinas','maquina-ficha','materiales'],
   operadora_limitada:['dashboard','materiales'],
@@ -90,10 +96,17 @@ function currentOperadoraHabs(){
     parseInt(h.operadoraId)===parseInt(currentUser.operadora_id)&&h.estado==='activa'
   );
 }
+function getOperadoraNivel(user=currentUser){
+  // Devuelve el nivel_operadora de la operadora actual (1-4), default 1
+  if(!user||!user.operadora_id)return 1;
+  const op=(DB.get('operadoras')||[]).find(o=>parseInt(o.id)===parseInt(user.operadora_id));
+  return parseInt(op?.nivel_operadora||op?.nivelOperadora||1,10)||1;
+}
 function getAccessRole(user=currentUser){
   if(!user)return'';
   if(isOperadoraUser(user)){
-    return currentOperadoraHabs().length?'operadora_habilitada':'operadora_limitada';
+    const nivel=getOperadoraNivel(user);
+    return `operadora_n${Math.min(Math.max(nivel,1),4)}`;
   }
   if(isTransportistaUser(user))return'transportista';
   return user.rol;
