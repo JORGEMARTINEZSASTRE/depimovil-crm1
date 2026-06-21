@@ -587,10 +587,13 @@ router.post('/operadora/register', async (req, res) => {
     if (!payload.nombre || !payload.apellido || !payload.whatsapp || !payload.documento || !payload.ciudad) {
       return res.status(400).json({ error: 'Nombre, apellido, WhatsApp, cédula/DNI y ciudad son obligatorios' });
     }
-    if (payload.documento.length < 5) {
+    // Formulario lite: documento 00000 es placeholder aceptado
+    const esPlaceholder = payload.documento === '00000';
+    if (!esPlaceholder && payload.documento.length < 5) {
       return res.status(400).json({ error: 'La cédula/DNI debe tener solo números y al menos 5 dígitos' });
     }
-    if (!payload.cumpleanos_valido) {
+    // Cumpleaños opcional en formulario lite
+    if (!esPlaceholder && !payload.cumpleanos_valido) {
       return res.status(400).json({ error: 'Indicá un cumpleaños válido con día y mes, sin año' });
     }
 
