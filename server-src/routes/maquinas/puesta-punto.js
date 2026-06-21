@@ -16,7 +16,8 @@ async function notifyPuestaPunto(transportista, maquina) {
   }
   try {
     const { enviarMensaje } = require('../../utils/wa_sender');
-    const { encolar } = require('../../utils/wa_queue');
+    // wa_queue deshabilitado — Meta Cloud API es el canal principal
+    const encolar = async (opts) => { console.log('[puesta-punto] wa_queue deshabilitado, se envió por Meta'); return { ok: false }; };
     const mensaje = `Hola ${transportista.nombre || ''} 👋\n\nDepiMóvil te asignó una *puesta a punto de máquina viajera*.\n\nMáquina: *${maquina.codigo} — ${maquina.nombre}*\nUbicación/base estética: *${maquina.ubicacion || 'a confirmar'}*\n\nPor favor realizar:\n1. Limpieza exterior y accesorios.\n2. Revisión visual de cabezales/cables.\n3. Control de piezas y elementos entregados.\n4. Avisar cualquier daño o faltante.\n\nCuando esté lista, entrá al CRM y tocá *Dar alta disponible* en la ficha de la máquina.\n\nTambién podés responder *LISTA* por WhatsApp para dejar constancia en la conversación.`;
     const envio = await enviarMensaje(telefono, mensaje);
     if (envio?.ok) return { status: 'enviado', messageId: envio.messageId || null };
