@@ -266,35 +266,82 @@ function renderDailyPanel(items){
 function renderDashboardOperadora(){
   const todasMaqs = DB.get('maquinas')||[];
   const op = (DB.get('operadoras')||[]).find(o=>parseInt(o.id)===parseInt(currentUser?.operadora_id));
+  const nivel = parseInt(op?.nivel_operadora||op?.nivelOperadora||1,10)||1;
   const misReservas = (DB.get('reservas')||[]).filter(r=>parseInt(r.operadoraId)===parseInt(currentUser?.operadora_id));
   const hoy = today();
+  const nombre = currentUser?.nombre?.split(' ')[0] || 'Operadora';
 
-  // Ciudades de la operadora
+  document.getElementById('dashAlerts').innerHTML='';
+  document.getElementById('statsGrid').innerHTML='';
+
+  // ── NIVEL 1: BIENVENIDA ──────────────────────────────────────────────
+  if(nivel===1){
+    document.getElementById('dashboardGrid').innerHTML=`
+      <div style="grid-column:1/-1;text-align:center;padding:16px 0 8px">
+        <div style="font-size:48px;margin-bottom:12px">🌟</div>
+        <div style="font-size:24px;font-weight:800;margin-bottom:8px">¡Hola, ${escapeHTML(nombre)}!</div>
+        <div style="font-size:15px;color:var(--text2);max-width:340px;margin:0 auto;line-height:1.6">
+          Bienvenida a DepiMóvil. Tu registro fue recibido y estamos revisando tu ficha.
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1;background:rgba(212,169,106,0.08);border:1.5px solid rgba(212,169,106,0.25);border-radius:16px;padding:24px">
+        <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--accent)">📋 Tus próximos pasos</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px">
+            <span style="font-size:22px;flex-shrink:0">1️⃣</span>
+            <div>
+              <div style="font-weight:600;font-size:14px">Esperá la confirmación</div>
+              <div style="font-size:12px;color:var(--text2)">Julieta revisará tu ficha y te avisará por WhatsApp en menos de 24 hs.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px;opacity:.55">
+            <span style="font-size:22px;flex-shrink:0">2️⃣</span>
+            <div>
+              <div style="font-weight:600;font-size:14px">Subí tu cédula</div>
+              <div style="font-size:12px;color:var(--text2)">Una vez habilitada, te pediremos los documentos necesarios.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px;opacity:.55">
+            <span style="font-size:22px;flex-shrink:0">3️⃣</span>
+            <div>
+              <div style="font-weight:600;font-size:14px">Elegí tu primera máquina</div>
+              <div style="font-size:12px;color:var(--text2)">Te mostramos los equipos disponibles en tu ciudad.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center">
+        <div style="font-size:20px;margin-bottom:8px">💬</div>
+        <div style="font-weight:600;margin-bottom:6px;font-size:14px">¿Tenés alguna duda?</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Escribinos directamente por WhatsApp, te respondemos enseguida.</div>
+        <a href="https://wa.me/59899921164?text=Hola%20DepiM%C3%B3vil%2C%20me%20di%20de%20alta%20y%20tengo%20una%20consulta"
+           target="_blank" rel="noopener"
+           style="display:inline-block;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:700;font-size:14px">
+          📱 Escribir a DepiMóvil
+        </a>
+      </div>
+    `;
+    return;
+  }
+
+  // ── NIVEL 2+ : VISTA CON MÁQUINAS ────────────────────────────────────
   const ciudades = [];
   if(op){
     if(op.ciudad) ciudades.push(op.ciudad);
     const dirs = Array.isArray(op.direccionesEntrega)?op.direccionesEntrega:(op.direcciones_entrega?JSON.parse(op.direcciones_entrega||'[]'):[]);
     dirs.forEach(d=>{ if(d.ciudad&&!ciudades.includes(d.ciudad)) ciudades.push(d.ciudad); if(d.localidad&&!ciudades.includes(d.localidad)) ciudades.push(d.localidad); });
   }
-
-  // Máquinas disponibles en sus ciudades
   const maqsDisp = todasMaqs.filter(m=>{
     if(m.estado!=='disponible') return false;
     if(!ciudades.length) return true;
     const maqLoc = (m.ubicacion||m.ciudad||m.deptBase||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
     return ciudades.some(c=>maqLoc.includes(c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));
   });
-
-  // Reservas activas propias
   const resActivas = misReservas.filter(r=>['confirmada','activa','en_curso','solicitud_recibida','pendiente_aprobacion'].includes(r.estado));
   const resFuturas = misReservas.filter(r=>['confirmada','activa'].includes(r.estado)&&r.fechaFin&&r.fechaFin>=hoy).sort((a,b)=>(a.fechaInicio||'').localeCompare(b.fechaInicio||''));
-
-  // HTML del dashboard operadora
-  const nombre = currentUser?.nombre?.split(' ')[0] || 'Operadora';
   const ciudadesLabel = ciudades.length ? ciudades.join(' · ') : 'Sin ciudad registrada';
-
-  document.getElementById('dashAlerts').innerHTML='';
-  document.getElementById('statsGrid').innerHTML='';
 
   document.getElementById('dashboardGrid').innerHTML=`
     <div style="grid-column:1/-1;background:linear-gradient(135deg,var(--accent) 0%,#7b5ea7 100%);border-radius:16px;padding:28px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
@@ -303,34 +350,30 @@ function renderDashboardOperadora(){
         <div style="opacity:.85;font-size:14px">📍 ${escapeHTML(ciudadesLabel)}</div>
         <div style="opacity:.75;font-size:13px;margin-top:4px">${resActivas.length} reserva${resActivas.length!==1?'s':''} activa${resActivas.length!==1?'s':''}</div>
       </div>
-      <button onclick="openResModal()" style="background:#fff;color:var(--accent);border:none;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.15)">
-        🛒 Reservar Equipo Ahora
-      </button>
+      ${nivel>=3?`<button onclick="openResModal()" style="background:#fff;color:var(--accent);border:none;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.15)">🛒 Reservar Equipo</button>`:''}
     </div>
 
     <div class="dash-card" style="grid-column:1/-1">
-      <h3>⚙️ Máquinas Disponibles en tu Ciudad</h3>
-      ${ciudades.length===0?`<div style="color:var(--text2);font-size:13px">Completá tu ciudad en tu perfil para ver las máquinas disponibles cerca tuyo.</div>`:
-        maqsDisp.length===0?`<div style="color:var(--text2);font-size:13px">No hay máquinas disponibles en ${escapeHTML(ciudadesLabel)} por el momento. Te avisaremos cuando haya una.</div>`:
+      <h3>⚙️ Equipos Disponibles en tu Ciudad</h3>
+      ${ciudades.length===0?`<div style="color:var(--text2);font-size:13px">Completá tu ciudad en tu perfil para ver los equipos disponibles cerca tuyo.</div>`:
+        maqsDisp.length===0?`<div style="color:var(--text2);font-size:13px">No hay equipos disponibles en ${escapeHTML(ciudadesLabel)} por el momento. Te avisaremos cuando haya uno.</div>`:
         `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:4px">
           ${maqsDisp.map(m=>{
             const foto = m.fotoUrl||m.foto_url||'';
-            return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer" onclick="openResModal(null,${m.id})">
+            return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center${nivel>=3?';cursor:pointer':''}" ${nivel>=3?`onclick="openResModal(null,${m.id})"`:''}>
               <div style="width:68px;height:68px;border-radius:10px;background:var(--surface);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:30px">
                 ${foto?`<img src="${escapeAttr(foto)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='⚙️'">`:'⚙️'}
               </div>
               <div style="font-size:13px;font-weight:700;margin-bottom:3px">${escapeHTML(m.nombre)}</div>
               <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${escapeHTML(m.categoria||'')}</div>
-              <div style="background:var(--accent);color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
-                + Reservar
-              </div>
+              ${nivel>=3?`<div style="background:var(--accent);color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">+ Reservar</div>`:`<div style="font-size:11px;color:var(--text2)">Disponible en tu ciudad</div>`}
             </div>`;
           }).join('')}
         </div>`
       }
     </div>
 
-    ${resFuturas.length?`<div class="dash-card" style="grid-column:1/-1">
+    ${nivel>=3&&resFuturas.length?`<div class="dash-card" style="grid-column:1/-1">
       <h3>📅 Mis Reservas Activas</h3>
       ${resFuturas.map(r=>{
         const maq=getMaq(r.maquinaId);
