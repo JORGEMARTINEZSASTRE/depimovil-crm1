@@ -2,7 +2,8 @@ const express = require('express');
 const pool = require('../utils/db');
 const { auth, requireRole, isOperadoraRole } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
-const { encolar } = require('../utils/wa_queue');
+// wa_queue stub — Evolution API deshabilitado, Meta Cloud API es el canal principal
+const encolar = async (opts) => { console.log('[wa_queue stub]', opts?.tipo); return { ok: false }; };
 const { emitAutomationEvent } = require('../utils/automation_engine');
 
 const router = express.Router();
