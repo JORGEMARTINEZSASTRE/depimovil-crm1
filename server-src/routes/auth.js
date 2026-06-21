@@ -4,7 +4,8 @@ const crypto = require('crypto');
 const pool = require('../utils/db');
 const { auth, requireRole, generateToken } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
-const { encolar } = require('../utils/wa_queue');
+// wa_queue stub — Evolution API deshabilitado, Meta Cloud API es el canal principal
+const encolar = async (opts) => { console.log('[auth] wa_queue deshabilitado:', opts?.tipo); return { ok: false }; };
 
 const router = express.Router();
 const LOGIN_ROLES = ['superadmin', 'administrador', 'operaciones', 'operadora', 'operadora_habilitada', 'operadora_limitada', 'transportista', 'comercial'];
