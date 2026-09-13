@@ -1,4 +1,7 @@
 const pool = require('./db');
+const { enviarMensaje } = require('./wa_sender');
+
+const FIDELIDAD_META_ESTRELLAS = 10;
 
 const DEFAULT_RULES = [
   {
@@ -41,6 +44,12 @@ const DEFAULT_RULES = [
     key: 'machine.returned.aftercare',
     event: 'machine.returned',
     description: 'Crear encuesta posterior y recomendación de próxima reserva',
+    active: true,
+  },
+  {
+    key: 'machine.returned.loyalty_star',
+    event: 'machine.returned',
+    description: 'Sumar estrellita de fidelidad y avisar por WhatsApp (10 alquileres = jornada doble gratis)',
     active: true,
   },
   {
@@ -116,6 +125,27 @@ async function ensureAutomationTables(client = pool) {
   `);
   await client.query(`
     CREATE INDEX IF NOT EXISTS idx_automation_tasks_status_due ON automation_tasks (status, due_at)
+  `);
+
+  // ── Sistema de fidelidad (estrellitas por alquiler) ──
+  await client.query('ALTER TABLE operadoras ADD COLUMN IF NOT EXISTS fidelidad_estrellas INTEGER NOT NULL DEFAULT 0');
+  await client.query('ALTER TABLE operadoras ADD COLUMN IF NOT EXISTS fidelidad_premios_ganados INTEGER NOT NULL DEFAULT 0');
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS fidelidad_historial (
+      id             SERIAL PRIMARY KEY,
+      operadora_id   INTEGER NOT NULL REFERENCES operadoras(id) ON DELETE CASCADE,
+      envio_id       INTEGER REFERENCES envios(id) ON DELETE SET NULL,
+      tipo           VARCHAR(30) NOT NULL,
+      reserva_codigo VARCHAR(30),
+      envio_codigo   VARCHAR(30),
+      detalle        TEXT,
+      created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  await client.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_fidelidad_historial_envio_estrella
+    ON fidelidad_historial(envio_id)
+    WHERE tipo = 'estrella' AND envio_id IS NOT NULL
   `);
 
   for (const rule of DEFAULT_RULES) {
@@ -388,6 +418,71 @@ async function runRule(client, eventRow, rule) {
       dedupeKey: `${ruleKey}:wa:envio:${e.id}`,
     });
     await audit(client, eventRow, ruleKey, `Encuesta posterior preparada para ${e.codigo}`);
+    return;
+  }
+
+  if (ruleKey === 'machine.returned.loyalty_star') {
+    const e = await getEnvioContext(client, eventRow.entity_id);
+    if (!e || !e.operadora_id) return;
+
+    // Idempotencia: si este envío ya otorgó una estrella, no sumar de nuevo
+    // (por ejemplo si la regla se reintenta tras un error previo).
+    const yaSumado = await client.query(
+      `SELECT id FROM fidelidad_historial WHERE envio_id = $1 AND tipo = 'estrella' LIMIT 1`,
+      [e.id]
+    );
+    if (yaSumado.rows.length) return;
+
+    const { rows: opRows } = await client.query(
+      `SELECT fidelidad_estrellas FROM operadoras WHERE id = $1 FOR UPDATE`,
+      [e.operadora_id]
+    );
+    if (!opRows.length) return;
+
+    const nuevasEstrellas = (opRows[0].fidelidad_estrellas || 0) + 1;
+    const ganaPremio = nuevasEstrellas >= FIDELIDAD_META_ESTRELLAS;
+    const estrellasFinal = ganaPremio ? 0 : nuevasEstrellas;
+
+    await client.query(
+      `UPDATE operadoras
+       SET fidelidad_estrellas = $1,
+           fidelidad_premios_ganados = fidelidad_premios_ganados + $2,
+           updated_at = NOW()
+       WHERE id = $3`,
+      [estrellasFinal, ganaPremio ? 1 : 0, e.operadora_id]
+    );
+
+    await client.query(
+      `INSERT INTO fidelidad_historial (operadora_id, envio_id, tipo, reserva_codigo, envio_codigo, detalle)
+       VALUES ($1,$2,'estrella',$3,$4,$5)`,
+      [e.operadora_id, e.id, e.reserva_codigo || null, e.codigo, `Estrella #${nuevasEstrellas}`]
+    );
+
+    if (ganaPremio) {
+      await client.query(
+        `INSERT INTO fidelidad_historial (operadora_id, envio_id, tipo, reserva_codigo, envio_codigo, detalle)
+         VALUES ($1,$2,'premio',$3,$4,'Jornada doble ganada por 10 alquileres')`,
+        [e.operadora_id, e.id, e.reserva_codigo || null, e.codigo]
+      );
+    }
+
+    if (e.op_whatsapp) {
+      const primerNombre = (e.op_nombre || '').trim();
+      const mensaje = ganaPremio
+        ? `🎉 ¡Felicitaciones ${primerNombre}! Completaste tus 10 alquileres con DepiMóvil y ganaste una *JORNADA DOBLE GRATIS* ⭐\n\nEscribinos para coordinar cuándo la querés usar.\n_Equipo DepiMóvil_ ✦`
+        : `⭐ ¡Sumaste una estrellita, ${primerNombre}!\n\nLlevas *${estrellasFinal}/${FIDELIDAD_META_ESTRELLAS}* alquileres. Te faltan *${FIDELIDAD_META_ESTRELLAS - estrellasFinal}* para ganar una jornada doble gratis.\n_Equipo DepiMóvil_ ✦`;
+
+      const result = await enviarMensaje(e.op_whatsapp, mensaje);
+      if (!result.ok) {
+        await client.query(
+          `INSERT INTO wa_queue (reserva_id, operadora_id, tipo, mensaje, telefono)
+           VALUES ($1,$2,$3,$4,$5)`,
+          [e.reserva_id, e.operadora_id, ganaPremio ? 'fidelidad_premio' : 'fidelidad_estrella', mensaje, e.op_whatsapp]
+        );
+      }
+    }
+
+    await audit(client, eventRow, ruleKey, `Fidelidad: ${ganaPremio ? 'premio otorgado' : `estrella #${nuevasEstrellas}`} — envío ${e.codigo}`);
     return;
   }
 
