@@ -304,6 +304,7 @@ router.post('/', async (req, res) => {
     for (const incoming of mensajes) {
       if (!incoming.phone) continue;
       await registrarMensajeEntrante(incoming);
+      notificarLeadsWhatsapp(incoming).catch(() => {});
 
       if (!incoming.texto) {
         if (isBotMode()) {
@@ -971,6 +972,33 @@ async function registrarMensajeEntrante({ provider = 'meta', phone, texto, messa
     console.error('registrarMensajeEntrante error:', err.message);
     return null;
   }
+}
+
+/**
+ * Reenvía cada mensaje entrante a la app externa "leads-whatsapp"
+ * (captura y seguimiento comercial de leads). Es un aviso adicional,
+ * no reemplaza nada de lo que ya hace este webhook: si la app externa
+ * está caída o no está configurada, no debe afectar el flujo del bot.
+ */
+async function notificarLeadsWhatsapp(incoming) {
+  const url = process.env.LEADS_WEBHOOK_URL;
+  const secret = process.env.LEADS_WEBHOOK_SECRET;
+  if (!url || !secret) return;
+
+  const phoneNorm = normalizeWhatsappDigits(incoming.phone);
+  await fetch(`${url.replace(/\/$/, '')}/webhook/mensaje-whatsapp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-webhook-secret': secret,
+    },
+    body: JSON.stringify({
+      telefono: normalizeWhatsapp(incoming.phone),
+      nombre: nombreContactoDesdePayload(incoming.rawPayload, phoneNorm),
+      texto: incoming.texto || null,
+      origen: 'whatsapp',
+    }),
+  });
 }
 
 function cleanAdminObs(value) {
