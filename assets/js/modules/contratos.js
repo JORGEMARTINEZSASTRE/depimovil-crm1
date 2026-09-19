@@ -167,10 +167,12 @@ updateContratosBadge();
   };
 
   function injectWAButtons(){
+    // Solo administración y solo dentro de la vista de WhatsApp (antes se colaba en todas las pantallas)
+    if (typeof currentUser === 'undefined' || !currentUser || ['superadmin','administrador','operaciones'].indexOf(currentUser.rol) === -1) return;
     var pendingRoot = document.querySelector('#waPendingList, .wa-pending-list, [data-wa-pending-list]');
     var queue = Array.isArray(window._waQueue) ? window._waQueue : (Array.isArray(window.waQueue) ? window.waQueue : []);
     var total = queue.length;
-    var container = pendingRoot || document.querySelector('#whatsappView, #whatsappPanel, .whatsapp-panel, main');
+    var container = pendingRoot || document.querySelector('#view-whatsapp, #whatsappView, #whatsappPanel, .whatsapp-panel');
     if (!container || document.getElementById('waPendingDeleteBar')) return;
 
     var bar = document.createElement('div');

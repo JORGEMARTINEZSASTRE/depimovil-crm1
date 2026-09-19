@@ -296,7 +296,7 @@ input,select,textarea{font-family:inherit}
   border-radius:8px;color:var(--text);font-size:13px;outline:none;width:220px;transition:border-color .2s;}
 .search-input:focus{border-color:var(--accent)}
 .search-input::placeholder{color:var(--text3)}
-select.filter-select{padding:8px 12px;background:var(--surface2);border:1px solid var(--border);
+select.filter-select,input.filter-select{padding:8px 12px;background:var(--surface2);border:1px solid var(--border);
   border-radius:8px;color:var(--text2);font-size:13px;outline:none;cursor:pointer;}
 table{width:100%;border-collapse:collapse}
 th{padding:11px 16px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
@@ -1585,3 +1585,6 @@ select,input,textarea,button{font-size:14px !important}
 .sidebar-marca{display:flex;align-items:center;gap:9px;padding:0 2px 12px;opacity:.85}
 .sidebar-marca img{width:30px;height:30px;border-radius:8px;object-fit:cover;flex-shrink:0}
 .sidebar-marca span{font-size:13px;font-weight:700;letter-spacing:.04em}
+
+/* Permite que las tablas anchas (Reservas, Envios) scrolleen dentro de su contenedor en vez de ensanchar toda la pagina */
+.main{min-width:0}
