@@ -20,8 +20,8 @@ function configureLoginEntry(){
   const params=new URLSearchParams(window.location.search);
   const internal=params.get('admin')==='1'||window.location.hash==='#admin';
   const tabs=document.getElementById('loginTabs');
-  if(tabs) tabs.style.display=internal?'':'none';
-  switchLoginMode(internal?'admin':'whatsapp');
+  if(tabs) tabs.style.display='none';
+  switchLoginMode('admin');
 }
 
 async function doLogin(){
@@ -37,7 +37,17 @@ async function doLogin(){
     await loadAllData();
     startApp();
   }catch(e){
-    err.textContent='Email o contraseña incorrectos';
+    // El 401 lo convierte el helper en "Sesion expirada", que en la
+    // pantalla de login no significa nada. Y cualquier otro error se
+    // mostraba como contrasena equivocada: con el 429 de demasiados
+    // intentos eso deja probando claves al pedo. Ahora se dice lo real.
+    var msg = (e && e.message) || '';
+    if (!msg || e.status === 401 || /sesi/i.test(msg)) {
+      msg = 'Email o contrasena incorrectos';
+    } else if (/demasiados/i.test(msg)) {
+      msg = 'Demasiados intentos. Esperá 15 minutos y volvé a probar.';
+    }
+    err.textContent = msg;
     err.style.display='block';
   }
 }

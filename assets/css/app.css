@@ -24,7 +24,7 @@ input,select,textarea{font-family:inherit}
   width:100%;max-width:420px;box-shadow:var(--shadow);animation:fadeUp .5s ease;}
 .login-logo{text-align:center;margin-bottom:36px;}
 .login-logo-mark{width:76px;height:76px;background:linear-gradient(135deg,var(--accent),var(--rose));
-  background-image:url(/logo.jpg?v=20260518);background-size:cover;background-position:center;
+  background-image:url(/logo.png?v=20260807);background-size:cover;background-position:center;
   border-radius:18px;display:inline-flex;align-items:center;justify-content:center;
   font-size:0;color:transparent;margin-bottom:16px;box-shadow:0 8px 24px rgba(var(--accent-rgb),0.25);}
 .login-logo h1{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);letter-spacing:.3px;}
@@ -101,7 +101,7 @@ input,select,textarea{font-family:inherit}
 .user-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
   background:var(--surface2);border:1px solid var(--border);}
 .user-avatar{width:32px;height:32px;border-radius:8px;
-  background-image:url(/logo.jpg?v=5);background-size:cover;background-position:center;
+  background-image:url(/logo.png?v=20260807);background-size:cover;background-position:center;
   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0;color:transparent;flex-shrink:0;
   box-shadow:0 6px 18px rgba(var(--accent-rgb),0.16);}
 .user-info{flex:1;min-width:0}
@@ -906,7 +906,7 @@ td .bold{color:var(--text);font-weight:500}
 /* USER PROFILE */
 .avatar-lg{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;
   justify-content:center;font-size:0;font-weight:700;color:transparent;
-  background-image:url(/logo.jpg?v=6);background-size:cover;background-position:center;flex-shrink:0;
+  background-image:url(/logo.png?v=20260807);background-size:cover;background-position:center;flex-shrink:0;
   box-shadow:0 8px 24px rgba(var(--accent-rgb),0.18)}
 
 /* LEADS / CRM */
@@ -1175,7 +1175,7 @@ select,input,textarea,button{font-size:14px !important}
 
 
 /* === LOGO DEPIMOVIL HQ === */
-.logo-mark,.login-logo-mark{background-image:url(/logo.jpg?v=20260518);background-size:cover;background-position:center;color:transparent!important;font-size:0!important;}
+.logo-mark,.login-logo-mark{background-image:url(/logo.png?v=20260807);background-size:cover;background-position:center;color:transparent!important;font-size:0!important;}
 .logo-mark{border-radius:8px;}
 /* === FIN LOGO === */
 
@@ -1580,3 +1580,8 @@ select,input,textarea,button{font-size:14px !important}
   box-shadow:0 22px 70px rgba(0,0,0,.45);
   background:#fff;
 }
+
+/* Marca DepiMovil en el pie del panel izquierdo */
+.sidebar-marca{display:flex;align-items:center;gap:9px;padding:0 2px 12px;opacity:.85}
+.sidebar-marca img{width:30px;height:30px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.sidebar-marca span{font-size:13px;font-weight:700;letter-spacing:.04em}
