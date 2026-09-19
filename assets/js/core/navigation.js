@@ -7,6 +7,7 @@ const viewTitles={'transportistas':'Transportistas',
   documentos:'Documentos de Operadoras',
   maquinas:'Máquinas','maquina-ficha':'Ficha de Máquina',
   mantenimientos:'Mantenimientos de Máquinas',
+  limpiezas:'Limpiezas de Máquinas',
   reservas:'Reservas','reserva-ficha':'Ficha de Reserva',
   calendario:'Calendario de Reservas',
   logistica:'Reglas Logísticas',
@@ -28,7 +29,7 @@ const viewTitles={'transportistas':'Transportistas',
 const navGroupByView={
   'revision-operadoras':'operaciones',documentos:'operaciones',mantenimientos:'operaciones',calendario:'operaciones',materiales:'operaciones',
   pagos:'finanzas',proveedores:'finanzas',compras:'finanzas','ventas-maquinas':'finanzas',contratos:'finanzas',
-  envios:'logistica',transportistas:'logistica',logistica:'logistica',
+  envios:'logistica',transportistas:'logistica',limpiezas:'logistica',logistica:'logistica',
   leads:'comercial',embudo:'comercial',
   reportes:'sistema',auditoria:'sistema',configuracion:'sistema'
 };
@@ -60,7 +61,11 @@ function navigate(view){
   if(view==='documentos')renderDocumentos();
   if(view==='maquinas')renderMaquinas();
   if(view==='mantenimientos')renderMantenimientos();
-  if(view==='reservas')renderReservas();
+  if(view==='limpiezas')renderLimpiezas();
+  if(view==='reservas'){
+    renderReservas();
+    if(currentUser&&currentUser.rol==='coordinadora')cargarControlReservas().then(()=>{if(document.getElementById('view-reservas')?.classList.contains('active'))renderReservas();});
+  }
   if(view==='calendario')renderCalendario();
   if(view==='logistica')renderLogistica();
   if(view==='pagos')renderPagos();

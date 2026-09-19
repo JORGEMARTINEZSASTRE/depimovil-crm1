@@ -641,6 +641,59 @@ async function notificarWA(reservaId, nuevoEstado, client) {
 }
 
 // ─────────────────────────────────────────────
+// GET /api/reservas/control/indicadores — datos mínimos para el "Control" de reservas
+// Solo ids y sí/no (sin montos, archivos ni contratos). Lo usa la coordinadora,
+// que no tiene acceso a pagos, contratos ni documentos.
+// ─────────────────────────────────────────────
+router.get('/control/indicadores', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
+  try {
+    const [ops, contratos, senas, registros] = await Promise.all([
+      pool.query(`
+        SELECT o.id,
+          (EXISTS (SELECT 1 FROM documentos_operadora d WHERE d.operadora_id = o.id AND d.tipo = 'cedula')
+           AND EXISTS (SELECT 1 FROM documentos_operadora d WHERE d.operadora_id = o.id AND d.tipo = 'cedula_dorso')) AS cedula_ok,
+          EXISTS (SELECT 1 FROM pagos p WHERE p.operadora_id = o.id AND p.estado = 'deuda_vencida') AS deuda_vencida
+        FROM operadoras o
+      `),
+      pool.query(`
+        SELECT operadora_id, maquina_id FROM documentos_operadora WHERE tipo = 'contrato' AND maquina_id IS NOT NULL
+        UNION
+        SELECT operadora_id, maquina_id FROM contratos
+         WHERE maquina_id IS NOT NULL AND (estado = 'firmado' OR firmado_en IS NOT NULL)
+      `),
+      pool.query(`
+        SELECT DISTINCT ON (reserva_id) reserva_id, sena_requerida, sena_abonada
+        FROM pagos WHERE reserva_id IS NOT NULL AND sena_requerida > 0
+        ORDER BY reserva_id, id
+      `),
+      pool.query(`
+        SELECT operadora_id, revision_admin_estado
+        FROM usuarios
+        WHERE rol = 'operadora' AND operadora_id IS NOT NULL
+          AND requiere_revision_admin = true AND COALESCE(revision_admin_estado, '') <> 'aprobada'
+      `),
+    ]);
+    const por_operadora = {};
+    ops.rows.forEach(o => {
+      por_operadora[o.id] = { cedula_ok: !!o.cedula_ok, deuda_vencida: !!o.deuda_vencida, registro_estado: null };
+    });
+    registros.rows.forEach(r => {
+      if (por_operadora[r.operadora_id]) por_operadora[r.operadora_id].registro_estado = r.revision_admin_estado || 'pendiente';
+    });
+    res.json({
+      por_operadora,
+      contratos: contratos.rows.map(c => c.operadora_id + ':' + c.maquina_id),
+      senas_pendientes: senas.rows
+        .filter(s => parseFloat(s.sena_abonada || 0) < parseFloat(s.sena_requerida || 0))
+        .map(s => s.reserva_id),
+    });
+  } catch (err) {
+    console.error('GET /api/reservas/control/indicadores error:', err);
+    res.status(500).json({ error: 'Error al obtener indicadores de control' });
+  }
+});
+
+// ─────────────────────────────────────────────
 // GET /api/reservas — listar todas
 // ─────────────────────────────────────────────
 router.get('/', auth, async (req, res) => {

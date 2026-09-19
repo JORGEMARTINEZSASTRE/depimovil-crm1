@@ -232,6 +232,12 @@ async function recargarFinanzas(){
   aplicarFinanzasCache(data);
   return data;
 }
+// Indicadores de control de reservas para la coordinadora (sin datos financieros)
+async function cargarControlReservas(){
+  if(!(currentUser&&currentUser.rol==='coordinadora'))return;
+  try{DB.set('reserva_control',await api('/api/reservas/control/indicadores'));}
+  catch(e){console.warn('No se pudo cargar el control de reservas:',e.message);}
+}
 async function loadAllData(){
   try{
     const results=await Promise.allSettled([
@@ -295,6 +301,7 @@ async function loadAllData(){
       if(r.status==='fulfilled'&&Array.isArray(r.value)) docs.push(...r.value);
     });
     DB.set('documentos_operadora',docs.map(normalizeOperadoraDoc));
+    await cargarControlReservas();
   }catch(e){
     console.error('Error cargando datos:',e);
     showToast('⚠️ Error conectando con el servidor','warn');

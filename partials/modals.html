@@ -141,6 +141,79 @@
   </div>
 </div>
 
+<!-- MODAL LIMPIEZA -->
+<div class="modal-overlay" id="modalLimpieza">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalLimpiezaTitle">Registrar limpieza</h3>
+      <button class="modal-close" onclick="closeModal('modalLimpieza')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Máquina <span style="color:var(--red)">*</span></label>
+          <select id="limpMaquinaId"></select>
+        </div>
+        <div class="form-field">
+          <label>Tamaño <span style="color:var(--red)">*</span></label>
+          <select id="limpTamano">
+            <option value="chica">Chica</option>
+            <option value="grande">Grande</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Fecha <span style="color:var(--red)">*</span></label>
+          <input type="date" id="limpFecha"/>
+        </div>
+        <div class="form-field full">
+          <label>Realizada por</label>
+          <select id="limpTransportistaId"></select>
+        </div>
+        <div class="form-field full">
+          <label>Observaciones</label>
+          <textarea id="limpObs" rows="2" placeholder="Opcional"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalLimpieza')">Cancelar</button>
+      <button class="btn-add" onclick="saveLimpieza()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LIQUIDAR LIMPIEZAS -->
+<div class="modal-overlay" id="modalLiquidarLimp">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Liquidar limpiezas</h3>
+      <button class="modal-close" onclick="closeModal('modalLiquidarLimp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Responsable <span style="color:var(--red)">*</span></label>
+          <select id="liqLimpTransportista"></select>
+        </div>
+        <div class="form-field">
+          <label>Desde</label>
+          <input type="date" id="liqLimpDesde"/>
+        </div>
+        <div class="form-field">
+          <label>Hasta</label>
+          <input type="date" id="liqLimpHasta"/>
+        </div>
+      </div>
+      <div id="liqLimpResultado" style="margin-top:14px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalLiquidarLimp')">Cancelar</button>
+      <button class="btn-secondary" onclick="calcularLiqLimp()">Calcular</button>
+      <button class="btn-add" id="btnConfirmarLiqLimp" onclick="confirmarLiqLimp()" style="display:none">Liquidar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RESERVA -->
 <div class="modal-overlay" id="modalRes">
   <div class="modal-box">

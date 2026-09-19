@@ -70,6 +70,7 @@ app.use('/api/operadoras', require('./routes/operadoras'));
 app.use('/api/portal', require('./routes/portal'));
 app.use('/api/maquinas', require('./routes/maquinas'));
 app.use('/api/mantenimientos', require('./routes/mantenimientos'));
+app.use('/api/limpiezas', require('./routes/limpiezas'));
 app.use('/api/reservas', require('./routes/reservas'));
 app.use('/api/pagos', require('./routes/pagos'));
 app.use('/api/finanzas', require('./routes/finanzas'));

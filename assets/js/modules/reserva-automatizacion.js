@@ -9,6 +9,13 @@ function getDocsOp(operadoraId){
   return (DB.get('documentos_operadora')||[]).filter(d=>parseInt(d.operadora_id)===parseInt(operadoraId));
 }
 
+// La coordinadora no ve pagos, contratos ni documentos: el control usa indicadores mínimos del servidor
+function controlReservaCoordinadora(){
+  if(!(typeof currentUser!=='undefined'&&currentUser&&currentUser.rol==='coordinadora'))return null;
+  const c=DB.get('reserva_control');
+  return (c&&!Array.isArray(c))?c:{por_operadora:{},contratos:[],senas_pendientes:[]};
+}
+
 function tieneCedulaCompleta(operadoraId){
   const docs=getDocsOp(operadoraId);
   return docs.some(d=>d.tipo==='cedula') && docs.some(d=>d.tipo==='cedula_dorso');
@@ -33,15 +40,17 @@ function validarReservaAutomatica(reservaLike){
 
   const op=getOp(r.operadoraId);
   const maq=getMaq(r.maquinaId);
+  const ctl=controlReservaCoordinadora();
 
   if(!op) bloqueos.push('Falta operadora vinculada');
   else {
     if(op.estado!=='activa') bloqueos.push(`Operadora en estado ${op.estado}`);
-    const revision=getRevisionOp(op.id);
+    const ctlOp=ctl?(ctl.por_operadora[op.id]||{}):null;
+    const revision=ctl?(ctlOp.registro_estado?{requiere_revision_admin:true,revision_admin_estado:ctlOp.registro_estado}:null):getRevisionOp(op.id);
     if(revision && revision.requiere_revision_admin && revision.revision_admin_estado!=='aprobada'){
       bloqueos.push(`Registro de operadora pendiente: ${revision.revision_admin_estado}`);
     }
-    if(!tieneCedulaCompleta(op.id)) bloqueos.push('Falta cédula/DNI frente y dorso');
+    if(!(ctl?!!ctlOp.cedula_ok:tieneCedulaCompleta(op.id))) bloqueos.push('Falta cédula/DNI frente y dorso');
   }
 
   if(!maq) bloqueos.push('Falta máquina vinculada');
@@ -50,18 +59,20 @@ function validarReservaAutomatica(reservaLike){
     if(!disp.ok) bloqueos.push(disp.msg.replace(/^[^A-Za-zÁÉÍÓÚáéíóú]+/,''));
   }
 
-  if(op && maq && !tieneContratoFirmadoReserva(r)) bloqueos.push('Falta contrato firmado para esta máquina');
+  if(op && maq && !(ctl?ctl.contratos.includes(r.operadoraId+':'+r.maquinaId):tieneContratoFirmadoReserva(r))) bloqueos.push('Falta contrato firmado para esta máquina');
 
   const pagos=(DB.get('pagos')||[]).filter(p=>parseInt(p.reservaId)===parseInt(r.id));
-  if(op && typeof tieneDeudaVencida==='function' && tieneDeudaVencida(op.id)){
+  if(op && (ctl?!!(ctl.por_operadora[op.id]||{}).deuda_vencida:(typeof tieneDeudaVencida==='function' && tieneDeudaVencida(op.id)))){
     bloqueos.push('La operadora tiene deuda vencida');
   }
   const pagoConSena=pagos.find(p=>(p.senaRequerida||0)>0);
-  if(pagoConSena && (pagoConSena.senaAbonada||0)<(pagoConSena.senaRequerida||0)){
+  if(ctl){
+    if(ctl.senas_pendientes.includes(r.id)) bloqueos.push('Seña pendiente de pago');
+  } else if(pagoConSena && (pagoConSena.senaAbonada||0)<(pagoConSena.senaRequerida||0)){
     const falta=(pagoConSena.senaRequerida||0)-(pagoConSena.senaAbonada||0);
     bloqueos.push(`Seña pendiente: faltan ${falta.toLocaleString()} ${pagoConSena.moneda}`);
   }
-  if(!pagos.length && (r.monto||0)>0) avisos.push('No hay pago/seña registrado todavía');
+  if(!ctl && !pagos.length && (r.monto||0)>0) avisos.push('No hay pago/seña registrado todavía');
   if(!r.deptLogistica) avisos.push('Falta departamento logístico');
   if(!r.bloqueLogistico && r.deptLogistica) avisos.push('Revisar si requiere bloqueo logístico/envío');
 

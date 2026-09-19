@@ -167,6 +167,7 @@
           <summary><span>Logística</span><span class="chev">⌄</span></summary>
           <button class="nav-item" data-view="envios" onclick="navigate('envios')"><span class="icon">🚚</span> Envíos <span class="nav-badge" id="navBadgeEnvios" style="display:none">0</span></button>
           <button class="nav-item" data-view="transportistas" onclick="navigate('transportistas')"><span class="icon">🚛</span> Transportistas</button>
+          <button class="nav-item" data-view="limpiezas" onclick="navigate('limpiezas')"><span class="icon">🧽</span> Limpiezas</button>
           <button class="nav-item" data-view="logistica" onclick="navigate('logistica')"><span class="icon">🗺</span> Reglas Logísticas</button>
         </details>
         <details class="nav-group" data-nav-group="comercial">
@@ -370,6 +371,36 @@
               <table><thead><tr>
                 <th>Máquina</th><th>Tipo servicio</th><th>Último cambio</th><th>Próximo</th><th>Estado</th>
               </tr></thead><tbody id="mantTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIMPIEZAS -->
+        <div class="view" id="view-limpiezas">
+          <div class="table-container">
+            <div class="table-header">
+              <div>
+                <h3>🧽 Limpiezas</h3>
+                <div id="limpResumenLinea" style="color:var(--text3);font-size:12px;margin-top:2px"></div>
+              </div>
+              <div class="table-actions">
+                <select class="filter-select" id="limpFilterMaquina" onchange="filterLimp('maquina',this.value)"><option value="">Todas las máquinas</option></select>
+                <select class="filter-select" id="limpFilterTransportista" onchange="filterLimp('transportista',this.value)"><option value="">Todos los responsables</option></select>
+                <select class="filter-select" onchange="filterLimp('estado',this.value)">
+                  <option value="">Todos los estados</option>
+                  <option value="registrada">Registrada</option>
+                  <option value="liquidada">Liquidada</option>
+                </select>
+                <input type="date" class="filter-select" title="Desde" onchange="filterLimp('desde',this.value)"/>
+                <input type="date" class="filter-select" title="Hasta" onchange="filterLimp('hasta',this.value)"/>
+                <button class="btn-secondary" id="btnLiquidarLimp" onclick="openLiquidarLimpModal()" style="display:none">Liquidar</button>
+                <button class="btn-add" onclick="openLimpiezaModal()" id="btnAddLimp">+ Registrar limpieza</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr>
+                <th>Fecha</th><th>Máquina</th><th>Tamaño</th><th>Realizada por</th><th>Estado</th><th>Acciones</th>
+              </tr></thead><tbody id="limpTableBody"></tbody></table>
             </div>
           </div>
         </div>
@@ -875,6 +906,7 @@
 <script data-cfasync="false" src="assets/js/modules/documentos.js?v=20260531-certificados"></script>
 <script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260603-precio-fijo-maquina"></script>
 <script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260601-ficha-maquina-visual"></script>
+<script data-cfasync="false" src="assets/js/modules/limpiezas.js?v=20260919-limpiezas"></script>
 <script data-cfasync="false" src="assets/js/modules/reservas.js?v=20260601-calendario-operativo"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js"></script>
 <script data-cfasync="false" src="assets/js/modules/pagos.js?v=20260526-menu-stats"></script>
