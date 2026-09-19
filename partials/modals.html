@@ -141,6 +141,45 @@
   </div>
 </div>
 
+<!-- MODAL USUARIO -->
+<div class="modal-overlay" id="modalUsuario">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Nuevo usuario interno</h3>
+      <button class="modal-close" onclick="closeModal('modalUsuario')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Nombre completo <span style="color:var(--red)">*</span></label>
+          <input type="text" id="usrNombre" autocomplete="off"/>
+        </div>
+        <div class="form-field full">
+          <label>Email <span style="color:var(--red)">*</span></label>
+          <input type="email" id="usrEmail" autocomplete="off"/>
+        </div>
+        <div class="form-field">
+          <label>WhatsApp</label>
+          <input type="tel" id="usrWhatsapp" placeholder="099 123 456" autocomplete="off"/>
+        </div>
+        <div class="form-field">
+          <label>Rol <span style="color:var(--red)">*</span></label>
+          <select id="usrRol"></select>
+        </div>
+        <div class="form-field full">
+          <label>Contraseña temporal <span style="color:var(--red)">*</span></label>
+          <input type="text" id="usrPassword" placeholder="Mínimo 8 caracteres" autocomplete="off"/>
+          <div style="color:var(--text3);font-size:12px;margin-top:4px">Solo se usa para el acceso por email. Con el WhatsApp cargado, la persona ingresa con un código.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalUsuario')">Cancelar</button>
+      <button class="btn-add" onclick="saveUsuario()">💾 Crear usuario</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL LIMPIEZA -->
 <div class="modal-overlay" id="modalLimpieza">
   <div class="modal-box">

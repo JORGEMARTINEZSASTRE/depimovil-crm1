@@ -180,6 +180,7 @@
           <button class="nav-item" data-view="reportes" onclick="navigate('reportes')"><span class="icon">📊</span> Reportes</button>
           <button class="nav-item" data-view="auditoria" onclick="navigate('auditoria')"><span class="icon">🔍</span> Auditoría</button>
           <button class="nav-item" data-view="configuracion" onclick="navigate('configuracion');setTimeout(()=>document.getElementById('crmColorsSection')?.scrollIntoView({behavior:'smooth',block:'start'}),80)"><span class="icon">🎨</span> Colores</button>
+          <button class="nav-item" data-view="usuarios" onclick="navigate('usuarios')"><span class="icon">👥</span> Usuarios</button>
         </details>
       </div>
       <div class="sidebar-footer">
@@ -371,6 +372,25 @@
               <table><thead><tr>
                 <th>Máquina</th><th>Tipo servicio</th><th>Último cambio</th><th>Próximo</th><th>Estado</th>
               </tr></thead><tbody id="mantTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- USUARIOS -->
+        <div class="view" id="view-usuarios">
+          <div class="table-container">
+            <div class="table-header">
+              <div>
+                <h3>👥 Usuarios internos</h3>
+                <div style="color:var(--text3);font-size:12px;margin-top:2px">Personal con acceso al CRM. Se ingresa con el WhatsApp cargado.</div>
+              </div>
+              <div class="table-actions">
+                <button class="btn-add" onclick="openUsuarioModal()">+ Nuevo usuario</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th></tr></thead>
+              <tbody id="usuariosTableBody"></tbody></table>
             </div>
           </div>
         </div>
@@ -907,6 +927,7 @@
 <script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260603-precio-fijo-maquina"></script>
 <script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260601-ficha-maquina-visual"></script>
 <script data-cfasync="false" src="assets/js/modules/limpiezas.js?v=20260919-limpiezas"></script>
+<script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20260919-usuarios"></script>
 <script data-cfasync="false" src="assets/js/modules/reservas.js?v=20260601-calendario-operativo"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js"></script>
 <script data-cfasync="false" src="assets/js/modules/pagos.js?v=20260526-menu-stats"></script>
