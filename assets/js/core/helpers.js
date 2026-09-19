@@ -38,6 +38,7 @@ const ROLE_LABELS={
   superadmin:'Administrador',
   administrador:'Administrador',
   operaciones:'Administración / Ops',
+  coordinadora:'Coordinadora',
   comercial:'Comercial / CRM',
   operadora:'Operadora',
   operadora_habilitada:'Operadora habilitada',
@@ -48,6 +49,7 @@ const VIEW_PERMISSIONS={
   superadmin:['*'],
   administrador:['*'],
   operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','materiales'],
+  coordinadora:['dashboard','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','envios','envio-ficha','transportistas'],
   comercial:['dashboard','whatsapp'],
   // Niveles progresivos de operadora
   operadora_n1:['dashboard'],                                                          // Nivel 1: solo bienvenida
@@ -61,7 +63,8 @@ const VIEW_PERMISSIONS={
   transportista:['dashboard','maquinas','maquina-ficha','envios','envio-ficha','transportistas'],
 };
 function isAdminRole(rol){return ['superadmin','administrador'].includes(rol);}
-function isOpsRole(rol){return isAdminRole(rol)||rol==='operaciones';}
+function isOpsRole(rol){return isAdminRole(rol)||rol==='operaciones'||rol==='coordinadora';}
+function canDelete(){return !!(currentUser&&(isAdminRole(currentUser.rol)||currentUser.rol==='coordinadora'));}
 function isOperadoraRole(rol){return ['operadora','operadora_habilitada','operadora_limitada'].includes(rol);}
 function isOperadoraUser(user=currentUser){return !!(user&&(isOperadoraRole(user.rol)||user.operadora_id));}
 function isTransportistaUser(user=currentUser){return !!(user&&(user.rol==='transportista'||user.transportista_id));}

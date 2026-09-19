@@ -114,7 +114,7 @@ function showEnvioFicha(id){
       <div class="ficha-actions">
         ${badgeEnvio(e.estado)}
         ${canEdit()?`<button class="btn-secondary" onclick="openEnvioModal(0,${e.id})">✏️ Editar</button>`:''}
-        ${isSuperAdmin()?`<button class="btn-danger" onclick="deleteEnvio(${e.id})">🗑</button>`:''}
+        ${canDelete()?`<button class="btn-danger" onclick="deleteEnvio(${e.id})">🗑</button>`:''}
       </div>
     </div>
 

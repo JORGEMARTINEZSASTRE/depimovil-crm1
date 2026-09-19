@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsOrCoordinadora } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
 const { emitAutomationEvent } = require('../utils/automation_engine');
 
@@ -74,7 +74,7 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.transportista_id) return res.json([]);
       params.push(req.user.transportista_id);
       where.push(`e.transportista_id = $${params.length}`);
-    } else if (!isOpsRole(req.user.rol)) {
+    } else if (!isOpsOrCoordinadora(req.user.rol)) {
       return res.json([]);
     }
     const { rows } = await pool.query(`
@@ -103,7 +103,7 @@ router.get('/:id', auth, async (req, res) => {
     } else if (req.user.rol === 'transportista') {
       params.push(req.user.transportista_id || 0);
       query += ` AND transportista_id = $${params.length}`;
-    } else if (!isOpsRole(req.user.rol)) {
+    } else if (!isOpsOrCoordinadora(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para envíos' });
     }
     const { rows } = await pool.query(query, params);
@@ -118,7 +118,7 @@ router.get('/:id', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // POST /api/envios — crear nuevo
 // ─────────────────────────────────────────────
-router.post('/', auth, requireRole('superadmin', 'operaciones', 'transportista'), async (req, res) => {
+router.post('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora', 'transportista'), async (req, res) => {
   if (req.user.rol === 'transportista') {
     return res.status(403).json({ error: 'Transportistas solo pueden actualizar envíos asignados' });
   }
@@ -193,7 +193,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'transportista')
 // ─────────────────────────────────────────────
 // PUT /api/envios/:id — actualizar
 // ─────────────────────────────────────────────
-router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'transportista'), async (req, res) => {
+router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora', 'transportista'), async (req, res) => {
   const {
     reserva_id, operadora_id, maquina_id, transportista_id,
     departamento, direccion, transportista, tracking,
@@ -278,7 +278,7 @@ router.put('/:id/rastreo', auth, async (req, res) => {
     if (req.user.rol === 'transportista') {
       const own = await pool.query('SELECT id FROM envios WHERE id=$1 AND transportista_id=$2', [req.params.id, req.user.transportista_id || 0]);
       if (!own.rows.length) return res.status(403).json({ error: 'Sin permisos para este envío' });
-    } else if (!isOpsRole(req.user.rol)) {
+    } else if (!isOpsOrCoordinadora(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para rastreo' });
     }
     const { rows } = await pool.query(`
@@ -324,7 +324,7 @@ router.put('/:id/rastreo', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // DELETE /api/envios/:id — eliminar
 // ─────────────────────────────────────────────
-router.delete('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.delete('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   try {
     const { rows } = await pool.query('DELETE FROM envios WHERE id=$1 RETURNING id, codigo', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Envío no encontrado' });

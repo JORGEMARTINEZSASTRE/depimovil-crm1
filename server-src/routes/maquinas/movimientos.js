@@ -2,13 +2,13 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../utils/db');
-const { auth, isOpsRole, isOperadoraRole } = require('../../middleware/auth');
+const { auth, isOpsOrCoordinadora, isOperadoraRole } = require('../../middleware/auth');
 const { localidadesOperadora, maquinaVisibleParaLocalidades } = require('./helpers');
 
 router.get('/:id/movimientos', auth, async (req, res) => {
   try {
     if (req.user.rol === 'transportista' && !req.user.transportista_id) return res.status(403).json({ error: 'Sin permisos para historial' });
-    if (!isOpsRole(req.user.rol) && !isOperadoraRole(req.user.rol) && req.user.rol !== 'transportista') {
+    if (!isOpsOrCoordinadora(req.user.rol) && !isOperadoraRole(req.user.rol) && req.user.rol !== 'transportista') {
       return res.status(403).json({ error: 'Sin permisos para historial' });
     }
     const { rows: maqRows } = await pool.query('SELECT * FROM maquinas WHERE id=$1', [req.params.id]);

@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../utils/db');
-const { auth, requireRole, isOpsRole, isOperadoraRole } = require('../../middleware/auth');
+const { auth, requireRole, isOpsOrCoordinadora, isOperadoraRole } = require('../../middleware/auth');
 const { assertCanViewMachine, incidenciaBloqueaReservas, registrarMovimientoMaquina } = require('./helpers');
 
 // GET /api/maquinas/:id/incidencias
@@ -62,8 +62,8 @@ router.post('/:id/incidencias', auth, async (req, res) => {
         maquinaId, reservaId, operadoraId, tipo, gravedad, descripcion,
         evidenciaUrl, bloqueaReservas, maquina.estado,
         req.user.id || null, req.user.email || null,
-        isOpsRole(req.user.rol) ? req.user.id : null,
-        isOpsRole(req.user.rol) ? req.user.email : null,
+        isOpsOrCoordinadora(req.user.rol) ? req.user.id : null,
+        isOpsOrCoordinadora(req.user.rol) ? req.user.email : null,
       ]
     );
     if (bloqueaReservas && !['fuera_servicio', 'en_viaje'].includes(maquina.estado)) {
@@ -90,7 +90,7 @@ router.post('/:id/incidencias', auth, async (req, res) => {
 });
 
 // PATCH /api/maquinas/:id/incidencias/:incidenciaId
-router.patch('/:id/incidencias/:incidenciaId', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.patch('/:id/incidencias/:incidenciaId', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const maquinaId = parseInt(req.params.id, 10);
   const incidenciaId = parseInt(req.params.incidenciaId, 10);
   const estado = String(req.body.estado || '').trim();

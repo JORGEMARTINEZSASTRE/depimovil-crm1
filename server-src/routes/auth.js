@@ -8,7 +8,7 @@ const { enviarMensaje } = require('../utils/wa_sender');
 const encolar = async (opts) => { console.log('[auth] wa_queue deshabilitado:', opts?.tipo); return { ok: false }; };
 
 const router = express.Router();
-const LOGIN_ROLES = ['superadmin', 'administrador', 'operaciones', 'operadora', 'operadora_habilitada', 'operadora_limitada', 'transportista', 'comercial'];
+const LOGIN_ROLES = ['superadmin', 'administrador', 'operaciones', 'coordinadora', 'operadora', 'operadora_habilitada', 'operadora_limitada', 'transportista', 'comercial'];
 
 function normalizeWhatsapp(input) {
   let digits = String(input || '').replace(/\D/g, '');
@@ -59,7 +59,7 @@ async function findInternalWhatsappUser(whatsapp) {
   const { rows } = await pool.query(
     `SELECT * FROM usuarios
      WHERE regexp_replace(coalesce(whatsapp, ''), '[^0-9]', '', 'g') = ANY($1)
-       AND rol IN ('comercial', 'operaciones', 'superadmin', 'administrador')
+       AND rol IN ('comercial', 'operaciones', 'coordinadora', 'superadmin', 'administrador')
        AND status = $2
      ORDER BY
        CASE rol

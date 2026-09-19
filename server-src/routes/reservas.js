@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsOrCoordinadora } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
 // wa_queue stub — Evolution API deshabilitado, Meta Cloud API es el canal principal
 const encolar = async (opts) => { console.log('[wa_queue stub]', opts?.tipo); return { ok: false }; };
@@ -656,7 +656,7 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.transportista_id) return res.json([]);
       params.push(req.user.transportista_id);
       where.push(`EXISTS (SELECT 1 FROM envios e WHERE e.reserva_id = r.id AND e.transportista_id = $${params.length})`);
-    } else if (!isOpsRole(req.user.rol)) {
+    } else if (!isOpsOrCoordinadora(req.user.rol)) {
       return res.json([]);
     }
     let query = `
@@ -694,7 +694,7 @@ router.get('/:id', auth, async (req, res) => {
     } else if (req.user.rol === 'transportista') {
       params.push(req.user.transportista_id || 0);
       query += ` AND EXISTS (SELECT 1 FROM envios e WHERE e.reserva_id = reservas.id AND e.transportista_id = $${params.length})`;
-    } else if (!isOpsRole(req.user.rol)) {
+    } else if (!isOpsOrCoordinadora(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para reservas' });
     }
     const { rows } = await pool.query(query, params);
@@ -717,7 +717,7 @@ router.post('/', auth, async (req, res) => {
     monto, moneda, notas
   } = req.body;
 
-  if (!isOpsRole(req.user.rol) && !isOperadoraRole(req.user.rol)) {
+  if (!isOpsOrCoordinadora(req.user.rol) && !isOperadoraRole(req.user.rol)) {
     return res.status(403).json({ error: 'Sin permisos para crear reservas' });
   }
 
@@ -832,7 +832,7 @@ router.post('/', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // PUT /api/reservas/:id — actualizar
 // ─────────────────────────────────────────────
-router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const {
     operadora_id, maquina_id, tipo, estado,
     fecha_jornada, fecha_inicio, fecha_fin,
@@ -925,7 +925,7 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
 // ─────────────────────────────────────────────
 // PATCH /api/reservas/:id/estado — cambio de estado
 // ─────────────────────────────────────────────
-router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const { estado, motivo } = req.body;
   if (!estado) return res.status(400).json({ error: 'estado es requerido' });
   if (!motivo) return res.status(400).json({ error: 'motivo es requerido' });
@@ -1009,7 +1009,7 @@ router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones'), asyn
 // ─────────────────────────────────────────────
 // DELETE /api/reservas/:id — eliminar
 // ─────────────────────────────────────────────
-router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
+router.delete('/:id', auth, requireRole('superadmin', 'coordinadora'), async (req, res) => {
   try {
     const { rows } = await pool.query('DELETE FROM reservas WHERE id=$1 RETURNING id, codigo', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Reserva no encontrada' });

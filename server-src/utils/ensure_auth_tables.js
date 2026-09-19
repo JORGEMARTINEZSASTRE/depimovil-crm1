@@ -1,6 +1,19 @@
 const pool = require('./db');
 
 async function ensureAuthTables() {
+  // Permitir el rol 'coordinadora' en usuarios (idempotente; ver migrations/015)
+  try {
+    await pool.query('ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check');
+    await pool.query(`
+      ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check CHECK (rol IN (
+        'superadmin','administrador','operaciones','coordinadora','comercial',
+        'operadora','operadora_habilitada','operadora_limitada','transportista'
+      ))
+    `);
+  } catch (err) {
+    console.warn('[auth] No se pudo actualizar usuarios_rol_check:', err.message);
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sesiones_whatsapp (
       id SERIAL PRIMARY KEY,

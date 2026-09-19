@@ -44,6 +44,15 @@ function isOpsRole(rol) {
   return isAdminRole(rol) || rol === 'operaciones';
 }
 
+function isCoordinadoraRole(rol) {
+  return rol === 'coordinadora';
+}
+
+// Acceso operativo: admins, operaciones y coordinadora (gestiona reservas, envíos, máquinas)
+function isOpsOrCoordinadora(rol) {
+  return isOpsRole(rol) || isCoordinadoraRole(rol);
+}
+
 function isOperadoraRole(rol) {
   return ['operadora', 'operadora_habilitada', 'operadora_limitada'].includes(rol);
 }
@@ -122,4 +131,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { auth, requireRole, generateToken, isAdminRole, isOpsRole, isOperadoraRole };
+module.exports = { auth, requireRole, generateToken, isAdminRole, isOpsRole, isCoordinadoraRole, isOpsOrCoordinadora, isOperadoraRole };

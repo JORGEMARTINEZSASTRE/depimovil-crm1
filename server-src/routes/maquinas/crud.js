@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../utils/db');
-const { auth, requireRole, isOpsRole, isOperadoraRole } = require('../../middleware/auth');
+const { auth, requireRole, isOpsOrCoordinadora, isOperadoraRole } = require('../../middleware/auth');
 const { upload } = require('./setup');
 const {
   localidadesOperadora, maquinaVisibleParaLocalidades,
@@ -13,7 +13,7 @@ const {
 router.get('/', auth, async (req, res) => {
   try {
     if (req.user.rol === 'transportista' && !req.user.transportista_id) return res.json([]);
-    if (!isOpsRole(req.user.rol) && !isOperadoraRole(req.user.rol)) return res.json([]);
+    if (!isOpsOrCoordinadora(req.user.rol) && !isOperadoraRole(req.user.rol)) return res.json([]);
     let localidades = null;
     if (isOperadoraRole(req.user.rol)) {
       if (!req.user.operadora_id) return res.json([]);
@@ -53,7 +53,7 @@ router.get('/', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     if (req.user.rol === 'transportista' && !req.user.transportista_id) return res.status(403).json({ error: 'Sin permisos para máquinas' });
-    if (!isOpsRole(req.user.rol) && !isOperadoraRole(req.user.rol) && req.user.rol !== 'transportista') return res.status(403).json({ error: 'Sin permisos para máquinas' });
+    if (!isOpsOrCoordinadora(req.user.rol) && !isOperadoraRole(req.user.rol) && req.user.rol !== 'transportista') return res.status(403).json({ error: 'Sin permisos para máquinas' });
     const { rows } = await pool.query('SELECT * FROM maquinas WHERE id = $1', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Máquina no encontrada' });
     if (req.user.rol === 'transportista') {
@@ -81,7 +81,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // POST /api/maquinas
-router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const {
     codigo, nombre, categoria, ubicacion, estado,
     serial_num, marca, modelo, dept_base, ult_mant, prox_mant, foto_url, icono_url, es_viajera, tipo_operativo, ciudad_base, obs
@@ -118,7 +118,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res
 });
 
 // PUT /api/maquinas/:id
-router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const {
     codigo, nombre, categoria, ubicacion, estado,
     serial_num, marca, modelo, dept_base, ult_mant, prox_mant, foto_url, icono_url, es_viajera, tipo_operativo, ciudad_base, obs
@@ -184,7 +184,7 @@ router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
 });
 
 // POST /api/maquinas/:id/foto
-router.post('/:id/foto', auth, requireRole('superadmin', 'operaciones'), upload.single('foto'), async (req, res) => {
+router.post('/:id/foto', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), upload.single('foto'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Foto requerida. Usá JPG, PNG o WebP hasta 8 MB.' });
     const fotoUrl = `/uploads/maquinas/${req.file.filename}`;

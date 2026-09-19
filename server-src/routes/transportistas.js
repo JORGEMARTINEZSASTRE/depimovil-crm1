@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOpsRole } = require('../middleware/auth');
+const { auth, requireRole, isOpsOrCoordinadora } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -91,7 +91,7 @@ async function ensureTables() {
 ensureTables().catch(err => console.error('Error creando tablas transportistas:', err.message));
 
 function canAccessTransportista(user, transportistaId) {
-  if (isOpsRole(user.rol)) return true;
+  if (isOpsOrCoordinadora(user.rol)) return true;
   return user.rol === 'transportista'
     && parseInt(transportistaId) === parseInt(user.transportista_id);
 }
@@ -107,7 +107,7 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.transportista_id) return res.json([]);
       params.push(req.user.transportista_id);
       query += ` AND id = $${params.length}`;
-    } else if (!isOpsRole(req.user.rol)) {
+    } else if (!isOpsOrCoordinadora(req.user.rol)) {
       return res.json([]);
     }
     query += ' ORDER BY nombre';
@@ -127,7 +127,7 @@ router.get('/:id', auth, async (req, res) => {
     if (req.user.rol === 'transportista' && parseInt(req.params.id) !== parseInt(req.user.transportista_id)) {
       return res.status(403).json({ error: 'Sin permisos para este transportista' });
     }
-    if (req.user.rol !== 'transportista' && !isOpsRole(req.user.rol)) {
+    if (req.user.rol !== 'transportista' && !isOpsOrCoordinadora(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para transportistas' });
     }
     const { rows } = await pool.query('SELECT * FROM transportistas WHERE id=$1', [req.params.id]);
@@ -142,7 +142,7 @@ router.get('/:id', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // POST /api/transportistas — crear nuevo
 // ─────────────────────────────────────────────
-router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const {
     tipo, nombre, telefono, whatsapp, direccion, ciudad, departamento, referencia, horarios, ciclo_pago, departamentos,
     tarifa_envio_chica, tarifa_envio_grande,
@@ -185,7 +185,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res
 // ─────────────────────────────────────────────
 // PUT /api/transportistas/:id — actualizar
 // ─────────────────────────────────────────────
-router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const {
     tipo, nombre, telefono, whatsapp, direccion, ciudad, departamento, referencia, horarios, ciclo_pago, departamentos,
     tarifa_envio_chica, tarifa_envio_grande,
@@ -231,7 +231,7 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, r
 // ─────────────────────────────────────────────
 // DELETE /api/transportistas/:id — eliminar (soft delete)
 // ─────────────────────────────────────────────
-router.delete('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.delete('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   try {
     let rows = [];
     try {
@@ -303,7 +303,7 @@ router.get('/:id/incidentes', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // POST /api/transportistas/:id/incidentes — registrar incidente
 // ─────────────────────────────────────────────
-router.post('/:id/incidentes', auth, requireRole('superadmin', 'operaciones', 'transportista'), async (req, res) => {
+router.post('/:id/incidentes', auth, requireRole('superadmin', 'operaciones', 'coordinadora', 'transportista'), async (req, res) => {
   if (!canAccessTransportista(req.user, req.params.id)) {
     return res.status(403).json({ error: 'Sin permisos para este transportista' });
   }
@@ -326,7 +326,7 @@ router.post('/:id/incidentes', auth, requireRole('superadmin', 'operaciones', 't
 // ─────────────────────────────────────────────
 router.get('/:id/pagos', auth, async (req, res) => {
   try {
-    if (!canAccessTransportista(req.user, req.params.id)) {
+    if (req.user.rol === 'coordinadora' || !canAccessTransportista(req.user, req.params.id)) {
       return res.status(403).json({ error: 'Sin permisos para este transportista' });
     }
     const { rows } = await pool.query(

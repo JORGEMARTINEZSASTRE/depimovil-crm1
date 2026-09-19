@@ -206,7 +206,7 @@ function showResFicha(id){
         ${badgeRes(r.estado)}
         ${canEdit()?`<button class="btn-secondary" onclick="openResModal(${r.id})">✏️ Editar</button>`:''}
         ${canEdit()?`<button class="btn-secondary" onclick="abrirCambioEstado(${r.id})">🔄 Cambiar Estado</button>`:''}
-        ${isSuperAdmin()?`<button class="btn-danger" onclick="deleteReserva(${r.id})">🗑</button>`:''}
+        ${canDelete()?`<button class="btn-danger" onclick="deleteReserva(${r.id})">🗑</button>`:''}
       </div>
     </div>
     ${isVencida?`<div class="alert-banner danger"><span class="ab-icon">🚨</span><strong>Reserva vencida</strong> — La fecha de fin ya pasó. Actualizá el estado.</div>`:''}
@@ -258,7 +258,7 @@ function showResFicha(id){
           ? `<div class="alert-banner warn" style="margin-top:10px;padding:8px 12px"><span class="ab-icon">⚙️</span> Bloqueo logístico activo</div>`
           : ''}
       </div>
-      <div class="info-card">
+      <div class="info-card"${canView('pagos')?'':' style="display:none"'}>
         <h4>💳 Estado Financiero</h4>
         ${(()=>{
           const pagos = (DB.get('pagos')||[]).filter(p=>p.reservaId===r.id);

@@ -233,6 +233,13 @@ function mapCierre(r) {
 }
 
 router.use(auth);
+// La coordinadora no accede a finanzas; /bootstrap responde vacío a no-admins y lo consume la carga inicial del CRM
+router.use((req, res, next) => {
+  if (req.user.rol === 'coordinadora' && req.path !== '/bootstrap') {
+    return res.status(403).json({ error: 'Sin permisos para finanzas' });
+  }
+  next();
+});
 router.use(async (req, res, next) => {
   try { await ensureSchema(); next(); }
   catch (err) { console.error('Finanzas schema error:', err); res.status(500).json({ error: 'Error preparando Finanzas' }); }

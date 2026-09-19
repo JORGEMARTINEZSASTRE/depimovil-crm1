@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsRole, isOpsOrCoordinadora } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
 // wa_queue stub — Evolution API deshabilitado, Meta Cloud API es el canal principal
 const encolar = async (opts) => { console.log('[wa_queue stub]', opts?.tipo); return { ok: false }; };
@@ -283,7 +283,7 @@ router.get('/', auth, async (req, res) => {
       )));
     }
     if (req.user.rol === 'transportista') return res.json([]);
-    if (!isOpsRole(req.user.rol)) return res.json([]);
+    if (!isOpsOrCoordinadora(req.user.rol)) return res.json([]);
     const { rows } = await pool.query(`
       SELECT id, nombre, apellido, gabinete, ciudad, departamento, pais,
              whatsapp, telefono, instagram_usuario, email, fecha_alta, estado, nivel, nivel_operadora, obs,
@@ -372,7 +372,7 @@ router.get('/:id', auth, async (req, res) => {
     if (isOperadoraRole(req.user.rol) && parseInt(req.params.id) !== parseInt(req.user.operadora_id)) {
       return res.status(403).json({ error: 'Sin permisos para esta operadora' });
     }
-    if (!isOperadoraRole(req.user.rol) && !isOpsRole(req.user.rol)) {
+    if (!isOperadoraRole(req.user.rol) && !isOpsOrCoordinadora(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para operadoras' });
     }
     const { rows } = await pool.query(`
@@ -603,7 +603,7 @@ router.get('/:id/habilitaciones', auth, async (req, res) => {
     if (isOperadoraRole(req.user.rol) && parseInt(req.params.id) !== parseInt(req.user.operadora_id)) {
       return res.status(403).json({ error: 'Sin permisos para esta operadora' });
     }
-    if (!isOperadoraRole(req.user.rol) && !isOpsRole(req.user.rol)) {
+    if (!isOperadoraRole(req.user.rol) && !isOpsOrCoordinadora(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para habilitaciones' });
     }
     const { rows } = await pool.query(

@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../utils/db');
-const { auth, requireRole, isOpsRole } = require('../../middleware/auth');
+const { auth, requireRole, isOpsOrCoordinadora } = require('../../middleware/auth');
 const {
   isViajera, normalizarChecklistPuestaPunto,
   getTransportistaPersonaFisica, registrarMovimientoMaquina,
@@ -30,7 +30,7 @@ async function notifyPuestaPunto(transportista, maquina) {
 }
 
 // POST /api/maquinas/:id/puesta-punto/asignar
-router.post('/:id/puesta-punto/asignar', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/:id/puesta-punto/asignar', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const maquinaId = parseInt(req.params.id, 10);
   const gestorId = parseInt(req.body.gestor_puesta_punto_id || req.body.transportista_id, 10);
   const ubicacion = String(req.body.ubicacion || '').trim();
@@ -94,7 +94,7 @@ router.post('/:id/puesta-punto/asignar', auth, requireRole('superadmin', 'operac
 router.post('/:id/puesta-punto/alta', auth, async (req, res) => {
   const maquinaId = parseInt(req.params.id, 10);
   const isAssignedManager = req.user.rol === 'transportista' && req.user.transportista_id;
-  if (!isOpsRole(req.user.rol) && !isAssignedManager) {
+  if (!isOpsOrCoordinadora(req.user.rol) && !isAssignedManager) {
     return res.status(403).json({ error: 'Sin permisos para dar alta de puesta a punto' });
   }
   const obs = String(req.body.obs || '').trim();
@@ -109,7 +109,7 @@ router.post('/:id/puesta-punto/alta', auth, async (req, res) => {
   try {
     const params = [maquinaId];
     let managerWhere = '';
-    if (isAssignedManager && !isOpsRole(req.user.rol)) {
+    if (isAssignedManager && !isOpsOrCoordinadora(req.user.rol)) {
       params.push(req.user.transportista_id);
       managerWhere = ` AND gestor_puesta_punto_id=$${params.length} AND disponibilidad_visible_gestor=TRUE`;
     }

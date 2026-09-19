@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsRole, isOpsOrCoordinadora } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -54,7 +54,7 @@ router.get('/habilitaciones', auth, async (req, res) => {
       params.push(parseInt(req.user.operadora_id));
     } else if (req.user.rol === 'transportista') {
       return res.json([]);
-    } else if (!isOpsRole(req.user.rol)) {
+    } else if (!isOpsOrCoordinadora(req.user.rol)) {
       return res.json([]);
     } else
     if (operadora_id) {
@@ -115,7 +115,7 @@ router.delete('/habilitaciones/:id', auth, requireRole('superadmin', 'operacione
 // ─────────────────────────────────────────────
 router.get('/reglas-logisticas', auth, async (req, res) => {
   try {
-    if (!isOpsRole(req.user.rol)) return res.json([]);
+    if (!isOpsOrCoordinadora(req.user.rol)) return res.json([]);
     const { rows } = await pool.query('SELECT * FROM reglas_logisticas ORDER BY departamento');
     res.json(rows);
   } catch (err) {
@@ -127,7 +127,7 @@ router.get('/reglas-logisticas', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // POST /api/permisos/reglas-logisticas — crear/actualizar regla
 // ─────────────────────────────────────────────
-router.post('/reglas-logisticas', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/reglas-logisticas', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const { departamento, activa, mismo_dia, dias_antes, dias_despues, obs } = req.body;
   if (!departamento) return res.status(400).json({ error: 'departamento es obligatorio' });
   try {
@@ -156,6 +156,7 @@ router.get('/roles', auth, requireRole('superadmin'), async (req, res) => {
   res.json([
     { id: 'superadmin',             label: 'Administrador',              descripcion: 'Acceso total. Jorge y Julieta.' },
     { id: 'operaciones',            label: 'Administración / Ops',       descripcion: 'Gestión operativa sin borrar usuarios críticos' },
+    { id: 'coordinadora',           label: 'Coordinadora',               descripcion: 'Reservas, fechas, máquinas, envíos y transportistas. Sin finanzas, contratos, reportes ni configuración.' },
     { id: 'comercial',              label: 'Comercial',                  descripcion: 'Leads, embudo y WhatsApp comercial' },
     { id: 'operadora_habilitada',   label: 'Operadora habilitada',       descripcion: 'Puede ver sus reservas, pagos, envíos, equipos y formación' },
     { id: 'operadora_limitada',     label: 'Operadora en capacitación',  descripcion: 'Solo inicio y formación hasta completar habilitación' },

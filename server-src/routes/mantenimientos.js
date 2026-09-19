@@ -33,7 +33,7 @@ async function refreshEstados() {
 
 ensureTable(pool).catch(err => console.error('Error preparando tabla mantenimientos:', err.message));
 
-router.get('/', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.get('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   try {
     await refreshEstados();
     const { rows } = await pool.query(`
@@ -51,7 +51,7 @@ router.get('/', auth, requireRole('superadmin', 'operaciones'), async (req, res)
   }
 });
 
-router.post('/', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const { maquina_id, tipo, fecha_realizado } = req.body;
   if (!maquina_id || !tipo || !fecha_realizado) {
     return res.status(400).json({ error: 'Máquina, tipo y fecha son obligatorios' });

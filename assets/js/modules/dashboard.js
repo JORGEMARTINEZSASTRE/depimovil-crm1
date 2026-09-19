@@ -397,6 +397,7 @@ function renderDashboardOperadora(){
 }
 
 async function cargarKpisFinancieros(){
+  if(typeof isAdminRole==='function'&&currentUser&&currentUser.rol==='coordinadora'){const box=document.getElementById('kpisFinancieros');if(box)box.innerHTML='';return;}
   try{
     const mes=new Date().toISOString().slice(0,7);
     const data=await api('/api/finanzas/kpis?mes='+mes);

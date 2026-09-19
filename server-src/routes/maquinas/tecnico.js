@@ -6,7 +6,7 @@ const { auth, requireRole } = require('../../middleware/auth');
 const { registrarMovimientoMaquina } = require('./helpers');
 
 // POST /api/maquinas/:id/tecnico/baja
-router.post('/:id/tecnico/baja', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/:id/tecnico/baja', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const tecnico = String(req.body.tecnico_nombre || req.body.tecnico || '').trim();
   const obs = String(req.body.obs || '').trim();
   try {
@@ -43,7 +43,7 @@ router.post('/:id/tecnico/baja', auth, requireRole('superadmin', 'operaciones'),
 });
 
 // POST /api/maquinas/:id/tecnico/alta
-router.post('/:id/tecnico/alta', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/:id/tecnico/alta', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const obs = String(req.body.obs || '').trim();
   try {
     const { rows: prevRows } = await pool.query('SELECT * FROM maquinas WHERE id=$1', [req.params.id]);
