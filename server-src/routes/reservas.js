@@ -662,9 +662,8 @@ router.get('/control/indicadores', auth, requireRole('superadmin', 'operaciones'
          WHERE maquina_id IS NOT NULL AND (estado = 'firmado' OR firmado_en IS NOT NULL)
       `),
       pool.query(`
-        SELECT DISTINCT ON (reserva_id) reserva_id, sena_requerida, sena_abonada
-        FROM pagos WHERE reserva_id IS NOT NULL AND sena_requerida > 0
-        ORDER BY reserva_id, id
+        SELECT DISTINCT reserva_id FROM pagos
+        WHERE reserva_id IS NOT NULL AND estado = 'sena_pendiente'
       `),
       pool.query(`
         SELECT operadora_id, revision_admin_estado
@@ -683,9 +682,7 @@ router.get('/control/indicadores', auth, requireRole('superadmin', 'operaciones'
     res.json({
       por_operadora,
       contratos: contratos.rows.map(c => c.operadora_id + ':' + c.maquina_id),
-      senas_pendientes: senas.rows
-        .filter(s => parseFloat(s.sena_abonada || 0) < parseFloat(s.sena_requerida || 0))
-        .map(s => s.reserva_id),
+      senas_pendientes: senas.rows.map(s => s.reserva_id),
     });
   } catch (err) {
     console.error('GET /api/reservas/control/indicadores error:', err);
