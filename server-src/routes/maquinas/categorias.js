@@ -42,6 +42,16 @@ router.post('/categorias', auth, requireRole('superadmin', 'operaciones', 'coord
 // GET /api/maquinas/siguiente-codigo
 router.get('/siguiente-codigo', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   try {
+    // Formato CIUDAD-TIPO-NN (ej. SAL-DYN-03): el prefijo lo arma el formulario
+    const prefijo = String(req.query.prefijo || '').toUpperCase().trim();
+    if (/^[A-Z0-9]{2,4}-[A-Z0-9]{2,5}$/.test(prefijo)) {
+      const { rows } = await pool.query(
+        `SELECT COALESCE(MAX((substring(codigo FROM $2))::int), 0) + 1 AS siguiente FROM maquinas WHERE codigo ~ $2`,
+        [prefijo, '^' + prefijo + '-([0-9]+)$']
+      );
+      const n = Number(rows[0]?.siguiente || 1);
+      return res.json({ codigo: `${prefijo}-${String(n).padStart(2, '0')}` });
+    }
     const { rows } = await pool.query(`
       SELECT COALESCE(MAX((substring(codigo FROM '^OP-([0-9]+)$'))::int), 0) + 1 AS siguiente
       FROM maquinas

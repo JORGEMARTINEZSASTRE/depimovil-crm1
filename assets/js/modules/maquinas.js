@@ -238,7 +238,44 @@ function renderMaquinasViajerasPanel(baseMaqs){
       </div>
     </div>`;
 }
+// Código interno CIUDAD-TIPO-NN (ej. SAL-DYN-03)
+const CODIGO_CIUDADES={salto:'SAL',maldonado:'MAL',tacuarembo:'TAC',concordia:'CON',montevideo:'MVD',canelones:'CAN',paysandu:'PAY',artigas:'ART',rivera:'RIV',colonia:'COL'};
+function siglaCiudadCodigo(ciudad){
+  const c=normalizarLocalidad(ciudad);
+  if(!c)return '';
+  return CODIGO_CIUDADES[c]||c.replace(/[^a-z]/g,'').slice(0,3).toUpperCase();
+}
+function siglaTipoCodigo(texto){
+  const t=normalizarLocalidad(texto).replace(/[:.]/g,'');
+  if(/exilis/.test(t))return 'EXI';
+  if(/hifu|\b(12d|22d|360)\b/.test(t)){
+    if(/12d max|12dmax/.test(t))return 'HF12M';
+    if(/22d/.test(t))return 'HF22';
+    if(/360/.test(t))return 'HF36';
+    return 'HF12';
+  }
+  if(/diodo/.test(t)&&/(nd ?yag|ndyag)/.test(t))return 'DYN';
+  if(/diodo/.test(t)&&/(chica|escritorio)/.test(t))return 'DIC';
+  if(/diodo/.test(t))return 'DIO';
+  if(/nd ?yag|ndyag/.test(t))return 'NDY';
+  if(/presoterapia|pressoterapia/.test(t))return 'PRE';
+  if(/criolip/.test(t))return 'CRI';
+  if(/hidra|hydra|hidrofacial/.test(t))return 'HID';
+  if(/emscul|msculp|emsculpt/.test(t))return 'EMS';
+  return 'OTR';
+}
+function prefijoCodigoMaquina(){
+  const ciudad=siglaCiudadCodigo(gv('maqCiudadBase')||gv('maqUbicacion'));
+  if(!ciudad)return '';
+  return ciudad+'-'+siglaTipoCodigo(gv('maqNombre')+' '+gv('maqModelo')+' '+gv('maqCategoria'));
+}
 function getNextMaquinaCodigoLocal(){
+  const prefijo=prefijoCodigoMaquina();
+  if(prefijo){
+    const re=new RegExp('^'+prefijo+'-(\\d+)$');
+    const nums=(DB.get('maquinas')||[]).map(m=>String(m.codigo||'').match(re)).filter(Boolean).map(m=>parseInt(m[1],10));
+    return prefijo+'-'+String((nums.length?Math.max(...nums):0)+1).padStart(2,'0');
+  }
   const nums=(DB.get('maquinas')||[])
     .map(m=>String(m.codigo||'').match(/^OP-(\d+)$/))
     .filter(Boolean)
@@ -251,7 +288,8 @@ async function setNextMaquinaCodigo(){
   sv('maqCodigo',getNextMaquinaCodigoLocal());
   if(typeof api!=='function')return;
   try{
-    const data=await api('/api/maquinas/siguiente-codigo');
+    const pref=prefijoCodigoMaquina();
+    const data=await api('/api/maquinas/siguiente-codigo'+(pref?'?prefijo='+encodeURIComponent(pref):''));
     if(data?.codigo&&!gv('maqId'))sv('maqCodigo',data.codigo);
   }catch(e){}
 }
