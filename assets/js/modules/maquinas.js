@@ -264,10 +264,14 @@ function siglaTipoCodigo(texto){
   if(/emscul|msculp|emsculpt/.test(t))return 'EMS';
   return 'OTR';
 }
+// Equipos que viajan por todo el país y cambian de ciudad base: el código lleva VIA en vez de la ciudad
+const TIPOS_CODIGO_VIA=['HID','PRE','EMS','CRI'];
 function prefijoCodigoMaquina(){
+  const tipo=siglaTipoCodigo(gv('maqNombre')+' '+gv('maqModelo')+' '+gv('maqCategoria'));
+  if(TIPOS_CODIGO_VIA.includes(tipo))return 'VIA-'+tipo;
   const ciudad=siglaCiudadCodigo(gv('maqCiudadBase')||gv('maqUbicacion'));
   if(!ciudad)return '';
-  return ciudad+'-'+siglaTipoCodigo(gv('maqNombre')+' '+gv('maqModelo')+' '+gv('maqCategoria'));
+  return ciudad+'-'+tipo;
 }
 function getNextMaquinaCodigoLocal(){
   const prefijo=prefijoCodigoMaquina();
