@@ -265,9 +265,11 @@ function siglaTipoCodigo(texto){
   return 'OTR';
 }
 // Equipos que viajan por todo el país y cambian de ciudad base: el código lleva VIA en vez de la ciudad
-const TIPOS_CODIGO_VIA=['HID','PRE','EMS','CRI'];
+const TIPOS_CODIGO_VIA=['PRE','EMS','CRI'];
 function prefijoCodigoMaquina(){
   const tipo=siglaTipoCodigo(gv('maqNombre')+' '+gv('maqModelo')+' '+gv('maqCategoria'));
+  // Equipos que solo se venden (no se alquilan): VEN en vez de la ciudad
+  if(gv('maqTipoOperativo')==='solo_venta'||tipo==='HID')return 'VEN-'+tipo;
   if(TIPOS_CODIGO_VIA.includes(tipo))return 'VIA-'+tipo;
   const ciudad=siglaCiudadCodigo(gv('maqCiudadBase')||gv('maqUbicacion'));
   if(!ciudad)return '';
