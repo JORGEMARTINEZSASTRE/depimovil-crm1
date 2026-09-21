@@ -199,7 +199,7 @@ async function validarReservaOperativa(client, {
   }
 
   const { rows: maquinas } = await client.query(
-    `SELECT id, codigo, nombre, estado, tipo_operativo
+    `SELECT id, codigo, nombre, estado, tipo_operativo, categoria, marca, modelo, obs
      FROM maquinas
      WHERE id = $1
      FOR UPDATE`,
@@ -217,6 +217,19 @@ async function validarReservaOperativa(client, {
       ok: false,
       status: 409,
       error: `La máquina ${maquina.codigo || maquina.id} — ${maquina.nombre} no se puede reservar porque está en estado "${maquina.estado}"`,
+    };
+  }
+
+  // Equipos que solo se alquilan en ciertas modalidades (ej. EMSculpt solo mensual)
+  const permitidas = MODALIDADES_EXCLUSIVAS[inferirEquipoTarifa({
+    maquina_nombre: maquina.nombre, maquina_marca: maquina.marca, maquina_modelo: maquina.modelo,
+    maquina_categoria: maquina.categoria, maquina_obs: maquina.obs,
+  })];
+  if (permitidas && !permitidas.includes(modalidadTarifaReserva({ tipo, fecha_jornada, fecha_inicio, fecha_fin }))) {
+    return {
+      ok: false,
+      status: 409,
+      error: `${maquina.nombre} solo se alquila por ${permitidas.map(m => MODALIDAD_TEXTO[m] || m).join(', ')}`,
     };
   }
 
@@ -353,6 +366,13 @@ function jornadasReserva({ tipo, fecha_jornada, fecha_inicio, fecha_fin }) {
   return Math.max(1, Math.round((b - a) / (1000 * 60 * 60 * 24)) + 1);
 }
 
+// Modalidades en las que SÍ se alquila cada equipo (los que no figuran aceptan cualquiera)
+const MODALIDADES_EXCLUSIVAS = {
+  'Pressoterapia': ['semana', '15_dias', 'mensual'],
+  'EMSCULP': ['mensual'],
+};
+const MODALIDAD_TEXTO = { jornada: 'jornada', '2_jornadas': '2 jornadas', '3_jornadas': '3 jornadas', semana: 'semana', '15_dias': '15 días', mensual: 'mes' };
+
 function inferirEquipoTarifa(row) {
   const raw = normalizarTextoPrecio([
     row.maquina_nombre, row.maquina_marca, row.maquina_modelo, row.maquina_categoria, row.maquina_obs,
@@ -363,6 +383,7 @@ function inferirEquipoTarifa(row) {
   if (/pressoterapia|presoterapia|botas/.test(raw)) return 'Pressoterapia';
   if (/exilis/.test(raw)) return 'Exilis';
   if (/hidrofacial|hydrafacial|facial/.test(raw)) return 'Hidrofacial';
+  if (/emscul|msculp/.test(raw)) return 'EMSCULP';
   if (/\bems\b|electroestimulacion|electro estimulacion/.test(raw)) return 'EMS / Electroestimulación';
   if (/(soprano|titanium|ice|laser|depil|depi)/.test(raw)) return 'Soprano Titanium Ice';
   return row.maquina_categoria || row.maquina_nombre || '';
