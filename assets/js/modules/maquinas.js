@@ -80,7 +80,7 @@ function maqPrecioZonaBase(m){
 }
 function maqPrecioPrincipal(m,tarifas){
   const zona=maqPrecioZonaBase(m);
-  const modalidadOrden={jornada:0,inicio_suave:1,media_jornada:2,'2_jornadas':3,'3_jornadas':4,semana:5,mensual:6};
+  const modalidadOrden={jornada:0,inicio_suave:1,media_jornada:2,'2_jornadas':3,'3_jornadas':4,semana:5,'15_dias':6,mensual:7};
   return tarifas.slice().sort((a,b)=>{
     const az=maqPrecioNorm(a.localidadNorm||a.localidad)===zona?0:(maqPrecioNorm(a.localidadNorm||a.localidad)==='interior'?1:2);
     const bz=maqPrecioNorm(b.localidadNorm||b.localidad)===zona?0:(maqPrecioNorm(b.localidadNorm||b.localidad)==='interior'?1:2);
@@ -91,7 +91,7 @@ function maqPrecioInput(id,key,value,type='text',extra=''){
   return `<input ${type?`type="${type}"`:''} id="maq-precio-${id}-${key}" value="${escapeAttr(value ?? '')}" ${extra} style="width:100%;text-align:${key==='precio'?'right':'left'}">`;
 }
 function maqPrecioSelect(id,value){
-  const modalidades=typeof precioMaqModalidades==='function'?precioMaqModalidades():['jornada','2_jornadas','3_jornadas','semana','mensual'];
+  const modalidades=typeof precioMaqModalidades==='function'?precioMaqModalidades():['jornada','2_jornadas','3_jornadas','semana','15_dias','mensual'];
   return `<select id="maq-precio-${id}-modalidad" style="width:100%">${modalidades.map(m=>`<option value="${escapeAttr(m)}" ${m===value?'selected':''}>${escapeHTML(maqPrecioModalidad(m))}</option>`).join('')}</select>`;
 }
 function maqPrecioPayload(id){

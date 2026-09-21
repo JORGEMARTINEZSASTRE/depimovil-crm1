@@ -24,15 +24,16 @@ function precioMaqModalidadLabel(m){
     '2_jornadas':'2 jornadas',
     '3_jornadas':'3 jornadas',
     semana:'Semana',
+    '15_dias':'15 días',
     mensual:'Mensual'
   };
   return map[m]||m||'Jornada';
 }
 function precioMaqOrdenModalidad(m){
-  return {media_jornada:0,inicio_suave:1,jornada:2,'2_jornadas':3,'3_jornadas':4,semana:5,mensual:6}[m] ?? 9;
+  return {media_jornada:0,inicio_suave:1,jornada:2,'2_jornadas':3,'3_jornadas':4,semana:5,'15_dias':6,mensual:7}[m] ?? 9;
 }
 function precioMaqModalidades(){
-  return ['media_jornada','inicio_suave','jornada','2_jornadas','3_jornadas','semana','mensual'];
+  return ['media_jornada','inicio_suave','jornada','2_jornadas','3_jornadas','semana','15_dias','mensual'];
 }
 function precioMaqInput(id,key,value,type='text',extra=''){
   return `<input ${type?`type="${type}"`:''} id="precio-${id}-${key}" value="${escapeAttr(value ?? '')}" ${extra} style="width:100%;min-width:90px;text-align:${key==='precio'||key==='disparosIncluidos'||key==='excedentePrecio'?'right':'left'}">`;

@@ -379,6 +379,7 @@ function inferirFormatoTarifa(row) {
 
 function modalidadTarifaReserva(reserva = {}) {
   const tipo = reserva.tipo || 'jornada';
+  if (tipo !== 'jornada' && jornadasReserva(reserva) === 15) return '15_dias';
   if (tipo === 'semanal') return 'semana';
   if (tipo === 'mensual') return 'mensual';
   const jornadas = jornadasReserva(reserva);
