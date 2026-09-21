@@ -37,8 +37,8 @@ function renderContratos(){
     const maq = getMaq(c.maquinaId);
     const hay = [
       c.id, c.nombre, c.ci, c.ciudad, c.maquina, c.serial,
-      op && `${op.nombre} ${op.apellido || ''}`,
-      maq && `${maq.codigo} ${maq.nombre}`
+      op && `${escapeHTML(op.nombre)} ${escapeHTML(op.apellido || '')}`,
+      maq && `${maq.codigo} ${escapeHTML(maq.nombre)}`
     ].filter(Boolean).join(' ').toLowerCase();
     return (!q || hay.includes(q)) && (!contratoFilter.estado || c.estado === contratoFilter.estado);
   }).sort((a,b)=>(b.id||0)-(a.id||0));
@@ -52,8 +52,8 @@ function renderContratos(){
   tbody.innerHTML = contratos.map(c=>{
     const op = getOp(c.operadoraId);
     const maq = getMaq(c.maquinaId);
-    const nombre = c.nombre || (op ? `${op.nombre} ${op.apellido || ''}` : '—');
-    const maquina = c.maquina || (maq ? `${maq.codigo} — ${maq.nombre}` : '—');
+    const nombre = c.nombre || (op ? `${escapeHTML(op.nombre)} ${escapeHTML(op.apellido || '')}` : '—');
+    const maquina = c.maquina || (maq ? `${maq.codigo} — ${escapeHTML(maq.nombre)}` : '—');
     const monto = formatMonto(c.monto || 0, c.moneda || 'UYU');
     const garantia = c.garantia ? formatMonto(c.garantia, c.moneda || 'UYU') : '—';
     return `<tr>

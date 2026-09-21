@@ -426,7 +426,7 @@ function showMaqFicha(id){
 
 function getTransportistaNombreMaq(id){
   const t=(DB.get('transportistas')||[]).find(x=>parseInt(x.id)===parseInt(id));
-  return t?`${t.nombre||''}`:'Gestor #'+id;
+  return t?`${escapeHTML(t.nombre||'')}`:'Gestor #'+id;
 }
 
 function maqMovTipoLabel(tipo){

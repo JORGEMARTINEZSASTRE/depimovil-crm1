@@ -268,7 +268,7 @@ function renderRevisionOperadorasRows(){
     const md = revMetadata(r);
     const tratamientos = [md.tratamientos || [], md.tratamientos_otros || ''].flat().filter(Boolean).join(', ');
     const localidades = revisionLocalidadesLabel(md);
-    const nombre = `${r.nombre || r.usuario_nombre || ''} ${r.apellido || ''}`.trim() || 'Pedido sin nombre';
+    const nombre = `${escapeHTML(r.nombre || r.usuario_nombre || '')} ${escapeHTML(r.apellido || '')}`.trim() || 'Pedido sin nombre';
     const sinFicha = !r.operadora_id;
     return `<tr>
       <td>
@@ -303,7 +303,7 @@ function openRevisionOperadora(usuarioId){
   revisionOpsActual = row;
   const md = revMetadata(row);
   const portal = row.portal_token ? window.location.origin + '/portal.html?token=' + row.portal_token : '';
-  const nombre = `${row.nombre || row.usuario_nombre || ''} ${row.apellido || ''}`.trim() || 'Pedido sin nombre';
+  const nombre = `${escapeHTML(row.nombre || row.usuario_nombre || '')} ${escapeHTML(row.apellido || '')}`.trim() || 'Pedido sin nombre';
   const sinFicha = !row.operadora_id;
   document.getElementById('modalRevisionTitle').textContent = `Revisión: ${nombre}`;
   document.getElementById('modalRevisionBody').innerHTML = `

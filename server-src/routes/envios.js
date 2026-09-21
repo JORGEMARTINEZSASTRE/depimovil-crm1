@@ -131,6 +131,12 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora', 
     observacion, obs, tiene_rastreo
   } = req.body;
 
+  const ESTADOS_ENVIO = ['pendiente', 'pendiente_envio', 'preparando', 'en_camino', 'en_transito', 'entregado',
+    'retiro_pendiente', 'retiro_en_camino', 'retirado', 'retornado', 'incidencia', 'cancelado'];
+  if (estado && !ESTADOS_ENVIO.includes(estado)) {
+    return res.status(400).json({ error: 'Estado de envío inválido' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -202,6 +208,12 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'
     incluye_limpieza, costo_envio, costo_retiro, costo_limpieza, moneda,
     observacion, obs, tiene_rastreo
   } = req.body;
+
+  const ESTADOS_ENVIO = ['pendiente', 'pendiente_envio', 'preparando', 'en_camino', 'en_transito', 'entregado',
+    'retiro_pendiente', 'retiro_en_camino', 'retirado', 'retornado', 'incidencia', 'cancelado'];
+  if (estado && !ESTADOS_ENVIO.includes(estado)) {
+    return res.status(400).json({ error: 'Estado de envío inválido' });
+  }
 
   try {
     const { rows: prev } = await pool.query('SELECT id, transportista_id, estado FROM envios WHERE id=$1', [req.params.id]);

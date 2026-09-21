@@ -28,7 +28,7 @@ function runGlobalSearch(q){
   // Operadoras
   (DB.get('operadoras')||[]).forEach(o=>{
     if((o.nombre+' '+o.apellido+' '+o.ciudad+' '+o.gabinete).toLowerCase().includes(term))
-      results.push({icon:'👩‍💼',title:`${o.nombre} ${o.apellido}`,sub:`${o.gabinete||'Sin gabinete'} · ${o.ciudad}`,badge:o.estado,action:()=>{closeSearch();showOpFicha(o.id);}});
+      results.push({icon:'👩‍💼',title:`${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)}`,sub:`${escapeHTML(o.gabinete||'Sin gabinete')} · ${escapeHTML(o.ciudad)}`,badge:o.estado,action:()=>{closeSearch();showOpFicha(o.id);}});
   });
   // Máquinas
   (DB.get('maquinas')||[]).forEach(m=>{
@@ -39,27 +39,27 @@ function runGlobalSearch(q){
   (DB.get('reservas')||[]).forEach(r=>{
     const op=getOp(r.operadoraId);
     if((r.codigo+(op?op.nombre+' '+op.apellido:'')+r.tipo).toLowerCase().includes(term))
-      results.push({icon:'📅',title:r.codigo,sub:op?`${op.nombre} ${op.apellido} · ${r.tipo}`:'',badge:RES_ESTADOS[r.estado]?.label||r.estado,action:()=>{closeSearch();showResFicha(r.id);}});
+      results.push({icon:'📅',title:r.codigo,sub:op?`${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)} · ${r.tipo}`:'',badge:RES_ESTADOS[r.estado]?.label||r.estado,action:()=>{closeSearch();showResFicha(r.id);}});
   });
   // Pagos
   (DB.get('pagos')||[]).forEach(p=>{
     const op=getOp(p.operadoraId);
     if((p.codigo+(op?op.nombre+' '+op.apellido:'')).toLowerCase().includes(term))
-      results.push({icon:'💳',title:p.codigo,sub:op?`${op.nombre} ${op.apellido} · ${p.tipo}`:'',badge:PAGO_ESTADOS[p.estado]?.label||p.estado,action:()=>{closeSearch();showPagoFicha(p.id);}});
+      results.push({icon:'💳',title:p.codigo,sub:op?`${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)} · ${p.tipo}`:'',badge:PAGO_ESTADOS[p.estado]?.label||p.estado,action:()=>{closeSearch();showPagoFicha(p.id);}});
   });
   // Envíos
   (DB.get('envios')||[]).forEach(e=>{
     const op=getOp(e.operadoraId);
     if((e.codigo+e.departamento+(op?op.nombre:'')+(e.tracking||'')).toLowerCase().includes(term))
-      results.push({icon:'🚚',title:e.codigo,sub:`${e.departamento} · ${e.transportista||'Sin transportista'}`,badge:ENVIO_ESTADOS[e.estado]?.label||e.estado,action:()=>{closeSearch();showEnvioFicha(e.id);}});
+      results.push({icon:'🚚',title:e.codigo,sub:`${escapeHTML(e.departamento)} · ${escapeHTML(e.transportista||'Sin transportista')}`,badge:ENVIO_ESTADOS[e.estado]?.label||e.estado,action:()=>{closeSearch();showEnvioFicha(e.id);}});
   });
 
   // Leads
   (DB.get('leads')||[]).forEach(l=>{
     const st=LEAD_ESTADOS[l.estado]||{};
     if((l.nombre+' '+l.apellido+' '+(l.gabinete||'')+' '+(l.ciudad||'')+' '+(l.tecnologia||'')).toLowerCase().includes(term))
-      results.push({icon:'🎯',title:`${l.nombre} ${l.apellido}`,
-        sub:`${l.gabinete||'Sin negocio'} · ${l.ciudad||''} · ${l.tecnologia||''}`,
+      results.push({icon:'🎯',title:`${escapeHTML(l.nombre)} ${escapeHTML(l.apellido)}`,
+        sub:`${escapeHTML(l.gabinete||'Sin negocio')} · ${escapeHTML(l.ciudad||'')} · ${l.tecnologia||''}`,
         badge:st.label||l.estado,
         action:()=>{closeSearch();showLeadFicha(l.id);}});
   });

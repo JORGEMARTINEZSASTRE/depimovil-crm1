@@ -46,8 +46,8 @@ function renderEmbudo(){
                 </select>
                </div>` : '';
           return `<div class="kanban-card" onclick="showLeadFicha(${l.id})">
-            <div class="kc-name">${l.nombre} ${l.apellido}</div>
-            <div class="kc-sub">${l.gabinete||l.ciudad||'—'}</div>
+            <div class="kc-name">${escapeHTML(l.nombre)} ${escapeHTML(l.apellido)}</div>
+            <div class="kc-sub">${escapeHTML(l.gabinete||l.ciudad||'—')}</div>
             <div class="kc-tech">${l.tecnologia||l.intencionWhatsapp||l.fuente||'—'}</div>
             ${l.whatsappScore?`<div class="kc-date">🔥 Score ${Number(l.whatsappScore)||0}</div>`:''}
             ${l.fechaUpdate?`<div class="kc-date">📅 ${fmtDate(l.fechaUpdate)}</div>`:''}

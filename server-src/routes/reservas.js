@@ -656,10 +656,10 @@ router.get('/control/indicadores', auth, requireRole('superadmin', 'operaciones'
         FROM operadoras o
       `),
       pool.query(`
-        SELECT operadora_id, maquina_id FROM documentos_operadora WHERE tipo = 'contrato' AND maquina_id IS NOT NULL
+        SELECT operadora_id, maquina_id FROM documentos_operadora WHERE tipo = 'contrato'
         UNION
         SELECT operadora_id, maquina_id FROM contratos
-         WHERE maquina_id IS NOT NULL AND (estado = 'firmado' OR firmado_en IS NOT NULL)
+         WHERE (estado = 'firmado' OR firmado_en IS NOT NULL)
       `),
       pool.query(`
         SELECT DISTINCT reserva_id FROM pagos
@@ -681,7 +681,9 @@ router.get('/control/indicadores', auth, requireRole('superadmin', 'operaciones'
     });
     res.json({
       por_operadora,
-      contratos: contratos.rows.map(c => c.operadora_id + ':' + c.maquina_id),
+      // contrato por máquina y contrato marco (sin máquina: vale para todas las de la operadora)
+      contratos: contratos.rows.filter(c => c.maquina_id && c.operadora_id).map(c => c.operadora_id + ':' + c.maquina_id),
+      contratos_marco: [...new Set(contratos.rows.filter(c => !c.maquina_id && c.operadora_id).map(c => c.operadora_id))],
       senas_pendientes: senas.rows.map(s => s.reserva_id),
     });
   } catch (err) {
@@ -779,6 +781,15 @@ router.post('/', auth, async (req, res) => {
 
   if (!operadoraIdFinal || !maquina_id) {
     return res.status(400).json({ error: 'operadora_id y maquina_id son obligatorios' });
+  }
+
+  if (isOperadoraRole(req.user.rol)) {
+    // Una operadora no puede pedir fechas ya pasadas (se compara con la fecha de hoy en Uruguay)
+    const hoyUy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Montevideo' });
+    const inicioPedido = String(fecha_jornada || fecha_inicio || '').slice(0, 10);
+    if (inicioPedido && inicioPedido < hoyUy) {
+      return res.status(400).json({ error: 'La fecha de la reserva no puede ser anterior a hoy' });
+    }
   }
 
   const client = await pool.connect();

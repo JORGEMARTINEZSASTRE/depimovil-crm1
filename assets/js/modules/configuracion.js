@@ -8,7 +8,7 @@ function renderConfiguracion(){
   const tema=getTemaCRM();
   const paletteCards=Object.entries(CRM_THEMES).map(([id,p])=>`
     <button type="button" class="palette-card ${tema.id===id||(!tema.id&&id==='depimovil')?'active':''}" onclick="seleccionarPaletaCRM('${id}')">
-      <strong>${p.nombre}</strong>
+      <strong>${escapeHTML(p.nombre)}</strong>
       <div class="palette-swatches">
         <span class="palette-swatch" style="background:${p.bg}"></span>
         <span class="palette-swatch" style="background:${p.surface}"></span>

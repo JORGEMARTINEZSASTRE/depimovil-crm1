@@ -35,7 +35,7 @@ function badgeLead(estado){
 }
 
 function getLead(id){return (DB.get('leads')||[]).find(l=>l.id===parseInt(id));}
-function leadNombre(l){return `${l?.nombre||''} ${l?.apellido||''}`.trim()||'Contacto sin nombre';}
+function leadNombre(l){return `${escapeHTML(l?.nombre||'')} ${escapeHTML(l?.apellido||'')}`.trim()||'Contacto sin nombre';}
 function leadTelefonoDigits(l){return String(l?.whatsapp||l?.telefono||'').replace(/\D/g,'');}
 function leadFunnelPos(l){
   const idx=LEAD_PIPELINE.indexOf(l?.estado);
@@ -532,7 +532,7 @@ async function cambiarEstadoLeadDesdeEmbudo(id, nuevoEstado){
       ts:           new Date().toISOString(),
     });
     DB.set('leads_estado_historial', hist);
-    showToast(`🔄 ${leads[idx].nombre} → ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);
+    showToast(`🔄 ${escapeHTML(leads[idx].nombre)} → ${LEAD_ESTADOS[nuevoEstado]?.label||nuevoEstado}`);
     updateLeadsBadge();
     renderEmbudo();
   }catch(e){showToast('❌ '+e.message,'error');renderEmbudo();}
@@ -563,7 +563,7 @@ function convertirLeadAOperadora(id){
   if(dupOp){
     const ok = confirm(
       `⚠️ Posible duplicado detectado\n\n` +
-      `Ya existe la operadora "${dupOp.nombre} ${dupOp.apellido}" ` +
+      `Ya existe la operadora "${escapeHTML(dupOp.nombre)} ${escapeHTML(dupOp.apellido)}" ` +
       `(${dupOp.estado}) con los mismos datos de contacto.\n\n` +
       `¿Querés vincular este lead con esa operadora existente en vez de crear una nueva?\n\n` +
       `"Aceptar" = vincular con la existente\n"Cancelar" = abrir formulario de nueva operadora`
@@ -571,7 +571,7 @@ function convertirLeadAOperadora(id){
     if(ok){
       // Link to existing operadora
       _completarConversionLead(id, dupOp.id);
-      showToast(`✅ Lead vinculado con operadora existente: ${dupOp.nombre} ${dupOp.apellido}`);
+      showToast(`✅ Lead vinculado con operadora existente: ${escapeHTML(dupOp.nombre)} ${escapeHTML(dupOp.apellido)}`);
       showLeadFicha(id);
       return;
     }
@@ -622,7 +622,7 @@ function _completarConversionLead(leadId, operadoraId){
     ts:           new Date().toISOString(),
   });
   DB.set('leads_estado_historial', hist);
-  auditLog('CREATE','conversion',leadId,`Lead #${leadId} → Operadora #${operadoraId} por ${currentUser?.email||'—'}`);
+  auditLog('CREATE','conversion',leadId,`Lead #${leadId} → Operadora #${operadoraId} por ${escapeHTML(currentUser?.email||'—')}`);
 }
 
 /* ── Eliminar ── */

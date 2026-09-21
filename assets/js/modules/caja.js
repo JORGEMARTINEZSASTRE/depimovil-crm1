@@ -99,7 +99,7 @@ function renderCajaCuentas(movs){
         .reduce((acc,m)=>acc+cajaMontoFirmado(m),0);
       return `<div class="caja-saldo-row"><span>${moneda}</span><strong style="color:${s>=0?'var(--text)':'var(--red)'}">${s.toLocaleString()}</strong></div>`;
     }).join('');
-    return `<div class="caja-cuenta-card"><h4>${c.nombre}</h4>${saldos}</div>`;
+    return `<div class="caja-cuenta-card"><h4>${escapeHTML(c.nombre)}</h4>${saldos}</div>`;
   }).join('');
 }
 
@@ -109,7 +109,7 @@ function renderCajaTabla(movs){
     const op=getOp(m.operadoraId);
     const res=(DB.get('reservas')||[]).find(r=>r.id===m.reservaId);
     const maq=getMaq(m.maquinaId);
-    const haystack=[m.codigo,m.concepto,m.comprobante,m.relacionado,m.obs,cajaCategoriaLabel(m.categoria),op&&`${op.nombre} ${op.apellido}`,res&&res.codigo,maq&&maq.nombre].filter(Boolean).join(' ').toLowerCase();
+    const haystack=[m.codigo,m.concepto,m.comprobante,m.relacionado,m.obs,cajaCategoriaLabel(m.categoria),op&&`${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)}`,res&&res.codigo,maq&&maq.nombre].filter(Boolean).join(' ').toLowerCase();
     return (!q||haystack.includes(q))&&(!cajaFilter.tipo||m.tipo===cajaFilter.tipo)&&(!cajaFilter.estado||m.estado===cajaFilter.estado)&&(!cajaFilter.moneda||m.moneda===cajaFilter.moneda);
   }).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||b.id-a.id);
   const tbody=document.getElementById('cajaTableBody');
@@ -121,7 +121,7 @@ function renderCajaTabla(movs){
     const op=getOp(m.operadoraId);
     const res=(DB.get('reservas')||[]).find(r=>r.id===m.reservaId);
     const maq=getMaq(m.maquinaId);
-    const vinc=[op&&`${op.nombre} ${op.apellido}`,res&&res.codigo,maq&&maq.nombre,m.relacionado].filter(Boolean).join(' · ')||'—';
+    const vinc=[op&&`${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)}`,res&&res.codigo,maq&&maq.nombre,m.relacionado].filter(Boolean).join(' · ')||'—';
     return `<tr>
       <td>${fmtDate(m.fecha)}</td>
       <td><span style="font-family:monospace;color:var(--accent);font-size:11px">${m.codigo}</span></td>
@@ -185,7 +185,7 @@ function renderCajaCierres(){
     <td>${fmtDate(c.fechaHasta)}</td><td>${c.periodo}</td><td>${cajaCuentaNombre(c.cuentaId)}</td><td>${c.moneda}</td>
     <td>${(c.saldoSistema||0).toLocaleString()}</td><td>${(c.saldoContado||0).toLocaleString()}</td>
     <td style="color:${Math.abs(c.diferencia||0)<0.01?'var(--green)':(c.diferencia||0)>0?'var(--yellow)':'var(--red)'}">${(c.diferencia||0).toLocaleString()}</td>
-    <td>${c.movimientos||0}</td><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis">${c.obs||'—'}</td>
+    <td>${c.movimientos||0}</td><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis">${escapeHTML(c.obs||'—')}</td>
   </tr>`).join('');
 }
 
@@ -204,7 +204,7 @@ function onCierreCajaPeriodoChange(){
 
 function openCierreCajaModal(){
   ensureCajaData();
-  document.getElementById('cierreCajaCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  document.getElementById('cierreCajaCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(c=>`<option value="${c.id}">${escapeHTML(c.nombre)}</option>`).join('');
   sv('cierreCajaPeriodo','diario');
   sv('cierreCajaDesde',today());sv('cierreCajaHasta',today());sv('cierreCajaMoneda','UYU');sv('cierreCajaContado','');sv('cierreCajaObs','');
   actualizarCierreCajaPreview();
@@ -239,10 +239,10 @@ function openCajaModal(id){
   ensureCajaData();
   const mov=(DB.get('caja_movimientos')||[]).find(m=>m.id===id);
   document.getElementById('modalCajaTitle').textContent=mov?'Movimiento de Caja':'Nuevo Movimiento de Caja';
-  document.getElementById('cajaCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
-  document.getElementById('cajaOperadora').innerHTML='<option value="">— Sin operadora —</option>'+(DB.get('operadoras')||[]).map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido||''}</option>`).join('');
+  document.getElementById('cajaCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(c=>`<option value="${c.id}">${escapeHTML(c.nombre)}</option>`).join('');
+  document.getElementById('cajaOperadora').innerHTML='<option value="">— Sin operadora —</option>'+(DB.get('operadoras')||[]).map(o=>`<option value="${o.id}">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido||'')}</option>`).join('');
   document.getElementById('cajaReserva').innerHTML='<option value="">— Sin reserva —</option>'+(DB.get('reservas')||[]).map(r=>`<option value="${r.id}">${r.codigo}</option>`).join('');
-  document.getElementById('cajaMaquina').innerHTML='<option value="">— Sin máquina —</option>'+(DB.get('maquinas')||[]).map(m=>`<option value="${m.id}">${m.codigo||''} ${m.nombre||''}</option>`).join('');
+  document.getElementById('cajaMaquina').innerHTML='<option value="">— Sin máquina —</option>'+(DB.get('maquinas')||[]).map(m=>`<option value="${m.id}">${m.codigo||''} ${escapeHTML(m.nombre||'')}</option>`).join('');
   sv('cajaId',mov?.id||'');sv('cajaTipo',mov?.tipo||'ingreso');onCajaTipoChange();
   sv('cajaEstado',mov?.estado||'pendiente');sv('cajaFecha',mov?.fecha||today());
   sv('cajaCuenta',mov?.cuentaId||1);sv('cajaCategoria',mov?.categoria||'sena');

@@ -75,7 +75,8 @@ async function auth(req, res, next) {
       return res.status(401).json({ error: 'Token inválido' });
     }
     const { rows } = await pool.query(
-      `SELECT id, nombre, email, rol, operadora_id, transportista_id, whatsapp, status
+      `SELECT id, nombre, email, rol, operadora_id, transportista_id, whatsapp, status,
+              requiere_revision_admin, revision_admin_estado
        FROM usuarios
        WHERE id = $1 AND status = $2`,
       [payload.id, 'activo']
@@ -84,6 +85,10 @@ async function auth(req, res, next) {
       return res.status(401).json({ error: 'Usuario inactivo o no encontrado' });
     }
     const user = rows[0];
+    // Una operadora recién registrada no puede operar hasta que administración apruebe su alta
+    if (isOperadoraRole(user.rol) && user.requiere_revision_admin && user.revision_admin_estado === 'pendiente') {
+      return res.status(403).json({ error: 'Tu alta está pendiente de autorización. Te avisamos por WhatsApp cuando quede habilitada.' });
+    }
     // Si es operadora, verificar que la operadora siga existiendo y activa
     if (user.rol === 'operadora' && user.operadora_id) {
       const { rows: opRows } = await pool.query(

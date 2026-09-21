@@ -175,9 +175,9 @@ function openEvaluacionModal(evaluacionId){
   const evalOpWrap=document.getElementById('evalOperadora')?.closest('.form-field');
   if(evalOpWrap) evalOpWrap.style.display=isOpUser?'none':'';
   document.getElementById('evalOperadora').innerHTML=isOpUser
-    ? `<option value="${opId}" selected>${opActual ? `${opActual.nombre||''} ${opActual.apellido||''}`.trim() : 'Mi ficha'}</option>`
+    ? `<option value="${opId}" selected>${opActual ? `${escapeHTML(opActual.nombre||'')} ${escapeHTML(opActual.apellido||'')}`.trim() : 'Mi ficha'}</option>`
     : `<option value="">Seleccionar operadora...</option>`+
-      ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido}</option>`).join('');
+      ops.map(o=>`<option value="${o.id}">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)}</option>`).join('');
   const estadoActual = checkOpId ? getEvalEstado(checkOpId, evaluacionId) : {intentos:0};
   const intentosRestantes = EVAL_MAX_INTENTOS - estadoActual.intentos;
   document.getElementById('evalResumen').innerHTML=
@@ -301,7 +301,7 @@ async function saveEvaluacionTecnica(){
         id:saved.id,operadoraId:opId,categoria:evaluacion.categoria,fecha:today(),estado:'activa',ts:resultado.ts
       });
       DB.set('habilitaciones',habs);
-      auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${correctas}/${evaluacion.preguntas.length}`);
+      auditLog('CREATE','evaluacion',nId,`${escapeHTML(op?.nombre||'Op #'+opId)} aprobó ${correctas}/${evaluacion.preguntas.length}`);
       resetearIntentosEval(opId, evaluacion.id);
       showToast(`✅ Evaluación aprobada (${correctas}/${evaluacion.preguntas.length}). Operadora habilitada.`);
       await emitirCertificadoOperadora(opId,resultado,evaluacion);
@@ -311,12 +311,12 @@ async function saveEvaluacionTecnica(){
   }else if(aprobada && (esHIFU || esLaser || esNdYAG || esExilis || esEmsculpt || esHydrafacial || esSoprano || esBronceado || esAparatologia || esMasajes || esCavitacion || esSkincare || esCriolipolisis || esAtencion || esBioseguridad || esRF || esGestion || esCoaching)){
     // Niveles básico e intermedio: solo informe, sin habilitación
     resetearIntentosEval(opId, evaluacion.id);
-    auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
+    auditLog('CREATE','evaluacion',nId,`${escapeHTML(op?.nombre||'Op #'+opId)} aprobó ${evaluacion.titulo} ${correctas}/${evaluacion.preguntas.length}`);
     const nivel = evaluacion.nivel || '';
     const cert = esHIFU ? 'HIFU' : esNdYAG ? 'Nd:YAG' : esExilis ? 'Exilis Elite' : esEmsculpt ? 'Emsculpt' : esHydrafacial ? 'HydraFacial' : esSoprano ? 'Soprano Titanium ICE' : esBronceado ? 'Bronceado Orgánico' : esAparatologia ? 'Aparatología Estética' : esMasajes ? 'Masajes y Drenaje Linfático' : esCavitacion ? 'Cavitación Ultrasónica' : esSkincare ? 'Skincare y Cuidado de la Piel' : esCriolipolisis ? 'Criolipólisis' : esAtencion ? 'Atención al Cliente y Ventas en Estética' : esBioseguridad ? 'Bioseguridad e Higiene en Estética' : esRF ? 'Radiofrecuencia Corporal y Facial' : esGestion ? 'Gestión de Agenda y Administración' : esCoaching ? 'Coaching de Bienestar y Hábitos Saludables' : 'Depilación Láser';
     showToast(`✅ Nivel ${nivel} aprobado (${correctas}/${evaluacion.preguntas.length}). Para obtener la habilitación ${cert} debés completar los 3 niveles.`);
   }else{
-    auditLog('CREATE','evaluacion',nId,`${op?.nombre||'Op #'+opId} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
+    auditLog('CREATE','evaluacion',nId,`${escapeHTML(op?.nombre||'Op #'+opId)} no aprobó ${correctas}/${evaluacion.preguntas.length}`);
     const intentosRestantesPost = EVAL_MAX_INTENTOS - intentoActual;
     if(intentosRestantesPost <= 0){
       showToast(`❌ No aprobada (${correctas}/${evaluacion.preguntas.length}). Agotaste los ${EVAL_MAX_INTENTOS} intentos. Podés volver a intentar en ${EVAL_BLOQUEO_HORAS} horas.`,'warn');

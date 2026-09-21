@@ -13,7 +13,7 @@ function getDocsOp(operadoraId){
 function controlReservaCoordinadora(){
   if(!(typeof currentUser!=='undefined'&&currentUser&&currentUser.rol==='coordinadora'))return null;
   const c=DB.get('reserva_control');
-  return (c&&!Array.isArray(c))?c:{por_operadora:{},contratos:[],senas_pendientes:[]};
+  return (c&&!Array.isArray(c))?c:{por_operadora:{},contratos:[],contratos_marco:[],senas_pendientes:[]};
 }
 
 function tieneCedulaCompleta(operadoraId){
@@ -23,11 +23,14 @@ function tieneCedulaCompleta(operadoraId){
 
 function tieneContratoFirmadoReserva(r){
   const docs=getDocsOp(r.operadoraId);
-  const docContrato=docs.some(d=>d.tipo==='contrato' && parseInt(d.maquina_id)===parseInt(r.maquinaId));
+  const mismaMaq=x=>parseInt(x)===parseInt(r.maquinaId);
+  // El contrato marco se firma una sola vez y no lleva máquina: vale para todas las de la operadora
+  const sinMaq=x=>x===null||x===undefined||x===''||!parseInt(x);
+  const docContrato=docs.some(d=>d.tipo==='contrato' && (mismaMaq(d.maquina_id)||sinMaq(d.maquina_id)));
   const contratos=(DB.get('contratos')||[]);
   const contratoCrm=contratos.some(c=>
     parseInt(c.operadoraId)===parseInt(r.operadoraId) &&
-    parseInt(c.maquinaId)===parseInt(r.maquinaId) &&
+    (mismaMaq(c.maquinaId)||sinMaq(c.maquinaId)) &&
     (c.firmado || c.estado==='firmado')
   );
   return docContrato || contratoCrm;
@@ -59,7 +62,7 @@ function validarReservaAutomatica(reservaLike){
     if(!disp.ok) bloqueos.push(disp.msg.replace(/^[^A-Za-zÁÉÍÓÚáéíóú]+/,''));
   }
 
-  if(op && maq && !(ctl?ctl.contratos.includes(r.operadoraId+':'+r.maquinaId):tieneContratoFirmadoReserva(r))) bloqueos.push('Falta contrato firmado para esta máquina');
+  if(op && maq && !(ctl?(ctl.contratos.includes(r.operadoraId+':'+r.maquinaId)||(ctl.contratos_marco||[]).includes(r.operadoraId)):tieneContratoFirmadoReserva(r))) bloqueos.push('Falta contrato firmado para esta máquina');
 
   const pagos=(DB.get('pagos')||[]).filter(p=>parseInt(p.reservaId)===parseInt(r.id));
   if(op && (ctl?!!(ctl.por_operadora[op.id]||{}).deuda_vencida:(typeof tieneDeudaVencida==='function' && tieneDeudaVencida(op.id)))){
@@ -108,7 +111,7 @@ function renderReservaAutomatizacionPanel(r){
   return `<div class="alert-banner ${color==='red'?'danger':(color==='yellow'?'warn':'')}" style="${color==='green'?'background:rgba(82,196,138,0.08);border:1px solid rgba(82,196,138,0.2);color:var(--green)':''}">
     <span class="ab-icon">${color==='green'?'✅':(color==='yellow'?'⚠️':'⛔')}</span>
     <div>
-      <strong>${title}</strong> — ${v.motivo}
+      <strong>${title}</strong> — ${escapeHTML(v.motivo)}
       ${items.length?`<ul class="auto-check-list">${items.map(i=>`<li class="${i.tipo}">${i.txt}</li>`).join('')}</ul>`:''}
       ${acciones}
     </div>

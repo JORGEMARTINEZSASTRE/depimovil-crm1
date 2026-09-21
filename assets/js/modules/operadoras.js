@@ -421,7 +421,7 @@ async function saveOperadora(){
 async function deleteOperadora(id){
   const ops=DB.get('operadoras')||[];
   const op=ops.find(o=>parseInt(o.id)===parseInt(id));
-  const nombre=op?`${op.nombre||''} ${op.apellido||''}`.trim():`operadora #${id}`;
+  const nombre=op?`${escapeHTML(op.nombre||'')} ${escapeHTML(op.apellido||'')}`.trim():`operadora #${id}`;
   if(!isSuperAdmin()){
     showToast('Solo el administrador principal puede eliminar operadoras.','warn');
     return;

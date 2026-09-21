@@ -12,7 +12,7 @@ function renderLogistica(){
   document.getElementById('reglaGrid').innerHTML = sorted.map(r => `
     <div class="regla-card">
       <div>
-        <div class="regla-dept">${r.departamento}</div>
+        <div class="regla-dept">${escapeHTML(r.departamento)}</div>
         <div style="font-size:11px;margin-top:3px">${r.activa
           ? `<span style="color:var(--green);font-weight:600">● Activa</span>`
           : `<span style="color:var(--text3)">○ Usa default</span>`}</div>
@@ -25,7 +25,7 @@ function renderLogistica(){
              <div class="regla-chip">Después <span class="chip-val">${r.diasDespues}d</span></div>`
         }
       </div>
-      ${canEdit() ? `<button class="action-btn" onclick="openReglaModal('${r.departamento}')">Editar</button>` : ''}
+      ${canEdit() ? `<button class="action-btn" onclick="openReglaModal('${escapeHTML(r.departamento)}')">Editar</button>` : ''}
     </div>`).join('');
 }
 

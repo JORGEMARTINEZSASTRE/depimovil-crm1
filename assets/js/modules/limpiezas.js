@@ -8,7 +8,7 @@ let limpResumen=null;
 
 function limpTamanoLabel(t){return {chica:'Chica',grande:'Grande'}[t]||t;}
 function limpPuedeLiquidar(){return !!(currentUser&&(isAdminRole(currentUser.rol)||currentUser.rol==='operaciones'));}
-function limpMaquinaLabel(m){return `${m.codigo||''} — ${m.nombre||''}`;}
+function limpMaquinaLabel(m){return `${m.codigo||''} — ${escapeHTML(m.nombre||'')}`;}
 function limpTransportistas(){return (DB.get('transportistas')||[]).filter(t=>(t.estado||'activo')!=='eliminado');}
 
 async function cargarLimpiezas(){

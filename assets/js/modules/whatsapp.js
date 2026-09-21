@@ -386,7 +386,7 @@ function renderWA(tab){
           return `<div class="notif-row">
             <div class="notif-icon" style="background:rgba(37,211,102,0.1)">💬</div>
             <div class="notif-body">
-              <div class="notif-name">${op?op.nombre+' '+op.apellido:'—'} ${op&&op.whatsapp?`<span style="font-size:11px;color:var(--text3);font-weight:400">${op.whatsapp}</span>`:''}</div>
+              <div class="notif-name">${escapeHTML(op?op.nombre+' '+op.apellido:'—')} ${op&&op.whatsapp?`<span style="font-size:11px;color:var(--text3);font-weight:400">${escapeHTML(op.whatsapp)}</span>`:''}</div>
               <div style="font-size:11px;color:var(--accent);margin:2px 0">${pt?.evento||n.plantillaId} ${res?'· '+res.codigo:''}</div>
               <div class="wa-bubble" style="margin-top:8px;max-width:100%">${n.mensaje.replace(/\n/g,'<br>')}</div>
               <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
@@ -416,7 +416,7 @@ function renderWA(tab){
             ${isSent?'✅':'❌'}
           </div>
           <div class="notif-body">
-            <div class="notif-name">${op?op.nombre+' '+op.apellido:'—'}</div>
+            <div class="notif-name">${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</div>
             <div style="font-size:11px;color:var(--text3);margin:2px 0">${pt?.evento||n.plantillaId}</div>
             <div class="notif-msg">${n.mensaje.split('\n')[0]}</div>
             ${n.error?`<div style="font-size:11px;color:var(--red);margin-top:4px">Error: ${n.error}</div>`:''}

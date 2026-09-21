@@ -64,7 +64,7 @@ function renderMantenimientos(){
     const maq=maqs.find(x=>parseInt(x.id)===parseInt(m.maquinaId));
     const estado=getMantEstado(m);
     const cls=estado==='vencido'?'mant-row-vencido':(estado==='próximo'?'mant-row-proximo':'');
-    const nombre=maq?`${maq.codigo||''} — ${maq.nombre||''}`:(m.maquinaCodigo?`${m.maquinaCodigo} — ${m.maquinaNombre}`:'—');
+    const nombre=maq?`${maq.codigo||''} — ${escapeHTML(maq.nombre||'')}`:(m.maquinaCodigo?`${m.maquinaCodigo} — ${escapeHTML(m.maquinaNombre)}`:'—');
     return `<tr class="${cls}">
       <td>${escapeHTML(nombre)}</td>
       <td>${escapeHTML(mantTipoLabel(m.tipo))}</td>

@@ -370,7 +370,7 @@ function renderVentasMaquinasTabla(ventas){
   if(!rows.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">🏷</div><h3>Sin ventas</h3><p>Cargá ventas de máquinas con adelantos y saldo.</p></div></td></tr>`;return;}
   tbody.innerHTML=rows.map(v=>{const m=getMaq(v.maquinaId);return `<tr>
     <td>${fmtDate(v.fecha)}</td><td><span style="font-family:monospace;color:var(--accent);font-size:11px">${v.codigo}</span></td>
-    <td>${m?m.nombre:'—'}</td><td><span class="bold">${v.comprador}</span></td>
+    <td>${escapeHTML(m?m.nombre:'—')}</td><td><span class="bold">${v.comprador}</span></td>
     <td><strong>${(v.total||0).toLocaleString()}</strong> ${v.moneda}</td><td>${(v.pagado||0).toLocaleString()}</td><td style="color:${v.saldo>0?'var(--yellow)':'var(--green)'}">${(v.saldo||0).toLocaleString()}</td>
     <td>${ventaMaqEstadoBadge(v.estado)}</td><td><button class="action-btn" onclick="openVentaMaquinaModal(${v.id})">Editar</button></td>
   </tr>`;}).join('');
@@ -380,8 +380,8 @@ function openVentaMaquinaModal(id){
   ensureVentasMaquinasData();ensureCajaData();
   const venta=(DB.get('ventas_maquinas')||[]).find(v=>v.id===id);
   document.getElementById('modalVentaMaquinaTitle').textContent=venta?'Editar Venta de Máquina':'Nueva Venta de Máquina';
-  document.getElementById('ventaMaqMaquina').innerHTML='<option value="">— Seleccionar —</option>'+(DB.get('maquinas')||[]).map(m=>`<option value="${m.id}">${m.codigo||''} ${m.nombre||''}</option>`).join('');
-  document.getElementById('ventaMaqCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  document.getElementById('ventaMaqMaquina').innerHTML='<option value="">— Seleccionar —</option>'+(DB.get('maquinas')||[]).map(m=>`<option value="${m.id}">${m.codigo||''} ${escapeHTML(m.nombre||'')}</option>`).join('');
+  document.getElementById('ventaMaqCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(c=>`<option value="${c.id}">${escapeHTML(c.nombre)}</option>`).join('');
   sv('ventaMaqId',venta?.id||'');sv('ventaMaqFecha',venta?.fecha||today());sv('ventaMaqMaquina',venta?.maquinaId||'');
   sv('ventaMaqComprador',venta?.comprador||'');sv('ventaMaqTelefono',venta?.telefono||'');sv('ventaMaqDocumento',venta?.documento||'');
   sv('ventaMaqTotal',venta?.total||'');sv('ventaMaqMoneda',venta?.moneda||'USD');sv('ventaMaqPago','');
@@ -416,7 +416,7 @@ function crearIngresoCajaVentaMaquina(venta,monto,esAdelanto){
   ensureCajaData();
   const movs=DB.get('caja_movimientos')||[];const nextId=movs.reduce((m,x)=>Math.max(m,x.id||0),0)+1;const maq=getMaq(venta.maquinaId);
   const categoria=esAdelanto?'adelanto_venta':'venta_maquina';
-  const mov={id:nextId,codigo:`CJ-${String(nextId).padStart(5,'0')}`,tipo:'ingreso',estado:'confirmado',fecha:venta.fecha,cuentaId:venta.cuentaId,categoria,moneda:venta.moneda,monto,comprobante:venta.comprobante||'',operadoraId:null,reservaId:null,maquinaId:venta.maquinaId,relacionado:venta.comprador,concepto:`${esAdelanto?'Adelanto':'Pago'} venta ${venta.codigo} · ${maq?maq.nombre:''}`,obs:`Ingreso automático desde venta ${venta.codigo}`,origen:'venta_maquina',ventaMaquinaId:venta.id,usuario:'sistema',ts:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const mov={id:nextId,codigo:`CJ-${String(nextId).padStart(5,'0')}`,tipo:'ingreso',estado:'confirmado',fecha:venta.fecha,cuentaId:venta.cuentaId,categoria,moneda:venta.moneda,monto,comprobante:venta.comprobante||'',operadoraId:null,reservaId:null,maquinaId:venta.maquinaId,relacionado:venta.comprador,concepto:`${esAdelanto?'Adelanto':'Pago'} venta ${venta.codigo} · ${escapeHTML(maq?maq.nombre:'')}`,obs:`Ingreso automático desde venta ${venta.codigo}`,origen:'venta_maquina',ventaMaquinaId:venta.id,usuario:'sistema',ts:new Date().toISOString(),updatedAt:new Date().toISOString()};
   DB.set('caja_movimientos',[...movs,mov]);
   if(typeof api==='function'){
     api('/api/finanzas/caja/movimientos',{method:'POST',body:JSON.stringify(mov)}).then(()=>typeof recargarFinanzas==='function'?recargarFinanzas():null).catch(()=>{});

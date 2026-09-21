@@ -184,7 +184,7 @@ function confirmarExcepcionCapacitacion(opId,evaluacion,regla){
   if(regla.ok) return true;
   if(!puedeOmitirReglasCapacitacion()) return false;
   const op=getOp(opId);
-  const nombre=op ? `${op.nombre||''} ${op.apellido||''}`.trim() : `operadora #${opId}`;
+  const nombre=op ? `${escapeHTML(op.nombre||'')} ${escapeHTML(op.apellido||'')}`.trim() : `operadora #${opId}`;
   return confirm(`Esta capacitación está bloqueada para ${nombre} por criterio interno:\n\n- ${regla.motivos.join('\n- ')}\n\n¿Autorizar excepción administrativa para "${evaluacion.titulo}"?`);
 }
 

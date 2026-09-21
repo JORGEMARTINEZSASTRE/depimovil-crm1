@@ -45,11 +45,11 @@ function reportLeadScore(l){
 }
 function reportOpName(id){
   const op=getOp(id);
-  return op?`${op.nombre||''} ${op.apellido||''}`.trim():'Sin operadora';
+  return op?`${escapeHTML(op.nombre||'')} ${escapeHTML(op.apellido||'')}`.trim():'Sin operadora';
 }
 function reportMaqName(id){
   const m=getMaq(id);
-  return m?`${m.codigo||''} ${m.nombre||''}`.trim():'Sin máquina';
+  return m?`${m.codigo||''} ${escapeHTML(m.nombre||'')}`.trim():'Sin máquina';
 }
 function reportReservaFecha(r){
   return r.tipo==='jornada'?(r.fechaJornada||r.fechaInicio):r.fechaInicio;
@@ -119,7 +119,7 @@ function reportMachineProfitTable(rows){
   return `<div class="profit-table-wrap"><table class="profit-table">
     <thead><tr><th>Máquina</th><th>Ingresos</th><th>Gastos</th><th>Utilidad</th><th>Margen</th><th>Reservas</th><th>Días ocupada</th><th>Días parada</th><th></th></tr></thead>
     <tbody>${visible.map(r=>{
-      const name=`${r.maquina.codigo||''} ${r.maquina.nombre||''}`.trim()||'Máquina';
+      const name=`${r.maquina.codigo||''} ${escapeHTML(r.maquina.nombre||'')}`.trim()||'Máquina';
       const profitClass=reportProfitValue(r)>=0?'profit-positive':'profit-negative';
       return `<tr>
         <td><strong>${escapeHTML(name)}</strong><span>${escapeHTML(r.maquina.estado||'sin estado')}</span></td>
@@ -240,7 +240,7 @@ function renderReportes(){
       <div class="report-card report-card-main">
         <h4>Rentabilidad por máquina</h4>
         <div class="report-card-note">Ingresos cobrados menos gastos pagados y movimientos extra vinculados a cada equipo. USD se muestra separado.</div>
-        ${topRentable?`<div class="profit-summary"><strong>Top:</strong> ${escapeHTML(`${topRentable.maquina.codigo||''} ${topRentable.maquina.nombre||''}`.trim())} · ${reportMoneyPair(topRentable.utilidad)}</div>`:''}
+        ${topRentable?`<div class="profit-summary"><strong>Top:</strong> ${escapeHTML(`${topRentable.maquina.codigo||''} ${escapeHTML(topRentable.maquina.nombre||'')}`.trim())} · ${reportMoneyPair(topRentable.utilidad)}</div>`:''}
         ${reportMachineProfitTable(rentabilidadMaquinas)}
       </div>
       <div class="report-card report-card-main">
@@ -262,15 +262,15 @@ function renderReportes(){
       <div class="report-card">
         <h4>Leads calientes</h4>
         ${reportList(leadsCalientes.slice(0,8).map(l=>({
-          title:`${l.nombre||'Lead'} ${l.apellido||''}`.trim()+` · ${l.score} pts`,
-          sub:`${l.estado||'nuevo'} · ${l.ciudad||l.departamento||'Sin ciudad'} · ${l.interes||l.intencionWhatsapp||''}`,
+          title:`${escapeHTML(l.nombre||'Lead')} ${escapeHTML(l.apellido||'')}`.trim()+` · ${l.score} pts`,
+          sub:`${l.estado||'nuevo'} · ${escapeHTML(l.ciudad||l.departamento||'Sin ciudad')} · ${l.interes||l.intencionWhatsapp||''}`,
           action:reportAction('Abrir',`showLeadFicha(${l.id})`)
         })), 'No hay leads calientes pendientes.')}
       </div>
       <div class="report-card">
         <h4>Seguimientos vencidos</h4>
         ${reportList(leadsSinSeguimiento.slice(0,8).map(l=>({
-          title:`${l.nombre||'Lead'} ${l.apellido||''}`.trim(),
+          title:`${escapeHTML(l.nombre||'Lead')} ${escapeHTML(l.apellido||'')}`.trim(),
           sub:`${l.proxFecha?fmtDate(l.proxFecha):'Sin próxima fecha'} · ${l.estado||'nuevo'}`,
           action:reportAction('Abrir',`showLeadFicha(${l.id})`)
         })), 'No hay seguimientos atrasados.')}
@@ -286,8 +286,8 @@ function renderReportes(){
       <div class="report-card">
         <h4>Operadoras a recuperar</h4>
         ${reportList(opsInactivas.slice(0,8).map(o=>({
-          title:`${o.nombre||''} ${o.apellido||''}`.trim(),
-          sub:o.ultimaReserva?`Última reserva ${fmtDate(o.ultimaReserva.fecha)} · ${o.ciudad||o.departamento||''}`:`Sin reservas registradas · ${o.ciudad||o.departamento||''}`,
+          title:`${escapeHTML(o.nombre||'')} ${escapeHTML(o.apellido||'')}`.trim(),
+          sub:o.ultimaReserva?`Última reserva ${fmtDate(o.ultimaReserva.fecha)} · ${escapeHTML(o.ciudad||o.departamento||'')}`:`Sin reservas registradas · ${escapeHTML(o.ciudad||o.departamento||'')}`,
           action:reportAction('Ficha',`showOpFicha(${o.id})`)
         })), 'No hay operadoras para recuperar.')}
       </div>

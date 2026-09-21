@@ -521,7 +521,7 @@ function abrirFormTransportista(t) {
             </div>
             <div>
               <label class="field-label">Nombre *</label>
-              <input type="text" id="f-nombre" required value="${t?.nombre||''}" placeholder="Ej: DAC, El Norteño, Sintia">
+              <input type="text" id="f-nombre" required value="${escapeHTML(t?.nombre||'')}" placeholder="Ej: DAC, El Norteño, Sintia">
             </div>
           </div>
         </div>
@@ -535,7 +535,7 @@ function abrirFormTransportista(t) {
             </div>
             <div>
               <label class="field-label">WhatsApp</label>
-              <input type="text" id="f-whatsapp" value="${t?.whatsapp||''}" placeholder="09X XXX XXX">
+              <input type="text" id="f-whatsapp" value="${escapeHTML(t?.whatsapp||'')}" placeholder="09X XXX XXX">
             </div>
             <div>
               <label class="field-label">Ciclo de pago</label>
@@ -549,17 +549,17 @@ function abrirFormTransportista(t) {
           <div class="form-grid" style="margin-top:12px">
             <div>
               <label class="field-label">Dirección</label>
-              <input type="text" id="f-direccion" value="${t?.direccion||''}" placeholder="Calle, número, local">
+              <input type="text" id="f-direccion" value="${escapeHTML(t?.direccion||'')}" placeholder="Calle, número, local">
             </div>
             <div>
               <label class="field-label">Ciudad</label>
-              <input type="text" id="f-ciudad" value="${t?.ciudad||''}" placeholder="Ej: Salto">
+              <input type="text" id="f-ciudad" value="${escapeHTML(t?.ciudad||'')}" placeholder="Ej: Salto">
             </div>
             <div>
               <label class="field-label">Departamento</label>
               <select id="f-departamento">
                 <option value="">— Seleccionar —</option>
-                ${DEPTOS.map(d=>`<option value="${d}" ${t?.departamento===d?'selected':''}>${d}</option>`).join('')}
+                ${DEPTOS.map(d=>`<option value="${d}" ${escapeHTML(t?.departamento===d?'selected':'')}>${d}</option>`).join('')}
               </select>
             </div>
             <div>
@@ -568,7 +568,7 @@ function abrirFormTransportista(t) {
             </div>
             <div class="full">
               <label class="field-label">Referencia</label>
-              <textarea id="f-referencia" placeholder="Referencia para retiro/entrega">${t?.referencia||''}</textarea>
+              <textarea id="f-referencia" placeholder="Referencia para retiro/entrega">${escapeHTML(t?.referencia||'')}</textarea>
             </div>
           </div>
         </div>
@@ -612,7 +612,7 @@ function abrirFormTransportista(t) {
 
         <div class="ficha-card" style="margin-bottom:14px">
           <div class="section-label">Notas internas</div>
-          <textarea id="f-notas" placeholder="Observaciones generales">${t?.notas||''}</textarea>
+          <textarea id="f-notas" placeholder="Observaciones generales">${escapeHTML(t?.notas||'')}</textarea>
         </div>
 
         <div style="display:flex;gap:8px;margin-top:16px">
@@ -694,7 +694,7 @@ async function confirmarEliminarTransportista(id) {
   const t = transportistaActual?.id === id
     ? transportistaActual
     : await fetch(`${API}/transportistas/${id}`, { headers: apiHeaders() }).then(r => r.json()).catch(() => null);
-  const nombre = t?.nombre ? ` "${t.nombre}"` : '';
+  const nombre = t?.nombre ? ` "${escapeHTML(t.nombre)}"` : '';
   if (!confirm(`¿Eliminar transportista${nombre}? Quedará oculto de la lista.`)) return;
   try {
     const res = await fetch(`${API}/transportistas/${id}`, {
@@ -728,7 +728,7 @@ async function abrirFormNuevoEnvio(transportistaId) {
   modal.innerHTML = `
     <div class="modal-box">
       <div class="modal-header">
-        <span class="modal-title">Nuevo envío — ${t?.nombre}</span>
+        <span class="modal-title">Nuevo envío — ${escapeHTML(t?.nombre)}</span>
         <button onclick="document.getElementById('modal-form-envio').remove()" class="btn-close">✕</button>
       </div>
       <form onsubmit="guardarEnvio(event, ${transportistaId})">
@@ -741,7 +741,7 @@ async function abrirFormNuevoEnvio(transportistaId) {
         <label class="field-label">Máquina</label>
         <select id="env-maquina" required>
           <option value="">Seleccioná</option>
-          ${maquinas.map(m => `<option value="${m.id}" data-tipo="${m.tipo}">${m.nombre}</option>`).join('')}
+          ${maquinas.map(m => `<option value="${m.id}" data-tipo="${m.tipo}">${escapeHTML(m.nombre)}</option>`).join('')}
         </select>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">

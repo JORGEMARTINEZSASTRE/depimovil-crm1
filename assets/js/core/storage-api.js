@@ -77,8 +77,8 @@ async function api(path,opts={}){
 // Mapeo de campo snake_case (API) → camelCase (CRM local cache)
 function mapReserva(r){
   return{id:r.id,codigo:r.codigo,operadoraId:r.operadora_id,maquinaId:r.maquina_id,
-    tipo:r.tipo,estado:r.estado,fechaJornada:r.fecha_jornada||'',
-    fechaInicio:r.fecha_inicio,fechaFin:r.fecha_fin,
+    tipo:r.tipo,estado:r.estado,fechaJornada:normalizeDateInput(r.fecha_jornada),
+    fechaInicio:normalizeDateInput(r.fecha_inicio),fechaFin:normalizeDateInput(r.fecha_fin),
     deptLogistica:r.dept_logistica||'',bloqueLogistico:r.bloque_logistico||false,
     monto:parseFloat(r.monto)||0,moneda:r.moneda||'UYU',
     notas:r.notas||'',creadaEn:r.created_at?r.created_at.split('T')[0]:''};
@@ -185,8 +185,8 @@ function mapEnvio(e){
     departamento:e.departamento||'',direccion:e.direccion||'',
     transportista:e.transportista||'',tracking:e.tracking||'',
     estado:e.estado||'pendiente',
-    fechaEnvioEst:e.fecha_envio_est||'',fechaEnvioReal:e.fecha_envio_real||'',
-    fechaRetiroEst:e.fecha_retiro_est||'',fechaRetiroReal:e.fecha_retiro_real||'',
+    fechaEnvioEst:normalizeDateInput(e.fecha_envio_est),fechaEnvioReal:normalizeDateInput(e.fecha_envio_real),
+    fechaRetiroEst:normalizeDateInput(e.fecha_retiro_est),fechaRetiroReal:normalizeDateInput(e.fecha_retiro_real),
     costoEnvio:parseFloat(e.costo_envio)||0,costoRetiro:parseFloat(e.costo_retiro)||0,
     moneda:e.moneda||'UYU',obs:e.obs||''
   };

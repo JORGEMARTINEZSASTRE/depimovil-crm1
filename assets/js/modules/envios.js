@@ -28,8 +28,8 @@ function mapEnvio(e){
     departamento:e.departamento||'',direccion:e.direccion||'',
     transportista:e.transportista||'',tracking:e.tracking||'',
     estado:e.estado||'pendiente_envio',
-    fechaEnvioEst:e.fecha_envio_est||'',fechaEnvioReal:e.fecha_envio_real||'',
-    fechaRetiroEst:e.fecha_retiro_est||'',fechaRetiroReal:e.fecha_retiro_real||'',
+    fechaEnvioEst:normalizeDateInput(e.fecha_envio_est),fechaEnvioReal:normalizeDateInput(e.fecha_envio_real),
+    fechaRetiroEst:normalizeDateInput(e.fecha_retiro_est),fechaRetiroReal:normalizeDateInput(e.fecha_retiro_real),
     costoEnvio:parseFloat(e.costo_envio)||0,costoRetiro:parseFloat(e.costo_retiro)||0,
     moneda:e.moneda||'UYU',obs:e.obs||''};
 }
@@ -77,10 +77,10 @@ function renderEnvios(){
     const res=(DB.get('reservas')||[]).find(r=>r.id===e.reservaId);
     return `<tr>
       <td><span style="font-family:monospace;color:var(--accent);font-size:11px">${e.codigo}</span></td>
-      <td><span class="bold">${op?op.nombre+' '+op.apellido:'—'}</span></td>
-      <td>${maq?maq.nombre:'—'}</td>
+      <td><span class="bold">${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</span></td>
+      <td>${escapeHTML(maq?maq.nombre:'—')}</td>
       <td>${res?`<button class="action-btn" onclick="showResFicha(${res.id})">${res.codigo}</button>`:'—'}</td>
-      <td>${e.departamento||'—'}</td>
+      <td>${escapeHTML(e.departamento||'—')}</td>
       <td>${fmtDate(e.fechaEnvioEst)}</td>
       <td>${fmtDate(e.fechaRetiroEst)}</td>
       <td>${badgeEnvio(e.estado)}</td>
@@ -108,7 +108,7 @@ function showEnvioFicha(id){
         <div class="ficha-avatar" style="background:linear-gradient(135deg,#3a6fd8,#1a3a80)">${st.icon||'🚚'}</div>
         <div class="ficha-title">
           <h2>${e.codigo}</h2>
-          <p>${op?op.nombre+' '+op.apellido:'—'} · ${maq?maq.nombre:'—'}</p>
+          <p>${escapeHTML(op?op.nombre+' '+op.apellido:'—')} · ${escapeHTML(maq?maq.nombre:'—')}</p>
         </div>
       </div>
       <div class="ficha-actions">
@@ -144,17 +144,17 @@ function showEnvioFicha(id){
       <div class="info-card">
         <h4>📋 Datos del Envío</h4>
         ${ir('Código',`<span style="font-family:monospace;color:var(--accent)">${e.codigo}</span>`)}
-        ${ir('Operadora',op?`<button class="action-btn" onclick="showOpFicha(${e.operadoraId})">${op.nombre} ${op.apellido}</button>`:'—')}
-        ${ir('Máquina',maq?`<button class="action-btn" onclick="showMaqFicha(${e.maquinaId})">${maq.nombre} (${maq.codigo})</button>`:'—')}
+        ${ir('Operadora',op?`<button class="action-btn" onclick="showOpFicha(${e.operadoraId})">${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)}</button>`:'—')}
+        ${ir('Máquina',maq?`<button class="action-btn" onclick="showMaqFicha(${e.maquinaId})">${escapeHTML(maq.nombre)} (${maq.codigo})</button>`:'—')}
         ${ir('Reserva',res?`<button class="action-btn" onclick="showResFicha(${e.reservaId})">${res.codigo}</button>`:'—')}
         ${ir('Estado',badgeEnvio(e.estado))}
       </div>
       <div class="info-card">
         <h4>📅 Fechas y Logística</h4>
-        ${ir('Departamento',`<strong>${e.departamento||'—'}</strong>`)}
+        ${ir('Departamento',`<strong>${escapeHTML(e.departamento||'—')}</strong>`)}
         ${ir('Dirección',e.direccion||'—')}
         ${ir('Transportista',e.transportista||'—')}
-        ${ir('N° Seguimiento',e.tracking?`<code style="color:var(--accent);font-size:12px">${e.tracking}</code>`:'—')}
+        ${ir('N° Seguimiento',e.tracking?`<code style="color:var(--accent);font-size:12px">${escapeHTML(e.tracking)}</code>`:'—')}
         ${ir('Envío estimado',fmtDate(e.fechaEnvioEst))}
         ${ir('Envío real',e.fechaEnvioReal?`<span style="color:var(--green)">${fmtDate(e.fechaEnvioReal)}</span>`:'—')}
         ${ir('Retiro estimado',fmtDate(e.fechaRetiroEst))}
@@ -162,7 +162,7 @@ function showEnvioFicha(id){
       </div>
       <div class="info-card full">
         <h4>📝 Observaciones</h4>
-        <div class="obs-text">${e.obs||'Sin observaciones.'}</div>
+        <div class="obs-text">${escapeHTML(e.obs||'Sin observaciones.')}</div>
       </div>
     </div>`;
 }
@@ -174,7 +174,7 @@ function openEnvioModal(reservaIdPrefill, envioId){
     reservas.filter(r=>['confirmada','aprobada'].includes(r.estado))
       .map(r=>{
         const op=getOp(r.operadoraId);
-        return `<option value="${r.id}">${r.codigo} — ${op?op.nombre+' '+op.apellido:''} · ${r.deptLogistica||'sin depto'}</option>`;
+        return `<option value="${r.id}">${r.codigo} — ${escapeHTML(op?op.nombre+' '+op.apellido:'')} · ${r.deptLogistica||'sin depto'}</option>`;
       }).join('');
 
   document.getElementById('modalEnvioTitle').textContent=envioId?'Editar Envío':'Nuevo Envío';
@@ -205,16 +205,19 @@ function onEnvioReservaChange(){
   if(!resId){wrap.style.display='none';return;}
   const res=(DB.get('reservas')||[]).find(r=>r.id===resId); if(!res){wrap.style.display='none';return;}
   const op=getOp(res.operadoraId); const maq=getMaq(res.maquinaId);
-  text.innerHTML=`<strong>${op?op.nombre+' '+op.apellido:'—'}</strong> · ${maq?maq.nombre:'—'} · Depto: <strong>${res.deptLogistica||'sin asignar'}</strong>`;
+  text.innerHTML=`<strong>${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</strong> · ${escapeHTML(maq?maq.nombre:'—')} · Depto: <strong>${res.deptLogistica||'sin asignar'}</strong>`;
   wrap.style.display='block';
   // Pre-fill departamento if empty
   if(!gv('envioDireccion') && res.deptLogistica) sv('envioDireccion', res.deptLogistica);
   // Auto-calc retiro from reserva fechaFin + dias despues
-  if(!gv('envioFechaRetiroEst') && res.fechaFin){
+  const finIso=normalizeDateInput(res.fechaFin);
+  if(!gv('envioFechaRetiroEst') && finIso){
     const regla=getReglaLogistica(res.deptLogistica||'');
-    const retiro=new Date(res.fechaFin+'T12:00:00');
-    retiro.setDate(retiro.getDate()+regla.diasDespues+1);
-    sv('envioFechaRetiroEst', retiro.toISOString().split('T')[0]);
+    const retiro=new Date(finIso+'T12:00:00');
+    if(!isNaN(retiro.getTime())){
+      retiro.setDate(retiro.getDate()+regla.diasDespues+1);
+      sv('envioFechaRetiroEst', retiro.toISOString().split('T')[0]);
+    }
   }
 }
 

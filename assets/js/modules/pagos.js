@@ -29,7 +29,7 @@ function reservaPuedeConfirmarse(reservaId){
   // Check deuda vencida del operador
   if(tieneDeudaVencida(r.operadoraId)){
     const op = getOp(r.operadoraId);
-    return {puede:false, motivo:`La operadora ${op?.nombre||''} tiene deuda vencida sin regularizar.`};
+    return {puede:false, motivo:`La operadora ${escapeHTML(op?.nombre||'')} tiene deuda vencida sin regularizar.`};
   }
 
   // Check seña obligatoria
@@ -92,7 +92,7 @@ function renderPagos(){
     const progreso = p.montoTotal>0 ? Math.round(((p.senaAbonada||0)/p.montoTotal)*100) : 0;
     return `<tr>
       <td><span style="font-family:monospace;color:var(--accent);font-size:11px">${p.codigo}</span></td>
-      <td><span class="bold">${op?op.nombre+' '+op.apellido:'—'}</span></td>
+      <td><span class="bold">${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</span></td>
       <td>${res?`<button class="action-btn" onclick="showResFicha(${res.id})">${res.codigo}</button>`:'—'}</td>
       <td><span style="font-size:12px;color:var(--text2);text-transform:capitalize">${p.tipo||'—'}</span></td>
       <td><strong>${(p.montoTotal||0).toLocaleString()}</strong> ${p.moneda}</td>
@@ -144,7 +144,7 @@ function showPagoFicha(id){
         <div class="ficha-avatar" style="background:linear-gradient(135deg,var(--blue),#2050a0)">${PAGO_ESTADOS[p.estado]?.icon||'💳'}</div>
         <div class="ficha-title">
           <h2>${p.codigo}</h2>
-          <p>${op?op.nombre+' '+op.apellido:'—'} · ${res?res.codigo:'—'}</p>
+          <p>${escapeHTML(op?op.nombre+' '+op.apellido:'—')} · ${res?res.codigo:'—'}</p>
         </div>
       </div>
       <div class="ficha-actions">
@@ -158,7 +158,7 @@ function showPagoFicha(id){
       <div class="info-card">
         <h4>📋 Datos del Pago</h4>
         ${ir('Código',`<span style="font-family:monospace;color:var(--accent)">${p.codigo}</span>`)}
-        ${ir('Operadora',op?`<button class="action-btn" onclick="showOpFicha(${p.operadoraId})">${op.nombre} ${op.apellido}</button>`:'—')}
+        ${ir('Operadora',op?`<button class="action-btn" onclick="showOpFicha(${p.operadoraId})">${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)}</button>`:'—')}
         ${ir('Reserva',res?`<button class="action-btn" onclick="showResFicha(${p.reservaId})">${res.codigo}</button>`:'—')}
         ${ir('Tipo',p.tipo||'—')} ${ir('Estado',badgePago(p.estado))}
         ${ir('Fecha pago',fmtDate(p.fechaPago))}
@@ -178,7 +178,7 @@ function showPagoFicha(id){
       </div>
       <div class="info-card full">
         <h4>📝 Observaciones</h4>
-        <div class="obs-text">${p.obs||'Sin observaciones.'}</div>
+        <div class="obs-text">${escapeHTML(p.obs||'Sin observaciones.')}</div>
       </div>
       ${hist.length?`<div class="info-card full">
         <h4>🕐 Historial (${hist.length})</h4>
@@ -189,7 +189,7 @@ function showPagoFicha(id){
               <span class="tc-title">${PAGO_ESTADOS[h.estadoPrevio]?.label||h.estadoPrevio||'Creación'} → ${PAGO_ESTADOS[h.estadoNuevo]?.label||h.estadoNuevo}</span>
               <span class="tc-date">${fmtDate(h.ts.split('T')[0])} ${h.ts.split('T')[1]?.slice(0,5)||''}</span>
             </div>
-            ${h.motivo?`<div class="tc-body">${h.motivo}</div>`:''}
+            ${h.motivo?`<div class="tc-body">${escapeHTML(h.motivo)}</div>`:''}
           </div></li>`).join('')}</ul>
       </div>`:''}
     </div>`;
@@ -203,7 +203,7 @@ function openPagoModal(reservaIdPrefill, pagoId){
     reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado)||r.estado==='confirmada')
       .map(r=>{
         const op=getOp(r.operadoraId);
-        return `<option value="${r.id}">${r.codigo} — ${op?op.nombre+' '+op.apellido:''} (${r.tipo==='jornada'?fmtDate(r.fechaJornada):fmtDate(r.fechaInicio)})</option>`;
+        return `<option value="${r.id}">${r.codigo} — ${escapeHTML(op?op.nombre+' '+op.apellido:'')} (${r.tipo==='jornada'?fmtDate(r.fechaJornada):fmtDate(r.fechaInicio)})</option>`;
       }).join('');
 
   document.getElementById('modalPagoTitle').textContent = pagoId ? 'Editar Pago' : 'Registrar Pago';
@@ -239,7 +239,7 @@ function onPagoReservaChange(){
   const op = getOp(res.operadoraId);
   const hasDeuda = tieneDeudaVencida(res.operadoraId);
   infoText.innerHTML = `<span style="color:var(--text3)">Reserva:</span> ${res.codigo} · 
-    <span style="color:var(--text3)">Operadora:</span> <strong>${op?op.nombre+' '+op.apellido:'—'}</strong> · 
+    <span style="color:var(--text3)">Operadora:</span> <strong>${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</strong> · 
     <span style="color:var(--text3)">Depto:</span> ${res.deptLogistica||'—'}
     ${hasDeuda?` <span class="badge badge-red" style="margin-left:8px">🚨 Deuda Vencida</span>`:''}`;
   infoEl.style.display='block';

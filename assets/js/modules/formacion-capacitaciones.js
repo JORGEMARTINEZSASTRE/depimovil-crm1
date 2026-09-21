@@ -3,7 +3,7 @@ function openCapacitacionModal(operadoraId){
   if(!isSuperAdmin()&&!canEdit()){showToast('⚠️ Sin permisos','warn');return;}
   const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa');
   document.getElementById('capOpSelector').innerHTML=
-    ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido}</option>`).join('');
+    ops.map(o=>`<option value="${o.id}">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)}</option>`).join('');
   if(operadoraId){
     sv('capOperadoraId',operadoraId);
     sv('capOpSelector',operadoraId);
@@ -29,7 +29,7 @@ function saveCapacitacion(){
     responsable:currentUser?.email||'—', ts:new Date().toISOString(),
   });
   DB.set('capacitaciones',caps);
-  auditLog('CREATE','capacitacion',nId,`${op?.nombre||'Op #'+opId} — ${gv('capCategoria')} — ${gv('capResultado')}`);
+  auditLog('CREATE','capacitacion',nId,`${escapeHTML(op?.nombre||'Op #'+opId)} — ${gv('capCategoria')} — ${gv('capResultado')}`);
   closeModal('modalCapacitacion');
   showToast('✅ Capacitación registrada');
   // Refresh ficha if open
@@ -42,7 +42,7 @@ function openHabilitacionModal(operadoraId){
   if(!isSuperAdmin()&&!canEdit()){showToast('⚠️ Sin permisos','warn');return;}
   const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa');
   document.getElementById('habOpSelector').innerHTML=
-    ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido}</option>`).join('');
+    ops.map(o=>`<option value="${o.id}">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)}</option>`).join('');
   if(operadoraId){
     sv('habOperadoraId',operadoraId);
     sv('habOpSelector',operadoraId);
@@ -72,9 +72,9 @@ async function saveHabilitacion(){
     const habs=(DB.get('habilitaciones')||[]).filter(h=>!(h.id&&saved.id&&parseInt(h.id)===parseInt(saved.id)));
     habs.push(mapHabilitacion(saved));
     DB.set('habilitaciones',habs);
-    auditLog('CREATE','habilitacion',saved.id,`${op?.nombre||'Op #'+opId} → ${cat}`);
+    auditLog('CREATE','habilitacion',saved.id,`${escapeHTML(op?.nombre||'Op #'+opId)} → ${cat}`);
     closeModal('modalHabilitacion');
-    showToast(`✅ Habilitada: ${op?.nombre||''} para ${cat}`);
+    showToast(`✅ Habilitada: ${escapeHTML(op?.nombre||'')} para ${cat}`);
     const fichaEl=document.getElementById('view-operadora-ficha');
     if(fichaEl&&fichaEl.classList.contains('active')) showOpFicha(opId);
   }catch(e){
@@ -152,7 +152,7 @@ function renderCapPanel(operadoraId){
         </span>
         <span style="font-size:11px;color:var(--text3)">${fmtDate(cap.fecha)} · ${cap.modalidad}</span>
       </div>
-      ${cap.obs?`<div class="cr-body">${cap.obs}</div>`:''}
+      ${cap.obs?`<div class="cr-body">${escapeHTML(cap.obs)}</div>`:''}
     </div>`).join('')}
   </div>`;
 }
@@ -166,7 +166,7 @@ function renderMaqHabPanel(maquinaId){
     ${!habilitadas.length?`<div style="color:var(--text3);font-size:13px;padding:8px 0">Ninguna operadora habilitada para esta categoría.</div>`:''}
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
       ${habilitadas.map(o=>`<button class="action-btn" onclick="showOpFicha(${o.id})" style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:12px">👩</span> ${o.nombre} ${o.apellido}
+        <span style="font-size:12px">👩</span> ${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)}
       </button>`).join('')}
     </div>
   </div>`;

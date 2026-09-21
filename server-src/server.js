@@ -60,6 +60,20 @@ app.use('/api/auth/whatsapp/verify', loginLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '5mb' }));
+
+// Defensa en profundidad contra HTML/JavaScript inyectado: el texto que llega desde la web no puede llevar < ni >.
+// (No se toca la contraseña, los tokens ni la firma; tampoco los webhooks de WhatsApp.)
+const CLAVES_SIN_LIMPIAR = /pass|token|firma|secret|codigo|data_url/i;
+function sinEtiquetas(v, key) {
+  if (typeof v === 'string') return CLAVES_SIN_LIMPIAR.test(key || '') ? v : v.replace(/[<>]/g, '');
+  if (Array.isArray(v)) return v.map(x => sinEtiquetas(x, key));
+  if (v && typeof v === 'object') { for (const k of Object.keys(v)) v[k] = sinEtiquetas(v[k], k); return v; }
+  return v;
+}
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object' && !req.path.startsWith('/api/webhook')) sinEtiquetas(req.body);
+  next();
+});
 app.use('/uploads', express.static(require('path').join(__dirname, '../uploads')));
 
 // ══════════════════════════════════

@@ -127,6 +127,13 @@ async function findOrCreateWhatsappUser(whatsapp, rol) {
   return rows[0];
 }
 
+// El token del portal solo se entrega por WhatsApp cuando administración aprueba el alta
+function sinTokenPortal(operadora) {
+  if (!operadora) return operadora;
+  const { portal_token, ...resto } = operadora;
+  return resto;
+}
+
 function publicUser(user) {
   return {
     id: user.id,
@@ -762,7 +769,7 @@ router.post('/operadora/register', async (req, res) => {
       pendiente_autorizacion: true,
       codigo_enviado: false,
       codigo_error: null,
-      operadora,
+      operadora: sinTokenPortal(operadora),
       user: publicUser(usuarioResult.rows[0])
     });
   } catch (err) {
@@ -1093,36 +1100,47 @@ router.post('/portal-login', async (req, res) => {
       return res.status(401).json({ error: 'Link inválido o expirado. Pedí uno nuevo escribiéndonos por WhatsApp.' });
     }
     const op = opRows[0];
-    // Buscar usuario por whatsapp (normalizado)
+    // Buscar usuario por whatsapp (normalizado); si hay varios, se prefiere el ya ligado a esta operadora
     const wa = op.whatsapp ? op.whatsapp.replace(/\s+/g,'') : null;
     const { rows } = await pool.query(
-      `SELECT id, nombre, email, rol, status, whatsapp, operadora_id
+      `SELECT id, nombre, email, rol, status, whatsapp, operadora_id, requiere_revision_admin, revision_admin_estado
        FROM usuarios
        WHERE (whatsapp = $1 OR whatsapp = $2)
          AND status = 'activo'
          AND rol IN ('operadora','operadora_habilitada','operadora_limitada','operaciones','comercial')
-       ORDER BY id DESC LIMIT 1`,
-      [wa, op.whatsapp]
+       ORDER BY (operadora_id = $3) DESC NULLS LAST, id DESC LIMIT 1`,
+      [wa, op.whatsapp, op.id]
     );
-    // Si no hay usuario vinculado, crear sesión temporal con datos de la operadora
     let user;
     if (rows.length) {
       const u = rows[0];
+      // Alta recién registrada y todavía sin autorización de administración: no puede operar
+      if (u.rol === 'operadora' && u.requiere_revision_admin && u.revision_admin_estado === 'pendiente') {
+        return res.status(403).json({ error: 'Tu alta está pendiente de autorización. Te avisamos por WhatsApp cuando quede habilitada.' });
+      }
+      // El usuario debe quedar ligado a ESTA operadora: la sesión toma operadora_id de la base
+      if (u.rol === 'operadora' && !u.operadora_id) {
+        await pool.query('UPDATE usuarios SET operadora_id = $1, updated_at = NOW() WHERE id = $2 AND operadora_id IS NULL', [op.id, u.id]);
+        u.operadora_id = op.id;
+      }
       user = { id: u.id, nombre: u.nombre || `${op.nombre} ${op.apellido}`.trim(),
         email: u.email, rol: u.rol, operadora_id: u.operadora_id || op.id,
         transportista_id: null, whatsapp: u.whatsapp || wa };
     } else {
-      // Buscar cualquier usuario activo con rol operadora como fallback
-      const { rows: fb } = await pool.query(
-        `SELECT id, nombre, email, rol, status, whatsapp, operadora_id FROM usuarios
-         WHERE rol IN ('operadora','operadora_habilitada','operadora_limitada')
-           AND status = 'activo' ORDER BY id DESC LIMIT 1`
+      // Operadora cargada por administración (sin usuario): se le crea uno propio, ligado a su ficha.
+      // Antes se reutilizaba el usuario de OTRA operadora y la sesión quedaba con la identidad equivocada.
+      const emailOp = `operadora.${op.id}.${String(wa || op.id).replace(/\D/g, '')}@whatsapp.depimovil.local`;
+      const hashOp = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 12);
+      const { rows: nuevo } = await pool.query(
+        `INSERT INTO usuarios (nombre, email, password_hash, rol, whatsapp, operadora_id, registro_origen, requiere_revision_admin, revision_admin_estado)
+         VALUES ($1,$2,$3,'operadora',$4,$5,'portal_token',false,'no_requiere')
+         ON CONFLICT (email) DO UPDATE SET operadora_id = EXCLUDED.operadora_id, status = 'activo', updated_at = NOW()
+         RETURNING id, nombre, email, rol, whatsapp, operadora_id`,
+        [`${op.nombre} ${op.apellido}`.trim(), emailOp, hashOp, wa, op.id]
       );
-      if (!fb.length) return res.status(401).json({ error: 'No se encontró usuario activo para esta operadora.' });
-      const u = fb[0];
-      user = { id: u.id, nombre: `${op.nombre} ${op.apellido}`.trim(),
-        email: u.email, rol: u.rol, operadora_id: op.id,
-        transportista_id: null, whatsapp: wa };
+      const u = nuevo[0];
+      user = { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, operadora_id: u.operadora_id,
+        transportista_id: null, whatsapp: u.whatsapp || wa };
     }
     await pool.query(
       'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',

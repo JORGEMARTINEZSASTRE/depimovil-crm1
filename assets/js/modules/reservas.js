@@ -54,9 +54,9 @@ function calcularRangoBloqueo(fechaInicio, fechaFin, departamento){
 function checkDisponibilidad(maquinaId, fechaInicio, fechaFin, excluirResId, departamento){
   const maq=getMaq(maquinaId);
   if(!maq) return {ok:false,msg:'Máquina no encontrada.'};
-  if(maq.tipoOperativo==='solo_venta') return {ok:false,msg:`⛔ "${maq.nombre}" está marcada como solo venta y no se puede alquilar.`};
-  if(maq.estado==='mantenimiento') return {ok:false,msg:`⚠️ "${maq.nombre}" está en mantenimiento.`};
-  if(maq.estado==='fuera_servicio') return {ok:false,msg:`⛔ "${maq.nombre}" está fuera de servicio.`};
+  if(maq.tipoOperativo==='solo_venta') return {ok:false,msg:`⛔ "${escapeHTML(maq.nombre)}" está marcada como solo venta y no se puede alquilar.`};
+  if(maq.estado==='mantenimiento') return {ok:false,msg:`⚠️ "${escapeHTML(maq.nombre)}" está en mantenimiento.`};
+  if(maq.estado==='fuera_servicio') return {ok:false,msg:`⛔ "${escapeHTML(maq.nombre)}" está fuera de servicio.`};
   if(!fechaInicio||!fechaFin) return {ok:true,msg:''};
 
   // Rango real considerando bloqueo logístico del solicitante
@@ -76,7 +76,7 @@ function checkDisponibilidad(maquinaId, fechaInicio, fechaFin, excluirResId, dep
   if(conflictos.length){
     const c=conflictos[0]; const op=getOp(c.operadoraId);
     const sr=calcularRangoBloqueo(c.fechaInicio,c.fechaFin,c.deptLogistica||'');
-    return {ok:false,msg:`⛔ Conflicto logístico: la máquina tiene bloqueo entre ${fmtDate(sr.bloqueDesde)} y ${fmtDate(sr.bloqueHasta)} (${c.codigo}${op?' — '+op.nombre:''}).`};
+    return {ok:false,msg:`⛔ Conflicto logístico: la máquina tiene bloqueo entre ${fmtDate(sr.bloqueDesde)} y ${fmtDate(sr.bloqueHasta)} (${c.codigo}${escapeHTML(op?' — '+op.nombre:'')}).`};
   }
 
   // Informe de bloqueo propio
@@ -167,8 +167,8 @@ function renderReservas(){
     const isVencida=ESTADOS_ACTIVOS.includes(r.estado)&&r.fechaFin&&r.fechaFin<hoy;
     return `<tr style="${isVencida?'background:rgba(224,92,107,0.04)':''}">
       <td><span style="font-family:monospace;color:var(--accent);font-size:11px">${r.codigo}</span></td>
-      <td><span class="bold">${op?op.nombre+' '+op.apellido:'—'}</span><br><span style="font-size:11px;color:var(--text3)">${op?op.ciudad:''}</span></td>
-      <td>${maq?maq.nombre:'—'}<br><span style="font-size:11px;color:var(--text3)">${maq?maq.codigo:''}</span></td>
+      <td><span class="bold">${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</span><br><span style="font-size:11px;color:var(--text3)">${escapeHTML(op?op.ciudad:'')}</span></td>
+      <td>${escapeHTML(maq?maq.nombre:'—')}<br><span style="font-size:11px;color:var(--text3)">${maq?maq.codigo:''}</span></td>
       <td>${badgeResTipo(r.tipo)}</td>
       <td>${isVencida?`<span style="color:var(--red)">${fmtDate(fechaDisplay)}</span>`:fmtDate(fechaDisplay)}</td>
       <td>${r.tipo!=='jornada'?(isVencida?`<span style="color:var(--red)">${fmtDate(r.fechaFin)} ⚠️</span>`:fmtDate(r.fechaFin)):'—'}</td>
@@ -200,7 +200,7 @@ function showResFicha(id){
     <div class="ficha-header">
       <div class="ficha-header-left">
         <div class="ficha-avatar rsv">${st.icon||'📅'}</div>
-        <div class="ficha-title"><h2>${r.codigo}</h2><p>${op?op.nombre+' '+op.apellido:'—'} · ${maq?maq.nombre:'—'}</p></div>
+        <div class="ficha-title"><h2>${r.codigo}</h2><p>${escapeHTML(op?op.nombre+' '+op.apellido:'—')} · ${escapeHTML(maq?maq.nombre:'—')}</p></div>
       </div>
       <div class="ficha-actions">
         ${badgeRes(r.estado)}
@@ -214,9 +214,9 @@ function showResFicha(id){
     ${r.estado==='solicitud_recibida'?`<div class="alert-banner info"><span class="ab-icon">📥</span><strong>Solicitud pendiente de revisión</strong> — Aprobá o rechazá esta reserva.</div>`:''}
     ${(()=>{
       const viab = reservaPuedeConfirmarse(r.id);
-      if(viab.puede) return `<div class="alert-banner" style="background:rgba(82,196,138,0.08);border:1px solid rgba(82,196,138,0.2)"><span class="ab-icon">✅</span><strong>Lista para confirmar</strong> — ${viab.motivo}</div>`;
+      if(viab.puede) return `<div class="alert-banner" style="background:rgba(82,196,138,0.08);border:1px solid rgba(82,196,138,0.2)"><span class="ab-icon">✅</span><strong>Lista para confirmar</strong> — ${escapeHTML(viab.motivo)}</div>`;
       if(['aprobada','pendiente_aprobacion','solicitud_recibida'].includes(r.estado))
-        return `<div class="alert-banner warn"><span class="ab-icon">⚙️</span><strong>Pendiente para confirmar:</strong> ${viab.motivo}</div>`;
+        return `<div class="alert-banner warn"><span class="ab-icon">⚙️</span><strong>Pendiente para confirmar:</strong> ${escapeHTML(viab.motivo)}</div>`;
       return '';
     })()}
     ${typeof renderReservaAutomatizacionPanel==='function'?renderReservaAutomatizacionPanel(r):''}
@@ -224,8 +224,8 @@ function showResFicha(id){
       <div class="info-card">
         <h4>📋 Datos de la Reserva</h4>
         ${ir('Código',`<span style="font-family:monospace;color:var(--accent)">${r.codigo}</span>`)}
-        ${ir('Operadora',op?`<button class="action-btn" onclick="showOpFicha(${r.operadoraId})">${op.nombre} ${op.apellido} — ${op.ciudad}</button>`:'—')}
-        ${ir('Máquina',maq?`<button class="action-btn" onclick="showMaqFicha(${r.maquinaId})">${maq.nombre} (${maq.codigo})</button>`:'—')}
+        ${ir('Operadora',op?`<button class="action-btn" onclick="showOpFicha(${r.operadoraId})">${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)} — ${escapeHTML(op.ciudad)}</button>`:'—')}
+        ${ir('Máquina',maq?`<button class="action-btn" onclick="showMaqFicha(${r.maquinaId})">${escapeHTML(maq.nombre)} (${maq.codigo})</button>`:'—')}
         ${ir('Tipo',badgeResTipo(r.tipo))}
         ${ir('Estado',badgeRes(r.estado))}
         ${ir('Registrada',fmtDate(r.creadaEn))}
@@ -282,7 +282,7 @@ function showResFicha(id){
       </div>
       <div class="info-card">
         <h4>📝 Observaciones</h4>
-        <div class="obs-text">${r.notas||'Sin observaciones.'}</div>
+        <div class="obs-text">${escapeHTML(r.notas||'Sin observaciones.')}</div>
       </div>
       <div class="info-card full">
         <h4>🚚 Envío Vinculado</h4>
@@ -293,7 +293,7 @@ function showResFicha(id){
             <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
               <div>
                 <div style="font-size:13px;font-weight:600;color:var(--text)">${e.codigo}</div>
-                <div style="font-size:12px;color:var(--text2);margin-top:2px">${e.departamento} — ${e.transportista||'Sin transportista'}</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:2px">${escapeHTML(e.departamento)} — ${escapeHTML(e.transportista||'Sin transportista')}</div>
                 <div style="font-size:12px;color:var(--text3);margin-top:1px">Envío est.: ${fmtDate(e.fechaEnvioEst)} · Retiro est.: ${fmtDate(e.fechaRetiroEst)}</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center">
@@ -314,7 +314,7 @@ function showResFicha(id){
                 <span class="tc-title">${RES_ESTADOS[h.estadoPrevio]?.label||h.estadoPrevio||'Creación'} → ${stH.label||h.estadoNuevo}</span>
                 <span class="tc-date">${fmtDate(h.ts.split('T')[0])} ${h.ts.split('T')[1]?.slice(0,5)||''}</span>
               </div>
-              ${h.motivo?`<div class="tc-body">${h.motivo}</div>`:''}
+              ${h.motivo?`<div class="tc-body">${escapeHTML(h.motivo)}</div>`:''}
               <div class="tc-body" style="color:var(--text3);font-size:11px">${h.usuario}</div>
             </div></li>`;}).join('')}</ul>`
           :`<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin cambios de estado registrados.</div>`}
@@ -378,7 +378,7 @@ function reservaMaquinaOption(m, opId){
   const lbl={disponible:'Disponible',reservada:'Reservada',mantenimiento:'⚠️ Mantenimiento',fuera_servicio:'⛔ Fuera servicio'}[m.estado]||m.estado;
   const uso=m.tipoOperativo==='solo_venta'?' · Solo venta':m.tipoOperativo==='base_ciudad'?` · Base ${m.ciudadBase||m.ubicacion||''}`:'';
   const motivo=!ciudadOk.ok?` · ${ciudadOk.msg}`:'';
-  return `<option value="${m.id}" ${disabled}>${m.codigo} — ${m.nombre} [${lbl}${uso}${motivo}]</option>`;
+  return `<option value="${m.id}" ${disabled}>${m.codigo} — ${escapeHTML(m.nombre)} [${lbl}${uso}${motivo}]</option>`;
 }
 
 function filterMaquinasReservaByOperadora(){
@@ -394,7 +394,7 @@ function filterOperadorasReservaByDepto(){
   const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa'&&(!dept||o.departamento===dept));
   document.getElementById('resOperadoraId').innerHTML=
     '<option value="">— Seleccionar operadora activa —</option>'+
-    ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido} — ${o.ciudad} (${o.departamento})</option>`).join('');
+    ops.map(o=>`<option value="${o.id}">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)} — ${escapeHTML(o.ciudad)} (${escapeHTML(o.departamento)})</option>`).join('');
   filterMaquinasReservaByOperadora();
 }
 
@@ -422,7 +422,7 @@ function openResModal(id, preselMaquinaId){
   const ops=(DB.get('operadoras')||[]).filter(o=>o.estado==='activa');
   document.getElementById('resOperadoraId').innerHTML=
     '<option value="">— Seleccionar operadora activa —</option>'+
-    ops.map(o=>`<option value="${o.id}">${o.nombre} ${o.apellido} — ${o.ciudad} (${o.departamento})</option>`).join('');
+    ops.map(o=>`<option value="${o.id}">${escapeHTML(o.nombre)} ${escapeHTML(o.apellido)} — ${escapeHTML(o.ciudad)} (${escapeHTML(o.departamento)})</option>`).join('');
   document.getElementById('resMaquinaId').innerHTML='<option value="">— Seleccionar máquina disponible —</option>';
   document.getElementById('modalResTitle').textContent=id?'Editar Reserva':(isOperadoraUser()?'Solicitar Reserva':'Nueva Reserva');
   document.getElementById('resDisponibilidad').style.display='none';
@@ -541,6 +541,12 @@ function validarCiudadReservaLocal(opId,maqId){
   if(maq.tipoOperativo==='solo_venta')return {ok:false,msg:'Máquina marcada como solo venta: no disponible para alquiler'};
   const opLocalidades=typeof localidadesOperadora==='function'?localidadesOperadora(op):[normalizarCiudadReserva(op.ciudad)].filter(Boolean);
   const maqCiudad=typeof localidadMaquina==='function'?localidadMaquina(maq):normalizarCiudadReserva(maq.tipoOperativo==='base_ciudad'?(maq.ciudadBase||maq.ubicacion):(maq.ciudad||maq.ubicacion));
+  // Igual que el servidor: en las ciudades con cobertura fija propia no se ofrecen máquinas viajeras
+  const CIUDADES_SIN_VIAJERAS=['salto','concordia','maldonado','tacuarembo'];
+  const esViajera=maq.tipoOperativo==='viajera'||maq.tipoOperativo==='alquiler'||!!maq.esViajera;
+  if(esViajera&&opLocalidades.some(l=>CIUDADES_SIN_VIAJERAS.includes(l))){
+    return {ok:false,msg:'Las máquinas viajeras no se ofrecen en esta localidad'};
+  }
   if(opLocalidades.length&&maqCiudad&&!opLocalidades.includes(maqCiudad)){
     return {ok:false,msg:'Máquina no disponible para las localidades declaradas por la operadora'};
   }
@@ -633,7 +639,7 @@ async function saveReserva(){
   if(!maqId){showToast('⚠️ Seleccioná una máquina','warn');liberarBotonReserva();return;}
   const op=getOp(opId);
   if(op&&['suspendida','inactiva'].includes(op.estado)){
-    showToast(`⛔ La operadora ${op.nombre} ${op.apellido} está ${op.estado} y no puede generar reservas.`,'warn');liberarBotonReserva();return;
+    showToast(`⛔ La operadora ${escapeHTML(op.nombre)} ${escapeHTML(op.apellido)} está ${op.estado} y no puede generar reservas.`,'warn');liberarBotonReserva();return;
   }
   const ciudadOk=validarCiudadReservaLocal(opId,maqId);
   if(!ciudadOk.ok){
@@ -791,7 +797,7 @@ function calOverlapsMonth(start,end){
 }
 function calMaqName(id){
   const m=getMaq(parseInt(id));
-  return m?`${m.codigo||''} ${m.nombre||''}`.trim():'Sin máquina';
+  return m?`${m.codigo||''} ${escapeHTML(m.nombre||'')}`.trim():'Sin máquina';
 }
 function calEventAction(ev){
   if(ev.kind==='reserva'||ev.reservaId)return `showResFicha(${ev.reservaId})`;
@@ -847,7 +853,7 @@ function buildCalendarioEventos(incidencias){
     const op=getOp(r.operadoraId);
     addEvent({
       kind:'reserva',start,end,maquinaId:r.maquinaId,reservaId:r.id,estado:r.estado,codigo:r.codigo,
-      title:`${r.codigo||'Reserva'} · ${op?op.nombre+' '+op.apellido:'Sin operadora'} · ${calMaqName(r.maquinaId)}`,
+      title:`${r.codigo||'Reserva'} · ${escapeHTML(op?op.nombre+' '+op.apellido:'Sin operadora')} · ${calMaqName(r.maquinaId)}`,
       sub:`${fmtDate(start)}${end&&end!==start?' → '+fmtDate(end):''}`,
       short:op?op.nombre:r.codigo
     });
@@ -895,7 +901,7 @@ function buildCalendarioEventos(incidencias){
     addEvent({
       kind:'incidencia',start,end:hasta,maquinaId:i.maquinaId||i.maquina_id,reservaId:i.reserva_id,
       title:`Incidencia ${i.gravedad||''} · ${calMaqName(i.maquinaId||i.maquina_id)}`,
-      sub:`${typeof incidenciaTipoLabel==='function'?incidenciaTipoLabel(i.tipo):i.tipo} · ${i.descripcion||''}`,
+      sub:`${typeof incidenciaTipoLabel==='function'?incidenciaTipoLabel(i.tipo):i.tipo} · ${escapeHTML(i.descripcion||'')}`,
       short:i.bloquea_reservas?'Incidencia bloquea':'Incidencia'
     });
   });

@@ -25,7 +25,7 @@ function renderProveedores(){
   const tbody=document.getElementById('proveedoresTableBody');
   if(!rows.length){tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="icon">🏢</div><h3>Sin proveedores</h3><p>Cargá proveedores de repuestos, insumos o servicios.</p></div></td></tr>`;return;}
   tbody.innerHTML=rows.map(p=>`<tr>
-    <td><span class="bold">${p.nombre}</span></td><td>${p.documento||'—'}</td><td>${p.telefono||'—'}</td><td>${p.direccion||'—'}</td>
+    <td><span class="bold">${escapeHTML(p.nombre)}</span></td><td>${p.documento||'—'}</td><td>${p.telefono||'—'}</td><td>${escapeHTML(p.direccion||'—')}</td>
     <td>${compras.filter(c=>parseInt(c.proveedorId)===parseInt(p.id)).length}</td>
     <td><button class="action-btn" onclick="openProveedorModal(${p.id})">Editar</button></td>
   </tr>`).join('');
@@ -80,7 +80,7 @@ function renderComprasTabla(compras){
   if(!rows.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">🧾</div><h3>Sin compras</h3><p>Cargá repuestos, insumos o servicios técnicos.</p></div></td></tr>`;return;}
   tbody.innerHTML=rows.map(c=>{const p=getProveedor(c.proveedorId);const m=getMaq(c.maquinaId);return `<tr>
     <td>${fmtDate(c.fecha)}</td><td><span style="font-family:monospace;color:var(--accent);font-size:11px">${c.codigo}</span></td>
-    <td>${p?p.nombre:'—'}</td><td>${compraCategoriaLabel(c.categoria)}</td><td>${m?m.nombre:'—'}</td>
+    <td>${escapeHTML(p?p.nombre:'—')}</td><td>${compraCategoriaLabel(c.categoria)}</td><td>${escapeHTML(m?m.nombre:'—')}</td>
     <td><strong>${(c.total||0).toLocaleString()}</strong> ${c.moneda}</td><td>${(c.pagado||0).toLocaleString()}</td><td>${compraEstadoBadge(c.estado)}</td>
     <td><button class="action-btn" onclick="openCompraModal(${c.id})">Editar</button></td></tr>`;}).join('');
 }
@@ -90,9 +90,9 @@ function openCompraModal(id){
   ensureComprasData();ensureCajaData();
   const c=(DB.get('compras')||[]).find(x=>x.id===id);
   document.getElementById('modalCompraTitle').textContent=c?'Editar Compra':'Nueva Compra';
-  document.getElementById('compraProveedor').innerHTML='<option value="">— Seleccionar —</option>'+(DB.get('proveedores')||[]).map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
-  document.getElementById('compraMaquina').innerHTML='<option value="">— Sin máquina —</option>'+(DB.get('maquinas')||[]).map(m=>`<option value="${m.id}">${m.codigo||''} ${m.nombre||''}</option>`).join('');
-  document.getElementById('compraCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(cu=>`<option value="${cu.id}">${cu.nombre}</option>`).join('');
+  document.getElementById('compraProveedor').innerHTML='<option value="">— Seleccionar —</option>'+(DB.get('proveedores')||[]).map(p=>`<option value="${p.id}">${escapeHTML(p.nombre)}</option>`).join('');
+  document.getElementById('compraMaquina').innerHTML='<option value="">— Sin máquina —</option>'+(DB.get('maquinas')||[]).map(m=>`<option value="${m.id}">${m.codigo||''} ${escapeHTML(m.nombre||'')}</option>`).join('');
+  document.getElementById('compraCuenta').innerHTML=(DB.get('caja_cuentas')||[]).map(cu=>`<option value="${cu.id}">${escapeHTML(cu.nombre)}</option>`).join('');
   sv('compraId',c?.id||'');sv('compraFecha',c?.fecha||today());sv('compraProveedor',c?.proveedorId||'');sv('compraCategoria',c?.categoria||'repuestos');
   sv('compraMaquina',c?.maquinaId||'');sv('compraTotal',c?.total||'');sv('compraMoneda',c?.moneda||'UYU');sv('compraPagado','');
   sv('compraCuenta',c?.cuentaId||1);sv('compraComprobante',c?.comprobante||'');sv('compraServicio',c?.servicio||'');sv('compraConcepto',c?.concepto||'');sv('compraObs',c?.obs||'');

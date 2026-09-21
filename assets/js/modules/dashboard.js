@@ -201,22 +201,22 @@ function dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos
     ...senasPend.slice(0,4).map(p=>{
       const op=getOp(p.operadoraId);
       const falta=Math.max(0,(p.senaRequerida||0)-(p.senaAbonada||0));
-      return {priority:'alta',icon:'💳',title:'Seña pendiente',sub:`${op?op.nombre+' '+op.apellido:'Operadora'} · faltan ${falta.toLocaleString()} ${p.moneda||'UYU'}`,action:dashAction('Abrir',`showPagoFicha(${p.id})`)};
+      return {priority:'alta',icon:'💳',title:'Seña pendiente',sub:`${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')} · faltan ${falta.toLocaleString()} ${p.moneda||'UYU'}`,action:dashAction('Abrir',`showPagoFicha(${p.id})`)};
     }),
     ...reservasVencidas.slice(0,3).map(r=>{
       const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId);
-      return {priority:'alta',icon:'⏰',title:'Reserva vencida sin cierre',sub:`${r.codigo} · ${maq?maq.nombre:'Máquina'} · ${op?op.nombre+' '+op.apellido:'Operadora'}`,action:dashAction('Ver',`showResFicha(${r.id})`)};
+      return {priority:'alta',icon:'⏰',title:'Reserva vencida sin cierre',sub:`${r.codigo} · ${escapeHTML(maq?maq.nombre:'Máquina')} · ${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')}`,action:dashAction('Ver',`showResFicha(${r.id})`)};
     }),
-    ...leadsVencidos.slice(0,3).map(l=>({priority:'alta',icon:'📞',title:'Seguimiento vencido',sub:`${l.nombre} ${l.apellido||''} · ${l.proxAccion||'Sin acción'}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
-    ...viajerasTecnico.filter(m=>m.diasTecnico>=7).slice(0,3).map(m=>({priority:'alta',icon:'🛠',title:'Máquina en técnico demorada',sub:`${m.codigo} · ${m.nombre} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
+    ...leadsVencidos.slice(0,3).map(l=>({priority:'alta',icon:'📞',title:'Seguimiento vencido',sub:`${escapeHTML(l.nombre)} ${escapeHTML(l.apellido||'')} · ${l.proxAccion||'Sin acción'}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
+    ...viajerasTecnico.filter(m=>m.diasTecnico>=7).slice(0,3).map(m=>({priority:'alta',icon:'🛠',title:'Máquina en técnico demorada',sub:`${m.codigo} · ${escapeHTML(m.nombre)} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
   ];
 
   const comercial=[
     ...automationComercial.slice(0,4),
-    ...leadsCalientes.slice(0,5).map(l=>({priority:'media',icon:'🔥',title:'Lead caliente',sub:`${l.nombre} ${l.apellido||''} · ${LEAD_ESTADOS[l.estado]?.label||l.estado} · score ${Number(l.whatsappScore||0)}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
+    ...leadsCalientes.slice(0,5).map(l=>({priority:'media',icon:'🔥',title:'Lead caliente',sub:`${escapeHTML(l.nombre)} ${escapeHTML(l.apellido||'')} · ${LEAD_ESTADOS[l.estado]?.label||l.estado} · score ${Number(l.whatsappScore||0)}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
     ...saldosPend.slice(0,4).map(p=>{
       const op=getOp(p.operadoraId);
-      return {priority:'media',icon:'💰',title:'Saldo pendiente',sub:`${op?op.nombre+' '+op.apellido:'Operadora'} · ${(p.saldoPendiente||0).toLocaleString()} ${p.moneda||'UYU'}`,action:dashAction('Pago',`showPagoFicha(${p.id})`)};
+      return {priority:'media',icon:'💰',title:'Saldo pendiente',sub:`${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')} · ${(p.saldoPendiente||0).toLocaleString()} ${p.moneda||'UYU'}`,action:dashAction('Pago',`showPagoFicha(${p.id})`)};
     }),
   ];
 
@@ -224,18 +224,18 @@ function dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos
     ...automationOperaciones.slice(0,5),
     ...reservasProximas.slice(0,4).map(r=>{
       const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId); const f=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
-      return {priority:'media',icon:'📅',title:'Reserva próxima',sub:`${fmtDate(f)} · ${maq?maq.nombre:'Máquina'} · ${op?op.nombre+' '+op.apellido:'Operadora'}`,action:dashAction('Ver',`showResFicha(${r.id})`)};
+      return {priority:'media',icon:'📅',title:'Reserva próxima',sub:`${fmtDate(f)} · ${escapeHTML(maq?maq.nombre:'Máquina')} · ${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')}`,action:dashAction('Ver',`showResFicha(${r.id})`)};
     }),
     ...enviosSalida.slice(0,4).map(e=>{
       const op=getOp(e.operadoraId);
-      return {priority:'media',icon:'🚚',title:'Preparar / enviar equipo',sub:`${fmtDate(e.fechaEnvioEst)} · ${op?op.nombre+' '+op.apellido:'Operadora'} · ${e.departamento||''}`,action:dashAction('Envío',`showEnvioFicha(${e.id})`)};
+      return {priority:'media',icon:'🚚',title:'Preparar / enviar equipo',sub:`${fmtDate(e.fechaEnvioEst)} · ${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')} · ${escapeHTML(e.departamento||'')}`,action:dashAction('Envío',`showEnvioFicha(${e.id})`)};
     }),
     ...retiros.slice(0,4).map(e=>{
       const op=getOp(e.operadoraId);
-      return {priority:'alta',icon:'↩️',title:'Retiro pendiente',sub:`${fmtDate(e.fechaRetiroEst)} · ${op?op.nombre+' '+op.apellido:'Operadora'} · ${e.departamento||''}`,action:dashAction('Ver',`showEnvioFicha(${e.id})`)};
+      return {priority:'alta',icon:'↩️',title:'Retiro pendiente',sub:`${fmtDate(e.fechaRetiroEst)} · ${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')} · ${escapeHTML(e.departamento||'')}`,action:dashAction('Ver',`showEnvioFicha(${e.id})`)};
     }),
-    ...viajerasPendientes.slice(0,5).map(m=>({priority:m.diasGestion>=1?'alta':'media',icon:'🧼',title:'Puesta a punto pendiente',sub:`${m.codigo} · ${m.nombre} · ${m.diasGestion} día${m.diasGestion!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'mantenimiento'))})),
-    ...viajerasTecnico.filter(m=>m.diasTecnico<7).slice(0,4).map(m=>({priority:'media',icon:'🛠',title:'En técnico',sub:`${m.codigo} · ${m.nombre} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
+    ...viajerasPendientes.slice(0,5).map(m=>({priority:m.diasGestion>=1?'alta':'media',icon:'🧼',title:'Puesta a punto pendiente',sub:`${m.codigo} · ${escapeHTML(m.nombre)} · ${m.diasGestion} día${m.diasGestion!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'mantenimiento'))})),
+    ...viajerasTecnico.filter(m=>m.diasTecnico<7).slice(0,4).map(m=>({priority:'media',icon:'🛠',title:'En técnico',sub:`${m.codigo} · ${escapeHTML(m.nombre)} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
   ];
 
   return {alta,comercial,operaciones,totales:{senasPend,leadsCalientes,reservasProximas,enviosSalida,retiros,saldosPend,viajerasPendientes,viajerasTecnico,automationTasks}};
@@ -519,8 +519,8 @@ function renderDashboard(){
         const op=getOp(r.operadoraId);const maq=getMaq(r.maquinaId);
         const fechaRef=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
         return `<div class="dash-list-item">
-          <div><div class="name">${op?op.nombre+' '+op.apellido:'—'}</div>
-          <div class="sub">${maq?maq.nombre:'—'} · ${fmtDate(fechaRef)}</div></div>
+          <div><div class="name">${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</div>
+          <div class="sub">${escapeHTML(maq?maq.nombre:'—')} · ${fmtDate(fechaRef)}</div></div>
           <div>${badgeRes(r.estado)}</div></div>`;
       }).join(''):`<div class="dash-list-item"><div class="name" style="color:var(--text2)">Sin reservas activas</div></div>`}
       <div style="text-align:right;margin-top:12px">
@@ -530,7 +530,7 @@ function renderDashboard(){
       <h3>⚙️ Máquinas — Estado y Mantenimiento</h3>
       ${alertMaq.length?alertMaq.slice(0,3).map(m=>`
         <div class="dash-list-item">
-          <div><div class="name">${m.nombre}</div><div class="sub">${m.codigo} · ${m.ubicacion}</div></div>
+          <div><div class="name">${escapeHTML(m.nombre)}</div><div class="sub">${m.codigo} · ${m.ubicacion}</div></div>
           <div>${badgeMaq(m.estado)}</div></div>`).join('')
         :`<div class="dash-list-item"><div class="name" style="color:var(--green)">✅ Todas operativas</div></div>`}
       ${mantProxMaq.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
@@ -538,7 +538,7 @@ function renderDashboard(){
         ${mantProxMaq.slice(0,3).map(m=>{
           const dias=daysDiff(hoy,m.proxMant);
           return `<div class="dash-list-item">
-            <div><div class="name">${m.nombre}</div></div>
+            <div><div class="name">${escapeHTML(m.nombre)}</div></div>
             <span class="maint-chip ${dias<=3?'urgent':'soon'}">en ${dias}d</span>
           </div>`;
         }).join('')}
@@ -551,8 +551,8 @@ function renderDashboard(){
       ${envios.filter(e=>['en_transito','preparando','pendiente_envio'].includes(e.estado)).slice(0,4).map(e=>{
         const op=getOp(e.operadoraId);
         return `<div class="dash-list-item">
-          <div><div class="name">${op?op.nombre+' '+op.apellido:'—'}</div>
-          <div class="sub">${e.departamento} · ${fmtDate(e.fechaEnvioEst)}</div></div>
+          <div><div class="name">${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</div>
+          <div class="sub">${escapeHTML(e.departamento)} · ${fmtDate(e.fechaEnvioEst)}</div></div>
           <div>${badgeEnvio(e.estado)}</div></div>`;
       }).join('')||`<div class="dash-list-item"><div class="name" style="color:var(--text2)">Sin envíos en curso</div></div>`}
       <div style="text-align:right;margin-top:12px">
@@ -563,7 +563,7 @@ function renderDashboard(){
       ${(()=>{const waPend=(DB.get('wa_notificaciones')||[]).filter(n=>n.estado==='pendiente');
         if(!waPend.length) return `<div class="dash-list-item"><div class="name" style="color:var(--green)">✅ Cola vacía</div></div>`;
         return waPend.slice(0,4).map(n=>{const op=getOp(n.operadoraId);const pt=(DB.get('wa_plantillas')||[]).find(p=>p.id===n.plantillaId);
-          return `<div class="dash-list-item"><div><div class="name">${op?op.nombre+' '+op.apellido:'—'}</div><div class="sub">${pt?.evento||n.plantillaId}</div></div>
+          return `<div class="dash-list-item"><div><div class="name">${escapeHTML(op?op.nombre+' '+op.apellido:'—')}</div><div class="sub">${pt?.evento||n.plantillaId}</div></div>
           <button class="action-btn" onclick="simularEnvio(${n.id});renderDashboard()" style="color:var(--green);border-color:rgba(82,196,138,.3)">Enviar</button></div>`;}).join('');
       })()}
       <div style="text-align:right;margin-top:12px">
@@ -575,7 +575,7 @@ function renderDashboard(){
         const leads=DB.get('leads')||[];
         const activos=leads.filter(l=>!['ganado','perdido'].includes(l.estado));
         if(!activos.length) return '<div class="dash-list-item"><div class="name" style="color:var(--text2)">Sin leads activos</div></div>';
-        return activos.slice(0,5).map(l=>'<div class="dash-list-item"><div><div class="name">'+l.nombre+' '+l.apellido+'</div><div class="sub">'+(l.gabinete||l.ciudad||'—')+'</div></div><div>'+badgeLead(l.estado)+'</div></div>').join('');
+        return activos.slice(0,5).map(l=>'<div class="dash-list-item"><div><div class="name">'+escapeHTML(l.nombre)+' '+escapeHTML(l.apellido)+'</div><div class="sub">'+escapeHTML(l.gabinete||l.ciudad||'—')+'</div></div><div>'+badgeLead(l.estado)+'</div></div>').join('');
       })()}
       <div style="text-align:right;margin-top:12px">
         <button class="action-btn" onclick="navigate('leads')">Ver todos →</button></div>
