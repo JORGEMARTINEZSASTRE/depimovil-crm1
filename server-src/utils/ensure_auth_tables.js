@@ -6,6 +6,7 @@ async function ensureAuthTables() {
   const columnasFaltantes = [
     'ALTER TABLE envios ADD COLUMN IF NOT EXISTS departamento_destino VARCHAR(100)',
     'ALTER TABLE envios ADD COLUMN IF NOT EXISTS observacion TEXT',
+    'ALTER TABLE envios ADD COLUMN IF NOT EXISTS pago_id INTEGER',
     'ALTER TABLE reglas_logisticas ADD COLUMN IF NOT EXISTS obs TEXT',
     'ALTER TABLE pagos ADD COLUMN IF NOT EXISTS codigo VARCHAR(50)',
     "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS tipo VARCHAR(50) DEFAULT 'jornada'",

@@ -162,15 +162,20 @@ async function calcularLiqLimp(){
     const r=await api(`/api/limpiezas/resumen?transportista_id=${transportista_id}&desde=${desde}&hasta=${hasta}`);
     limpResumen={transportista_id,desde,hasta};
     const fmt=n=>Number(n||0).toLocaleString('es-UY');
-    box.innerHTML=r.total_limpiezas
+    const hay=r.total_limpiezas||r.total_traslados;
+    const falta=(!r.tarifa_chica&&r.chicas)||(!r.tarifa_grande&&r.grandes)||(!r.tarifa_traslado_chica&&r.traslados_chicas)||(!r.tarifa_traslado_grande&&r.traslados_grandes);
+    box.innerHTML=hay
       ? `<div class="info-card full"><h4>${escapeHTML(r.transportista_nombre)}</h4>
-          ${ir('Chicas',r.chicas+' × '+fmt(r.tarifa_chica))}
-          ${ir('Grandes',r.grandes+' × '+fmt(r.tarifa_grande))}
-          ${ir('<strong>Total a liquidar</strong>','<strong>'+fmt(r.monto_limpiezas)+'</strong>')}
-          ${(!r.tarifa_chica&&r.chicas)||(!r.tarifa_grande&&r.grandes)?'<div class="alert-banner warn" style="margin-top:8px"><span class="ab-icon">⚠️</span><div>Falta cargar la tarifa de limpieza en la ficha del transportista.</div></div>':''}
+          ${ir('Limpiezas chicas',r.chicas+' × '+fmt(r.tarifa_chica))}
+          ${ir('Limpiezas grandes',r.grandes+' × '+fmt(r.tarifa_grande))}
+          ${ir('Traslados máquina chica',r.traslados_chicas+' × '+fmt(r.tarifa_traslado_chica))}
+          ${ir('Traslados máquina grande',r.traslados_grandes+' × '+fmt(r.tarifa_traslado_grande))}
+          ${ir('<strong>Total a liquidar</strong>','<strong>'+fmt(r.monto_limpiezas+r.monto_traslados)+'</strong>')}
+          ${falta?'<div class="alert-banner warn" style="margin-top:8px"><span class="ab-icon">⚠️</span><div>Falta cargar una tarifa en la ficha del transportista.</div></div>':''}
+          <div style="margin-top:8px;font-size:12px;opacity:.75">Los traslados cuentan cuando el envío está entregado, retirado o retornado, con fecha dentro del período.</div>
         </div>`
-      : '<div class="empty-state"><p>No hay limpiezas registradas para liquidar en ese período.</p></div>';
-    if(r.total_limpiezas)btn.style.display='';
+      : '<div class="empty-state"><p>No hay limpiezas ni traslados para liquidar en ese período.</p></div>';
+    if(hay)btn.style.display='';
   }catch(e){
     box.innerHTML='';
     showToast('❌ Error: '+e.message,'error');
@@ -179,7 +184,7 @@ async function calcularLiqLimp(){
 
 async function confirmarLiqLimp(){
   if(!limpResumen)return;
-  if(!confirm('Se creará la liquidación pendiente y las limpiezas quedarán marcadas como liquidadas. ¿Continuar?'))return;
+  if(!confirm('Se creará la liquidación pendiente y las limpiezas y traslados quedarán marcados como liquidados. ¿Continuar?'))return;
   try{
     await api('/api/limpiezas/liquidar',{method:'POST',body:JSON.stringify(limpResumen)});
     closeModal('modalLiquidarLimp');

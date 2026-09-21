@@ -176,9 +176,15 @@ router.delete('/:id', auth, requireRole(...ROLES_REGISTRO), async (req, res) => 
 // ─────────────────────────────────────────────
 // Liquidación (solo administración: incluye tarifas y montos)
 // ─────────────────────────────────────────────
+// Traslados liquidables: envíos del transportista ya cumplidos, todavía sin liquidar, cuya fecha cae en el período.
+// Se pagan por tamaño de máquina (grande = tarifa_envio_grande, cualquier otro = tarifa_envio_chica).
+const ESTADOS_TRASLADO_LIQUIDABLE = ['entregado', 'retirado', 'retornado'];
+const FECHA_TRASLADO = 'COALESCE(fecha_entrega::date, fecha_envio_real::date, fecha_salida::date, fecha_envio_est::date)';
+
 async function calcularLiquidacion(db, transportistaId, desde, hasta) {
   const { rows: tr } = await db.query(
-    'SELECT id, nombre, tarifa_limpieza_chica, tarifa_limpieza_grande FROM transportistas WHERE id=$1',
+    `SELECT id, nombre, tarifa_limpieza_chica, tarifa_limpieza_grande, tarifa_envio_chica, tarifa_envio_grande
+     FROM transportistas WHERE id=$1`,
     [transportistaId]
   );
   if (!tr.length) return { error: 'Transportista no encontrado' };
@@ -189,6 +195,17 @@ async function calcularLiquidacion(db, transportistaId, desde, hasta) {
   `, [transportistaId, desde, hasta]);
   const cant = { chica: 0, grande: 0 };
   rows.forEach(r => { cant[r.tamano] = r.cantidad; });
+  const { rows: trs } = await db.query(`
+    SELECT CASE WHEN tipo_maquina = 'grande' THEN 'grande' ELSE 'chica' END AS tamano, COUNT(*)::int AS cantidad
+    FROM envios
+    WHERE transportista_id=$1 AND pago_id IS NULL AND estado = ANY($4)
+      AND ${FECHA_TRASLADO} >= $2 AND ${FECHA_TRASLADO} <= $3
+    GROUP BY 1
+  `, [transportistaId, desde, hasta, ESTADOS_TRASLADO_LIQUIDABLE]);
+  const tras = { chica: 0, grande: 0 };
+  trs.forEach(r => { tras[r.tamano] = r.cantidad; });
+  const tarifaTrasChica = parseFloat(tr[0].tarifa_envio_chica) || 0;
+  const tarifaTrasGrande = parseFloat(tr[0].tarifa_envio_grande) || 0;
   const tarifaChica = parseFloat(tr[0].tarifa_limpieza_chica) || 0;
   const tarifaGrande = parseFloat(tr[0].tarifa_limpieza_grande) || 0;
   return {
@@ -199,6 +216,10 @@ async function calcularLiquidacion(db, transportistaId, desde, hasta) {
     tarifa_chica: tarifaChica, tarifa_grande: tarifaGrande,
     total_limpiezas: cant.chica + cant.grande,
     monto_limpiezas: cant.chica * tarifaChica + cant.grande * tarifaGrande,
+    traslados_chicas: tras.chica, traslados_grandes: tras.grande,
+    tarifa_traslado_chica: tarifaTrasChica, tarifa_traslado_grande: tarifaTrasGrande,
+    total_traslados: tras.chica + tras.grande,
+    monto_traslados: tras.chica * tarifaTrasChica + tras.grande * tarifaTrasGrande,
   };
 }
 
@@ -231,23 +252,38 @@ router.post('/liquidar', auth, requireRole(...ROLES_LIQUIDACION), async (req, re
       `SELECT id FROM limpiezas WHERE transportista_id=$1 AND estado='registrada' AND fecha >= $2 AND fecha <= $3 FOR UPDATE`,
       [transportistaId, desde, hasta]
     );
+    await client.query(
+      `SELECT id FROM envios WHERE transportista_id=$1 AND pago_id IS NULL AND estado = ANY($4)
+         AND ${FECHA_TRASLADO} >= $2 AND ${FECHA_TRASLADO} <= $3 FOR UPDATE`,
+      [transportistaId, desde, hasta, ESTADOS_TRASLADO_LIQUIDABLE]
+    );
     const resumen = await calcularLiquidacion(client, transportistaId, desde, hasta);
     if (resumen.error) { await client.query('ROLLBACK'); return res.status(404).json({ error: resumen.error }); }
-    if (!resumen.total_limpiezas) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'No hay limpiezas registradas para liquidar en ese período' }); }
+    if (!resumen.total_limpiezas && !resumen.total_traslados) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'No hay limpiezas ni traslados para liquidar en ese período' }); }
+    const montoTotal = resumen.monto_limpiezas + resumen.monto_traslados;
+    const detalle = [];
+    if (resumen.total_limpiezas) detalle.push(`${resumen.total_limpiezas} limpieza(s) (${resumen.chicas} chica, ${resumen.grandes} grande)`);
+    if (resumen.total_traslados) detalle.push(`${resumen.total_traslados} traslado(s) (${resumen.traslados_chicas} chica, ${resumen.traslados_grandes} grande)`);
     const { rows: pago } = await client.query(`
       INSERT INTO transportistas_pagos
         (transportista_id, periodo_desde, periodo_hasta, total_envios, total_limpiezas,
          monto_envios, monto_limpiezas, monto_total, estado, notas)
-      VALUES ($1,$2,$3,0,$4,0,$5,$5,'pendiente',$6) RETURNING *
+      VALUES ($1,$2,$3,$7,$4,$8,$5,$9,'pendiente',$6) RETURNING *
     `, [transportistaId, desde, hasta, resumen.total_limpiezas, resumen.monto_limpiezas,
-        `Liquidación de ${resumen.total_limpiezas} limpieza(s) registradas (${resumen.chicas} chica, ${resumen.grandes} grande)`]);
+        `Liquidación de ${detalle.join(' y ')}`, resumen.total_traslados, resumen.monto_traslados, montoTotal]);
     await client.query(
       `UPDATE limpiezas SET estado='liquidada', pago_id=$1, updated_at=NOW()
        WHERE transportista_id=$2 AND estado='registrada' AND fecha >= $3 AND fecha <= $4`,
       [pago[0].id, transportistaId, desde, hasta]
     );
+    await client.query(
+      `UPDATE envios SET pago_id=$1
+       WHERE transportista_id=$2 AND pago_id IS NULL AND estado = ANY($5)
+         AND ${FECHA_TRASLADO} >= $3 AND ${FECHA_TRASLADO} <= $4`,
+      [pago[0].id, transportistaId, desde, hasta, ESTADOS_TRASLADO_LIQUIDABLE]
+    );
     await client.query('COMMIT');
-    await audit('ESTADO', pago[0].id, `Liquidación de limpiezas transportista ${transportistaId} (${desde} a ${hasta})`, req.user);
+    await audit('ESTADO', pago[0].id, `Liquidación de limpiezas y traslados transportista ${transportistaId} (${desde} a ${hasta})`, req.user);
     res.status(201).json({ pago: pago[0], resumen });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
