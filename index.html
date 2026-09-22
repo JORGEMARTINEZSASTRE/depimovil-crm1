@@ -23,6 +23,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
 
+<link rel="manifest" href="/manifest.json?v=20260922"/>
+<meta name="theme-color" content="#1b2236"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32.png?v=20260922"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16.png?v=20260922"/>
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=20260922"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="DepiMóvil"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <link rel="stylesheet" href="assets/css/app.css?v=20260919-ancho-notebook"/>
 </head>
 <body>
@@ -928,16 +937,16 @@
 <script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/revision-operadoras.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/documentos.js?v=20260531-certificados"></script>
-<script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260921-qa"></script>
+<script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260921-15d"></script>
 <script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260921-qa"></script>
-<script data-cfasync="false" src="assets/js/modules/limpiezas.js?v=20260921-qa"></script>
+<script data-cfasync="false" src="assets/js/modules/limpiezas.js?v=20260921-traslados"></script>
 <script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20260919-usuarios"></script>
 <script data-cfasync="false" src="assets/js/modules/reservas.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/pagos.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/caja.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/compras-proveedores.js?v=20260921-qa"></script>
-<script data-cfasync="false" src="assets/js/modules/ventas-maquinas.js?v=20260921-qa"></script>
+<script data-cfasync="false" src="assets/js/modules/ventas-maquinas.js?v=20260921-15d"></script>
 <script data-cfasync="false" src="assets/js/modules/reserva-automatizacion.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/whatsapp.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/envios.js?v=20260921-qa"></script>
@@ -962,5 +971,10 @@
 <script data-cfasync="false" src="assets/js/modules/contratos.js?v=20260921-qa"></script>
 <script src="/assets/js/mobile-qr.js?v=20260703"></script>
 <script src="/assets/js/mobile-admin-entry.js?v=20260807"></script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
+}
+</script>
 </body>
 </html>
