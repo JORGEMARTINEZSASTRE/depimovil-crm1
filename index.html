@@ -81,7 +81,7 @@
         <span style="font-size:28px">👋</span>
         <div>
           <h3 style="margin:0;font-size:17px">¡Bienvenida a DepiMóvil!</h3>
-          <p style="margin:0;font-size:12px;color:var(--text2)">Solo necesitamos 4 datos para empezar</p>
+          <p style="margin:0;font-size:12px;color:var(--text2)">Necesitamos estos datos para empezar</p>
         </div>
       </div>
       <button class="modal-close" onclick="closeModal('modalRegistroOperadora')">✕</button>
@@ -107,11 +107,25 @@
           <label style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block">Ciudad donde trabajás <span style="color:var(--accent)">*</span></label>
           <input type="text" id="regOpCiudad" placeholder="Ej: Salto, Montevideo, Paysandú..." autocomplete="off" style="width:100%;box-sizing:border-box"/>
         </div>
+        <div class="form-field" style="margin:0">
+          <label style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block">Dirección de tu estética o lugar de trabajo <span style="color:var(--accent)">*</span></label>
+          <input type="text" id="regOpLugares" placeholder="Ej: 18 de Julio 1234, Salto" autocomplete="off" style="width:100%;box-sizing:border-box"/>
+        </div>
+        <div class="form-field" style="margin:0">
+          <label style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block">¿Qué máquina querés alquilar? <span style="color:var(--accent)">*</span></label>
+          <select id="regOpMaquinaInteres" style="width:100%;box-sizing:border-box">
+            <option value="">— Elegí una opción —</option>
+            <option value="Láser Depilación">Láser depilación (diodo)</option>
+            <option value="Radiofrecuencia / HIFU">Radiofrecuencia / HIFU</option>
+            <option value="Pressoterapia">Pressoterapia</option>
+            <option value="Electroestimulación">Electroestimulación</option>
+            <option value="No estoy segura">Todavía no estoy segura</option>
+          </select>
+        </div>
       </div>
       <!-- Campos ocultos para compatibilidad con submitOperadoraRegistro() -->
       <input type="hidden" id="regOpDocumento" value="00000"/>
       <input type="hidden" id="regOpDepartamento" value=""/>
-      <input type="hidden" id="regOpLugares" value=""/>
       <input type="hidden" id="regOpCumpleDia" value="1"/>
       <select id="regOpCumpleMes" style="display:none"><option value="1" selected>Enero</option></select>
       <input type="hidden" id="regOpInstagram" value=""/>

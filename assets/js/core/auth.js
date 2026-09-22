@@ -149,6 +149,7 @@ async function submitOperadoraRegistro(){
     ciudad:document.getElementById('regOpCiudad').value.trim(),
     departamento:document.getElementById('regOpDepartamento').value.trim(),
     lugares_trabajo:document.getElementById('regOpLugares').value.trim(),
+    maquina_interes:document.getElementById('regOpMaquinaInteres').value.trim(),
     experiencia:document.getElementById('regOpExperiencia').value,
     tratamientos:getCheckedValues('regTratamientos'),
     tratamientos_otros:document.getElementById('regOpTratamientosOtros').value.trim(),
@@ -157,6 +158,14 @@ async function submitOperadoraRegistro(){
   };
   if(!payload.nombre||!payload.apellido||!payload.whatsapp||!payload.documento||!payload.ciudad){
     showToast('⚠️ Nombre, apellido, WhatsApp, cédula/DNI y localidad principal son obligatorios','warn');
+    return;
+  }
+  if(!payload.lugares_trabajo){
+    showToast('⚠️ Indicá la dirección de tu estética o lugar de trabajo','warn');
+    return;
+  }
+  if(!payload.maquina_interes){
+    showToast('⚠️ Elegí qué máquina te gustaría alquilar','warn');
     return;
   }
   if(!registroCumpleValido(payload.cumpleanos_dia,payload.cumpleanos_mes)){

@@ -190,7 +190,10 @@ function revisionEstado360(row){
     : [];
   const datosOk = !!((row.nombre || row.usuario_nombre) && row.whatsapp && (row.ciudad || md.ciudad) && (row.departamento || md.departamento));
   const localidades = Array.isArray(md.localidades_trabajo) ? md.localidades_trabajo : [];
-  const localidadesOk = localidades.length > 0 || !!md.lugares_trabajo || !!row.ciudad;
+  const direcciones = Array.isArray(row.direcciones_entrega) ? row.direcciones_entrega : [];
+  // Requiere una dirección real (de la ficha o declarada al registrarse), no alcanza con la ciudad
+  const localidadesOk = localidades.length > 0 || !!(md.lugares_trabajo || '').trim()
+    || direcciones.some(d => (d?.direccion || '').trim()) || !!(row.direccion_entrega || '').trim();
   const docsOk = docs.some(d => d.tipo === 'cedula') && docs.some(d => d.tipo === 'cedula_dorso');
   const contratoOk = docs.some(d => d.tipo === 'contrato') || (DB.get('contratos') || []).some(c => parseInt(c.operadoraId) === parseInt(row.operadora_id) && (c.estado === 'firmado' || c.firmado || c.firmadoEn));
   const habs = row.operadora_id
@@ -331,6 +334,8 @@ function openRevisionOperadora(usuarioId){
       ${ir('Experiencia', revEsc(md.experiencia || row.nivel || '—'))}
       ${ir('Tratamientos', revEsc([md.tratamientos || [], md.tratamientos_otros || ''].flat().filter(Boolean).join(', ') || '—'))}
       ${ir('Localidades donde trabaja', revEsc(revisionLocalidadesLabel(md)))}
+      ${ir('Dirección de la estética', revEsc((Array.isArray(row.direcciones_entrega)&&row.direcciones_entrega[0]&&row.direcciones_entrega[0].direccion) || row.direccion_entrega || md.lugares_trabajo || '⚠️ No cargada'))}
+      ${ir('Máquina que le interesa alquilar', revEsc(md.maquina_interes || '—'))}
       ${ir('Otros trabajos', md.trabajo_no_estetico ? revEsc(md.trabajo_no_estetico_detalle || 'Sí') : 'No')}
     </div>
     ${renderRevisionModulos(row)}
@@ -338,6 +343,8 @@ function openRevisionOperadora(usuarioId){
       <div class="docs-detail-title">Observación para guardar o enviar</div>
       <textarea id="revisionObs" placeholder="Ej: subir cédula frente y dorso, aclarar dirección, corregir datos..." style="width:100%;min-height:90px">${revEsc(row.revision_admin_obs || '')}</textarea>
     </div>`;
+  const btnEliminar = document.getElementById('btnRevisionEliminar');
+  if(btnEliminar) btnEliminar.style.display = (currentUser && currentUser.rol === 'coordinadora') ? 'none' : '';
   openModal('modalRevisionOperadora');
   if(row.operadora_id && typeof startOpDocsAutoRefresh === 'function') startOpDocsAutoRefresh(row.operadora_id);
 }
@@ -375,7 +382,8 @@ async function guardarRevisionModulo(modulo, accionModulo){
   if(accion === 'pedir_habilitacion' && categoriaHabilitacion === null) return;
   try{
     if(modulo === 'habilitacion' && accionModulo === 'aceptar'){
-      const categoria = prompt('Categoría habilitada:', 'Láser Depilación');
+      const md = revMetadata(revisionOpsActual);
+      const categoria = prompt('Categoría habilitada:', md.maquina_interes || 'Láser Depilación');
       if(categoria === null) return;
       if(!categoria.trim()){
         showToast('⚠️ Indicá una categoría para la habilitación','warn');

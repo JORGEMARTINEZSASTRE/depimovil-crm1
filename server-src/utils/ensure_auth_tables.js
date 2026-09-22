@@ -7,6 +7,8 @@ async function ensureAuthTables() {
     'ALTER TABLE envios ADD COLUMN IF NOT EXISTS departamento_destino VARCHAR(100)',
     'ALTER TABLE envios ADD COLUMN IF NOT EXISTS observacion TEXT',
     'ALTER TABLE envios ADD COLUMN IF NOT EXISTS pago_id INTEGER',
+    // Ciudad asignada a una coordinadora: acota qué operadoras y máquinas ve (ej. Paula = Salto)
+    'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ciudad_base VARCHAR(60)',
     'ALTER TABLE reglas_logisticas ADD COLUMN IF NOT EXISTS obs TEXT',
     'ALTER TABLE pagos ADD COLUMN IF NOT EXISTS codigo VARCHAR(50)',
     "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS tipo VARCHAR(50) DEFAULT 'jornada'",

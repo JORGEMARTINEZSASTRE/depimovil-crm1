@@ -49,7 +49,7 @@ const VIEW_PERMISSIONS={
   superadmin:['*'],
   administrador:['*'],
   operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','limpiezas','materiales'],
-  coordinadora:['dashboard','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','envios','envio-ficha','transportistas','limpiezas'],
+  coordinadora:['dashboard','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','envios','envio-ficha','transportistas','limpiezas','revision-operadoras','operadora-ficha'],
   comercial:['dashboard','whatsapp'],
   // Niveles progresivos de operadora
   operadora_n1:['dashboard'],                                                          // Nivel 1: solo bienvenida

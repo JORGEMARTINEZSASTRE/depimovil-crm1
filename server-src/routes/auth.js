@@ -2,7 +2,24 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const pool = require('../utils/db');
-const { auth, requireRole, generateToken } = require('../middleware/auth');
+const { auth, requireRole, generateToken, isCoordinadoraRole } = require('../middleware/auth');
+
+// Normaliza nombres de ciudad para comparar sin tildes/mayúsculas (ej. "Salto" === "SALTO" === "salto")
+function normalizarCiudad(v) {
+  return String(v || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// jsonb ya llega parseado por node-pg, pero por si llega como texto (defensivo, como en otras rutas)
+function parseJsonArrayLocal(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
 const { enviarMensaje } = require('../utils/wa_sender');
 // wa_queue stub — Evolution API deshabilitado, Meta Cloud API es el canal principal
 const encolar = async (opts) => { console.log('[auth] wa_queue deshabilitado:', opts?.tipo); return { ok: false }; };
@@ -583,6 +600,7 @@ router.post('/operadora/register', async (req, res) => {
       ciudad: cleanText(req.body.ciudad, 120),
       departamento: cleanText(req.body.departamento, 120),
       lugares_trabajo: cleanText(req.body.lugares_trabajo, 1000),
+      maquina_interes: cleanText(req.body.maquina_interes, 120),
       experiencia: cleanText(req.body.experiencia, 120),
       tratamientos: Array.isArray(req.body.tratamientos)
         ? req.body.tratamientos.map(v => cleanText(v, 80)).filter(Boolean).slice(0, 20)
@@ -594,6 +612,12 @@ router.post('/operadora/register', async (req, res) => {
 
     if (!payload.nombre || !payload.apellido || !payload.whatsapp || !payload.documento || !payload.ciudad) {
       return res.status(400).json({ error: 'Nombre, apellido, WhatsApp, cédula/DNI y ciudad son obligatorios' });
+    }
+    if (!payload.lugares_trabajo) {
+      return res.status(400).json({ error: 'La dirección de tu estética o lugar de trabajo es obligatoria' });
+    }
+    if (!payload.maquina_interes) {
+      return res.status(400).json({ error: 'Indicá qué máquina querés alquilar' });
     }
     // Formulario lite: documento 00000 es placeholder aceptado
     const esPlaceholder = payload.documento === '00000';
@@ -694,6 +718,7 @@ router.post('/operadora/register', async (req, res) => {
       cumpleanos_dia: payload.cumpleanos_dia,
       cumpleanos_mes: payload.cumpleanos_mes,
       lugares_trabajo: payload.lugares_trabajo,
+      maquina_interes: payload.maquina_interes,
       experiencia: payload.experiencia,
       tratamientos: payload.tratamientos,
       tratamientos_otros: payload.tratamientos_otros,
@@ -785,7 +810,7 @@ router.post('/operadora/register', async (req, res) => {
  * GET /api/auth/operadoras/revision
  * Bandeja administrativa de operadoras registradas desde la web.
  */
-router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   try {
     const estado = cleanText(req.query.estado, 40);
     const params = [];
@@ -795,7 +820,8 @@ router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'
         u.requiere_revision_admin, u.revision_admin_estado, u.revision_admin_obs,
         u.registro_origen, u.metadata, u.created_at AS usuario_created_at, u.updated_at AS usuario_updated_at,
         o.id AS operadora_id, o.nombre, o.apellido, o.gabinete, o.ciudad, o.departamento,
-        o.estado AS operadora_estado, o.nivel, o.obs, o.portal_token
+        o.estado AS operadora_estado, o.nivel, o.obs, o.portal_token,
+        o.direccion_entrega, o.direcciones_entrega
       FROM usuarios u
       LEFT JOIN operadoras o ON o.id = u.operadora_id
       WHERE u.rol = 'operadora'
@@ -808,6 +834,12 @@ router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'
     }
     query += ` ORDER BY u.requiere_revision_admin DESC, u.created_at DESC`;
     const { rows } = await pool.query(query, params);
+    if (isCoordinadoraRole(req.user.rol)) {
+      // Coordinadora: solo ve pedidos con ficha ya vinculada y de su ciudad asignada
+      if (!req.user.ciudad_base) return res.json([]);
+      const miCiudad = normalizarCiudad(req.user.ciudad_base);
+      return res.json(rows.filter(r => r.operadora_id && normalizarCiudad(r.ciudad) === miCiudad));
+    }
     res.json(rows);
   } catch (err) {
     console.error('Revision list error:', err);
@@ -819,7 +851,7 @@ router.get('/operadoras/revision', auth, requireRole('superadmin', 'operaciones'
  * POST /api/auth/operadoras/revision/:usuarioId
  * Acciones: aprobar, observar, rechazar, pedir_documentos, pedir_contrato, pedir_habilitacion, acciones por módulo, eliminar.
  */
-router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
+router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
   const client = await pool.connect();
   try {
     const usuarioId = parseInt(req.params.usuarioId, 10);
@@ -834,8 +866,12 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     if (!usuarioId || !acciones.includes(accion)) {
       return res.status(400).json({ error: 'Acción inválida' });
     }
+    if (isCoordinadoraRole(req.user.rol) && accion === 'eliminar') {
+      return res.status(403).json({ error: 'Eliminar un pedido de alta es solo para administración' });
+    }
     const { rows } = await client.query(
-      `SELECT u.*, o.id AS operadora_id, o.nombre, o.apellido, o.whatsapp AS op_whatsapp, o.portal_token
+      `SELECT u.*, o.id AS operadora_id, o.nombre, o.apellido, o.whatsapp AS op_whatsapp, o.portal_token,
+              o.ciudad, o.direccion_entrega, o.direcciones_entrega
        FROM usuarios u
        LEFT JOIN operadoras o ON o.id = u.operadora_id
        WHERE u.id = $1 AND u.rol = 'operadora'
@@ -844,6 +880,19 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     );
     if (!rows.length) return res.status(404).json({ error: 'Registro no encontrado' });
     const row = rows[0];
+
+    if (isCoordinadoraRole(req.user.rol)) {
+      // Coordinadora: solo puede actuar sobre pedidos con ficha vinculada y de su ciudad asignada
+      if (!req.user.ciudad_base) {
+        return res.status(403).json({ error: 'Tu usuario no tiene una ciudad asignada. Pedile a un administrador que la configure.' });
+      }
+      if (!row.operadora_id) {
+        return res.status(403).json({ error: 'Este pedido no tiene ficha vinculada: lo tiene que revisar un administrador' });
+      }
+      if (normalizarCiudad(row.ciudad) !== normalizarCiudad(req.user.ciudad_base)) {
+        return res.status(403).json({ error: 'Esta operadora no es de tu ciudad asignada' });
+      }
+    }
 
     const moduloAcciones = {
       aceptar_documentos: ['cedula', 'aceptada', 'documentos aceptados'],
@@ -925,6 +974,21 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     };
     if (accion === 'eliminar') {
       return res.status(400).json({ error: 'Este pedido tiene ficha vinculada. Rechazalo o cambiá el estado de la operadora.' });
+    }
+    if (accion === 'aprobar') {
+      const direcciones = parseJsonArrayLocal(row.direcciones_entrega);
+      const tieneDireccion = direcciones.some(d => String(d?.direccion || '').trim())
+        || String(row.direccion_entrega || '').trim();
+      if (!tieneDireccion) {
+        return res.status(400).json({ error: 'No se puede aprobar: falta la dirección de la estética o lugar de trabajo. Cargala en la ficha de la operadora.' });
+      }
+      const { rows: habRows } = await client.query(
+        `SELECT id FROM habilitaciones WHERE operadora_id = $1 AND estado IN ('activa','activo') LIMIT 1`,
+        [row.operadora_id]
+      );
+      if (!habRows.length) {
+        return res.status(400).json({ error: 'No se puede aprobar: falta autorizar qué máquina puede alquilar (habilitación técnica).' });
+      }
     }
     const requiereRevision = ['observar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion);
     await client.query('BEGIN');

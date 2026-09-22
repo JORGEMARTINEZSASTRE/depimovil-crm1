@@ -76,7 +76,7 @@ async function auth(req, res, next) {
     }
     const { rows } = await pool.query(
       `SELECT id, nombre, email, rol, operadora_id, transportista_id, whatsapp, status,
-              requiere_revision_admin, revision_admin_estado
+              requiere_revision_admin, revision_admin_estado, ciudad_base
        FROM usuarios
        WHERE id = $1 AND status = $2`,
       [payload.id, 'activo']

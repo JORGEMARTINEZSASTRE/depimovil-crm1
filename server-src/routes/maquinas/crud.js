@@ -2,10 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../utils/db');
-const { auth, requireRole, isOpsOrCoordinadora, isOperadoraRole } = require('../../middleware/auth');
+const { auth, requireRole, isOpsOrCoordinadora, isOperadoraRole, isCoordinadoraRole } = require('../../middleware/auth');
 const { upload } = require('./setup');
 const {
-  localidadesOperadora, maquinaVisibleParaLocalidades,
+  localidadesOperadora, maquinaVisibleParaLocalidades, normalizarLocalidad,
   registrarMovimientoMaquina,
 } = require('./helpers');
 
@@ -23,6 +23,12 @@ router.get('/', auth, async (req, res) => {
       );
       localidades = localidadesOperadora(opRows[0]);
       if (!localidades.length) return res.json([]);
+    }
+    // Coordinadora: solo ve las máquinas de su ciudad asignada (piloto por ciudad)
+    if (isCoordinadoraRole(req.user.rol)) {
+      const ciudadBase = normalizarLocalidad(req.user.ciudad_base);
+      if (!ciudadBase) return res.json([]);
+      localidades = [ciudadBase];
     }
     const { rows } = await pool.query(`
       SELECT id, codigo, nombre, categoria, ubicacion, estado,
@@ -73,6 +79,12 @@ router.get('/:id', auth, async (req, res) => {
         return res.status(403).json({ error: 'Máquina no disponible para tus localidades declaradas' });
       }
     }
+    if (isCoordinadoraRole(req.user.rol)) {
+      const ciudadBase = normalizarLocalidad(req.user.ciudad_base);
+      if (!ciudadBase || !maquinaVisibleParaLocalidades(rows[0], [ciudadBase])) {
+        return res.status(403).json({ error: 'Máquina fuera de tu ciudad asignada' });
+      }
+    }
     res.json(rows[0]);
   } catch (err) {
     console.error('GET /api/maquinas/:id error:', err);
@@ -88,6 +100,10 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora'),
   } = req.body;
   if (!codigo || !nombre) return res.status(400).json({ error: 'Código y nombre son obligatorios' });
   const tipoOperativo = tipo_operativo || (es_viajera ? 'viajera' : 'base_ciudad');
+  // Coordinadora: una máquina de base fija que cree queda en su propia ciudad asignada, no en otra
+  const ciudadBaseFinal = (isCoordinadoraRole(req.user.rol) && tipoOperativo === 'base_ciudad')
+    ? (req.user.ciudad_base || null)
+    : (ciudad_base || null);
   try {
     const { rows } = await pool.query(`
       INSERT INTO maquinas (codigo, nombre, categoria, ubicacion, estado, serial_num, marca, modelo, dept_base, ult_mant, prox_mant, foto_url, icono_url, es_viajera, tipo_operativo, ciudad_base, obs)
@@ -98,7 +114,7 @@ router.post('/', auth, requireRole('superadmin', 'operaciones', 'coordinadora'),
       ubicacion || null, tipoOperativo === 'solo_venta' ? 'fuera_servicio' : (estado || 'disponible'),
       serial_num || null, marca || null, modelo || null, dept_base || 'Uruguay',
       ult_mant || null, prox_mant || null, foto_url || null,
-      icono_url || null, tipoOperativo === 'viajera' || !!es_viajera, tipoOperativo, ciudad_base || null, obs || null
+      icono_url || null, tipoOperativo === 'viajera' || !!es_viajera, tipoOperativo, ciudadBaseFinal, obs || null
     ]);
     await pool.query(
       `INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle) VALUES ($1,$2,$3,$4,$5,$6)`,
@@ -127,6 +143,16 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'
   const tipoOperativo = tipo_operativo || (es_viajera ? 'viajera' : 'base_ciudad');
   try {
     const { rows: prevRows } = await pool.query('SELECT * FROM maquinas WHERE id=$1', [req.params.id]);
+    if (isCoordinadoraRole(req.user.rol) && prevRows.length) {
+      const ciudadBaseCoord = normalizarLocalidad(req.user.ciudad_base);
+      if (!ciudadBaseCoord || !maquinaVisibleParaLocalidades(prevRows[0], [ciudadBaseCoord])) {
+        return res.status(403).json({ error: 'Máquina fuera de tu ciudad asignada' });
+      }
+    }
+    // Coordinadora: no puede mudar una máquina de base fija a otra ciudad
+    const ciudadBaseFinal = (isCoordinadoraRole(req.user.rol) && tipoOperativo === 'base_ciudad')
+      ? (req.user.ciudad_base || null)
+      : (ciudad_base || null);
     const { rows } = await pool.query(`
       UPDATE maquinas SET
         codigo=$1, nombre=$2, categoria=$3, ubicacion=$4, estado=$5,
@@ -139,7 +165,7 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'
       ubicacion || null, tipoOperativo === 'solo_venta' ? 'fuera_servicio' : (estado || 'disponible'),
       serial_num || null, marca || null, modelo || null, dept_base || 'Uruguay',
       ult_mant || null, prox_mant || null, foto_url || null,
-      icono_url || null, tipoOperativo === 'viajera' || !!es_viajera, tipoOperativo, ciudad_base || null, obs || null,
+      icono_url || null, tipoOperativo === 'viajera' || !!es_viajera, tipoOperativo, ciudadBaseFinal, obs || null,
       req.params.id
     ]);
     if (!rows.length) return res.status(404).json({ error: 'Máquina no encontrada' });
