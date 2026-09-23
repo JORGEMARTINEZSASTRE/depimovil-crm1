@@ -26,6 +26,7 @@ function badgeRevisionEstado(estado){
     direccion_pendiente:'badge-blue',
     observada:'badge-purple',
     aprobada:'badge-green',
+    semiaprobada:'badge-yellow',
     rechazada:'badge-red',
     no_requiere:'badge-gray'
   };
@@ -37,6 +38,7 @@ function badgeRevisionEstado(estado){
     direccion_pendiente:'Dirección pendiente',
     observada:'Observada',
     aprobada:'Aprobada',
+    semiaprobada:'Semiaprobada (le faltan datos)',
     rechazada:'Rechazada',
     no_requiere:'Sin revisión'
   };
@@ -77,7 +79,7 @@ async function updateRevisionOperadorasBadge(){
   try{
     const rows = await cargarRevisionOperadoras();
     const pendientes = rows.filter(function(r){
-      return ['pendiente','documentos_solicitados','contrato_pendiente','habilitacion_pendiente','observada'].includes(r.revision_admin_estado);
+      return ['pendiente','documentos_solicitados','contrato_pendiente','habilitacion_pendiente','direccion_pendiente','observada','semiaprobada'].includes(r.revision_admin_estado);
     }).length;
     badge.textContent = pendientes;
     badge.style.display = pendientes ? 'inline-flex' : 'none';
@@ -113,12 +115,14 @@ function renderRevisionOperadorasResumen(){
   const habilitaciones = revisionOpsCache.filter(r => r.revision_admin_estado === 'habilitacion_pendiente').length;
   const obs = revisionOpsCache.filter(r => r.revision_admin_estado === 'observada').length;
   const aprobadas = revisionOpsCache.filter(r => r.revision_admin_estado === 'aprobada').length;
+  const semiaprobadas = revisionOpsCache.filter(r => r.revision_admin_estado === 'semiaprobada').length;
   el.innerHTML = `
     <div class="docs-summary-card"><div class="label">Pendientes</div><div class="value">${pendientes}</div></div>
     <div class="docs-summary-card"><div class="label">Docs pedidos</div><div class="value">${docs}</div></div>
     <div class="docs-summary-card"><div class="label">Contrato</div><div class="value">${contratos}</div></div>
     <div class="docs-summary-card"><div class="label">Habilitación</div><div class="value">${habilitaciones}</div></div>
     <div class="docs-summary-card"><div class="label">Observadas</div><div class="value">${obs}</div></div>
+    <div class="docs-summary-card"><div class="label">Semiaprobadas</div><div class="value">${semiaprobadas}</div></div>
     <div class="docs-summary-card"><div class="label">Aprobadas</div><div class="value">${aprobadas}</div></div>`;
 }
 
@@ -431,7 +435,7 @@ function copyText(text){
 async function guardarRevisionOperadora(accion){
   if(!revisionOpsActual) return;
   if(accion === 'pedir_faltantes') accion = 'pedir_documentos';
-  if(accion === 'aprobar' && !revisionOpsActual.operadora_id){
+  if((accion === 'aprobar' || accion === 'aprobar_parcial') && !revisionOpsActual.operadora_id){
     showToast('⚠️ No se puede aprobar: este pedido no tiene ficha de operadora vinculada','warn');
     return;
   }
@@ -441,6 +445,7 @@ async function guardarRevisionOperadora(accion){
   }
   const labels = {
     aprobar:'aprobar este registro',
+    aprobar_parcial:'aprobar de forma parcial a esta operadora, aunque le falten datos (va a poder usar el sistema igual)',
     observar:'guardar esta observación',
     rechazar:'rechazar este registro',
     pedir_documentos:'pedir documentos a esta operadora',

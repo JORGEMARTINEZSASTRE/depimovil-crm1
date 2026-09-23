@@ -859,7 +859,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     const obs = cleanText(req.body.obs, 1000);
     const categoriaHabilitacion = cleanText(req.body.categoria_habilitacion || req.body.categoria || '', 120);
     const acciones = [
-      'aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion', 'pedir_direccion',
+      'aprobar', 'aprobar_parcial', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion', 'pedir_direccion',
       'aceptar_documentos', 'denegar_documentos', 'aceptar_contrato', 'denegar_contrato',
       'aceptar_habilitacion', 'denegar_habilitacion', 'eliminar'
     ];
@@ -915,7 +915,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     }
 
     if (!row.operadora_id) {
-      if (accion === 'aprobar') {
+      if (accion === 'aprobar' || accion === 'aprobar_parcial') {
         return res.status(400).json({ error: 'No se puede aprobar: el pedido no tiene ficha de operadora vinculada' });
       }
       await client.query('BEGIN');
@@ -965,6 +965,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
 
     const estadoMap = {
       aprobar: 'aprobada',
+      aprobar_parcial: 'semiaprobada',
       observar: 'observada',
       rechazar: 'rechazada',
       pedir_documentos: 'documentos_solicitados',
@@ -1018,7 +1019,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     );
     if (accion === 'rechazar') {
       await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['suspendida', row.operadora_id]);
-    } else if (accion === 'aprobar') {
+    } else if (accion === 'aprobar' || accion === 'aprobar_parcial') {
       await client.query('UPDATE operadoras SET estado = $1, updated_at = NOW() WHERE id = $2', ['activa', row.operadora_id]);
       await client.query('UPDATE usuarios SET status = $1, updated_at = NOW() WHERE id = $2', ['activo', usuarioId]);
     }
@@ -1030,15 +1031,31 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
 
     const wa = row.whatsapp || row.op_whatsapp;
     let whatsapp = null;
-    if (wa && ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion', 'pedir_direccion'].includes(accion)) {
+    if (wa && ['aprobar', 'aprobar_parcial', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion', 'pedir_direccion'].includes(accion)) {
       const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${portalToken}`;
       const contratoUrl = `${portalUrl}#contratos`;
       const testUrl = habilitacionTest.testId
         ? `${req.protocol}://${req.get('host')}/?ptoken=${portalToken}#test=${encodeURIComponent(habilitacionTest.testId)}`
         : `${req.protocol}://${req.get('host')}/?ptoken=${portalToken}#materiales`;
       const testLabel = habilitacionTest.categoria ? ` de ${habilitacionTest.categoria}` : '';
+      let faltanParcial = '';
+      if (accion === 'aprobar_parcial') {
+        const faltan = [];
+        if (!String(row.nombre || '').trim()) faltan.push('nombre');
+        if (!String(row.ciudad || '').trim()) faltan.push('ciudad');
+        const direcciones = parseJsonArrayLocal(row.direcciones_entrega);
+        const tieneDireccion = direcciones.some(d => String(d?.direccion || '').trim()) || String(row.direccion_entrega || '').trim();
+        if (!tieneDireccion) faltan.push('dirección');
+        const { rows: habRows } = await client.query(
+          `SELECT id FROM habilitaciones WHERE operadora_id = $1 AND estado IN ('activa','activo') LIMIT 1`,
+          [row.operadora_id]
+        );
+        if (!habRows.length) faltan.push('qué máquina te vamos a autorizar');
+        faltanParcial = faltan.join(', ');
+      }
       const mensajeMap = {
         aprobar: `¡Tu alta en DepiMóvil fue autorizada! 🎉\n\nYa podés ingresar al sistema desde este link:\n${req.protocol}://${req.get('host')}/?ptoken=${portalToken}\n\nEste link es personal y te logueará automáticamente. Si tenés problemas, escribinos por acá.`,
+        aprobar_parcial: `¡Tu alta en DepiMóvil fue autorizada! 🎉\n\nYa podés ingresar al sistema desde este link:\n${req.protocol}://${req.get('host')}/?ptoken=${portalToken}\n\nEste link es personal y te logueará automáticamente.${faltanParcial ? `\n\nNos falta que nos confirmes: ${faltanParcial}. Respondé por acá cuando puedas.` : ''}${obs ? `\n\nNota: ${obs}` : ''}`,
         observar: `DepiMóvil revisó tu registro y necesita aclarar algunos datos.${obs ? `\n\nObservación: ${obs}` : ''}`,
         rechazar: `DepiMóvil revisó tu registro y por ahora no quedó aprobado.${obs ? `\n\nMotivo: ${obs}` : ''}`,
         pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${obs ? `\n\nNota: ${obs}` : ''}\n\nSubilos acá: ${portalUrl}`,
