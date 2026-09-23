@@ -117,7 +117,7 @@ function renderOp360Panel(o){
             <span class="badge ${c.ok?'badge-green':'badge-yellow'}">${c.ok?'OK':'Pendiente'}</span>
           </div>
           <div style="font-size:11px;color:var(--text3);line-height:1.4">${escapeHTML(c.detalle)}</div>
-          ${!c.ok&&canEdit()&&['localidades','documentos','habilitacion'].includes(c.key)?`<button class="action-btn" style="margin-top:8px;font-size:11px;padding:3px 8px" onclick="pedirFaltantesOperadora(${o.id},this)">Pedir por WhatsApp</button>`:''}
+          ${!c.ok&&canEdit()&&['datos','localidades','documentos','habilitacion'].includes(c.key)?`<button class="action-btn" style="margin-top:8px;font-size:11px;padding:3px 8px" onclick="pedirFaltantesOperadora(${o.id},this)">Pedir por WhatsApp</button>`:''}
         </div>`).join('')}
       </div>
     </div>

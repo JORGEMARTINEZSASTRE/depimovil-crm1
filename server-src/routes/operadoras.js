@@ -239,11 +239,15 @@ async function missingOperadoraDocs(operadoraId) {
   if (!tipos.has('cedula_dorso')) faltantes.push('cédula/DNI dorso');
 
   const { rows: opRows } = await pool.query(
-    'SELECT direccion_entrega, direcciones_entrega FROM operadoras WHERE id=$1',
+    'SELECT nombre, apellido, ciudad, departamento, direccion_entrega, direcciones_entrega FROM operadoras WHERE id=$1',
     [operadoraId]
   ).catch(() => ({ rows: [] }));
   const op = opRows[0];
   if (op) {
+    if (!String(op.nombre || '').trim()) faltantes.push('tu nombre');
+    if (!String(op.apellido || '').trim()) faltantes.push('tu apellido');
+    if (!String(op.ciudad || '').trim()) faltantes.push('tu ciudad');
+    if (!String(op.departamento || '').trim()) faltantes.push('tu departamento');
     const direcciones = Array.isArray(op.direcciones_entrega) ? op.direcciones_entrega : [];
     const tieneDireccion = direcciones.some(d => String(d?.direccion || '').trim()) || String(op.direccion_entrega || '').trim();
     if (!tieneDireccion) faltantes.push('la dirección de tu estética o lugar de trabajo');

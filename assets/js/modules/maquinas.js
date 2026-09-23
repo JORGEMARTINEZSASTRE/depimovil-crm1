@@ -7,9 +7,17 @@ const MAQ_CATEGORIAS_DEFAULT=['Láser Depilación','Radiofrecuencia / HIFU','IPL
 function maqTipoOperativoLabel(tipo){
   return {viajera:'Viajera',alquiler:'Viajera',base_ciudad:'Base ciudad',solo_venta:'Solo venta'}[tipo||'viajera'] || tipo;
 }
+// Mismas ciudades que en reservas.js: ahí no se ofrecen máquinas viajeras (cobertura fija propia)
+const MAQ_CIUDADES_SIN_VIAJERAS=['salto','concordia','maldonado','tacuarembo'];
 function maqTipoOperativoBadge(m){
   const tipo=m?.tipoOperativo||m?.tipo_operativo||(m?.esViajera?'viajera':'base_ciudad');
-  if(tipo==='viajera'||tipo==='alquiler')return '<span class="badge badge-blue">Viajera</span>';
+  if(tipo==='viajera'||tipo==='alquiler'){
+    const ciudad=maqCiudadEfectiva(m);
+    if(ciudad&&MAQ_CIUDADES_SIN_VIAJERAS.includes(normalizarLocalidad(ciudad))){
+      return `<span class="badge badge-gray" title="Está en ${escapeHTML(ciudad)}, pero ahí no se ofrecen máquinas viajeras: solo se alquilan las de base fija">Viajera · no se ofrece en ${escapeHTML(ciudad)}</span>`;
+    }
+    return '<span class="badge badge-blue">Viajera</span>';
+  }
   if(tipo==='base_ciudad')return `<span class="badge badge-blue">Base ${escapeHTML(m.ciudadBase||m.ciudad_base||m.ubicacion||'ciudad')}</span>`;
   if(tipo==='solo_venta')return '<span class="badge badge-yellow">Solo venta</span>';
   return '';
