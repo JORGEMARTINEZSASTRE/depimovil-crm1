@@ -349,6 +349,9 @@
               <h3>⚙️ Máquinas</h3>
               <div class="table-actions">
                 <input class="search-input" type="text" placeholder="🔍 Buscar…" oninput="filterMaquinas(this.value)"/>
+                <select class="filter-select" id="maqFilterCiudad" onchange="filterMaqCiudad(this.value)">
+                  <option value="">Todas las ciudades</option>
+                </select>
                 <select class="filter-select" onchange="filterMaqStatus(this.value)">
                   <option value="">Todos los estados</option>
                   <option value="disponible">Disponible</option>
@@ -951,7 +954,7 @@
 <script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/revision-operadoras.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/documentos.js?v=20260531-certificados"></script>
-<script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260921-15d"></script>
+<script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260922-ciudad"></script>
 <script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/limpiezas.js?v=20260921-traslados"></script>
 <script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20260919-usuarios"></script>

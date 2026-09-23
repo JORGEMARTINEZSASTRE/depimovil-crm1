@@ -1,7 +1,7 @@
 /* ══════════════════════════════════
    MÁQUINAS
 ══════════════════════════════════ */
-let maqFilter={search:'',status:''};
+let maqFilter={search:'',status:'',ciudad:''};
 let maqPrecioEditId=null;
 const MAQ_CATEGORIAS_DEFAULT=['Láser Depilación','Radiofrecuencia / HIFU','IPL','Pressoterapia','Hidrofacial','Electroestimulación','Ultrasonido','Cavitación','Diodo + NDYAG','Otro'];
 function maqTipoOperativoLabel(tipo){
@@ -299,14 +299,28 @@ async function setNextMaquinaCodigo(){
     if(data?.codigo&&!gv('maqId'))sv('maqCodigo',data.codigo);
   }catch(e){}
 }
+// Ciudad donde está hoy la máquina: base fija -> su ciudad base; viajera -> dónde está ubicada ahora
+function maqCiudadEfectiva(m){
+  return String((m.tipoOperativo==='base_ciudad'?(m.ciudadBase||m.ubicacion):(m.ubicacion||m.ciudadBase))||'').trim();
+}
+function syncMaqFilterCiudad(visibles){
+  const select=document.getElementById('maqFilterCiudad');if(!select)return;
+  const prev=select.value||maqFilter.ciudad;
+  const ciudades=Array.from(new Set(visibles.map(maqCiudadEfectiva).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'es'));
+  select.innerHTML='<option value="">Todas las ciudades</option>'+
+    ciudades.map(c=>`<option value="${escapeAttr(c)}">${escapeHTML(c)}</option>`).join('');
+  if(ciudades.includes(prev))select.value=prev;else{select.value='';maqFilter.ciudad='';}
+}
 function renderMaquinas(){
   const opActual=isOperadoraUser()?getOp(currentUser?.operadora_id):null;
   const visibles=(DB.get('maquinas')||[]).filter(m=>maquinaVisibleParaOperadora(m,opActual));
   renderMaquinasViajerasPanel(visibles);
+  syncMaqFilterCiudad(visibles);
   const maqs=visibles.filter(m=>{
     const q=maqFilter.search.toLowerCase();
     const ms=!q||(m.codigo+' '+m.nombre+' '+m.categoria+' '+m.ubicacion).toLowerCase().includes(q);
-    return ms&&(!maqFilter.status||m.estado===maqFilter.status);
+    const cs=!maqFilter.ciudad||maqCiudadEfectiva(m)===maqFilter.ciudad;
+    return ms&&cs&&(!maqFilter.status||m.estado===maqFilter.status);
   });
   const tbody=document.getElementById('maqTableBody');
   if(!maqs.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">⚙️</div><h3>Sin resultados</h3></div></td></tr>`;return;}
@@ -321,6 +335,7 @@ function renderMaquinas(){
 }
 function filterMaquinas(v){maqFilter.search=v;renderMaquinas();}
 function filterMaqStatus(v){maqFilter.status=v;renderMaquinas();}
+function filterMaqCiudad(v){maqFilter.ciudad=v;renderMaquinas();}
 
 function maqReservaFechaInicio(r){
   return r?.tipo==='jornada' ? (r.fechaJornada||r.fechaInicio||'') : (r?.fechaInicio||r?.fechaJornada||'');
