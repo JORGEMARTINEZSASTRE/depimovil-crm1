@@ -33,8 +33,13 @@ function localidadMaquina(row) {
   return normalizarLocalidad(tipo === 'base_ciudad' ? (row?.ciudad_base || row?.ubicacion) : (row?.ubicacion || row?.ciudad_base));
 }
 
+// Las máquinas viajeras no se ofrecen en las ciudades que ya tienen cobertura
+// fija propia: ahí solo corresponden las máquinas de base_ciudad.
+const CIUDADES_SIN_VIAJERAS = new Set(['salto', 'concordia', 'maldonado', 'tacuarembo']);
+
 function maquinaVisibleParaLocalidades(row, localidades) {
   if (!row || row.tipo_operativo === 'solo_venta') return false;
+  if (isViajera(row) && localidades.some(l => CIUDADES_SIN_VIAJERAS.has(l))) return false;
   const loc = localidadMaquina(row);
   return !!(localidades.length && loc && localidades.includes(loc));
 }

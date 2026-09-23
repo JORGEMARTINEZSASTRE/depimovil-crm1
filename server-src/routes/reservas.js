@@ -496,6 +496,10 @@ function localidadesOperadora(row) {
   return Array.from(new Set(values.map(normalizarCiudad).filter(Boolean)));
 }
 
+// Las máquinas viajeras no se ofrecen en las ciudades que ya tienen cobertura
+// fija propia: ahí solo corresponden las máquinas de base_ciudad.
+const CIUDADES_SIN_VIAJERAS = new Set(['salto', 'concordia', 'maldonado', 'tacuarembo']);
+
 async function validarCiudadReserva(client, operadoraId, maquinaId) {
   const { rows } = await client.query(`
     SELECT o.ciudad AS operadora_ciudad,
@@ -519,6 +523,9 @@ async function validarCiudadReserva(client, operadoraId, maquinaId) {
   const maqCiudad = normalizarCiudad(row.tipo_operativo === 'base_ciudad' ? (row.ciudad_base || row.maquina_ciudad) : row.maquina_ciudad);
   if (!opLocalidades.length) {
     return { ok: false, status: 409, error: 'La operadora no tiene localidades/direcciones declaradas para alquilar máquinas' };
+  }
+  if (row.es_viajera && opLocalidades.some(l => CIUDADES_SIN_VIAJERAS.has(l))) {
+    return { ok: false, status: 409, error: 'Las máquinas viajeras no están disponibles en esa localidad' };
   }
   if (!maqCiudad || !opLocalidades.includes(maqCiudad)) {
     return { ok: false, status: 409, error: 'Máquina no disponible para las localidades declaradas por la operadora' };
