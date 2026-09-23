@@ -237,6 +237,24 @@ async function missingOperadoraDocs(operadoraId) {
   const faltantes = [];
   if (!tipos.has('cedula')) faltantes.push('cédula/DNI frente');
   if (!tipos.has('cedula_dorso')) faltantes.push('cédula/DNI dorso');
+
+  const { rows: opRows } = await pool.query(
+    'SELECT direccion_entrega, direcciones_entrega FROM operadoras WHERE id=$1',
+    [operadoraId]
+  ).catch(() => ({ rows: [] }));
+  const op = opRows[0];
+  if (op) {
+    const direcciones = Array.isArray(op.direcciones_entrega) ? op.direcciones_entrega : [];
+    const tieneDireccion = direcciones.some(d => String(d?.direccion || '').trim()) || String(op.direccion_entrega || '').trim();
+    if (!tieneDireccion) faltantes.push('la dirección de tu estética o lugar de trabajo');
+  }
+
+  const { rows: habRows } = await pool.query(
+    `SELECT id FROM habilitaciones WHERE operadora_id=$1 AND estado IN ('activa','activo') LIMIT 1`,
+    [operadoraId]
+  ).catch(() => ({ rows: [] }));
+  if (!habRows.length) faltantes.push('confirmar con administración qué máquina te autorizan a alquilar');
+
   return faltantes;
 }
 

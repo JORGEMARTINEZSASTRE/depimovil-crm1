@@ -859,7 +859,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     const obs = cleanText(req.body.obs, 1000);
     const categoriaHabilitacion = cleanText(req.body.categoria_habilitacion || req.body.categoria || '', 120);
     const acciones = [
-      'aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion',
+      'aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion', 'pedir_direccion',
       'aceptar_documentos', 'denegar_documentos', 'aceptar_contrato', 'denegar_contrato',
       'aceptar_habilitacion', 'denegar_habilitacion', 'eliminar'
     ];
@@ -970,6 +970,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
       pedir_documentos: 'documentos_solicitados',
       pedir_contrato: 'contrato_pendiente',
       pedir_habilitacion: 'habilitacion_pendiente',
+      pedir_direccion: 'direccion_pendiente',
       eliminar: 'eliminada'
     };
     if (accion === 'eliminar') {
@@ -990,7 +991,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
         return res.status(400).json({ error: 'No se puede aprobar: falta autorizar qué máquina puede alquilar (habilitación técnica).' });
       }
     }
-    const requiereRevision = ['observar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion);
+    const requiereRevision = ['observar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion', 'pedir_direccion'].includes(accion);
     await client.query('BEGIN');
     const portalToken = await ensurePortalToken(client, row.operadora_id, row.portal_token);
     const habilitacionTest = accion === 'pedir_habilitacion'
@@ -1003,6 +1004,8 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
     } else if (accion === 'pedir_habilitacion') {
       const detalleHab = [habilitacionTest.categoria ? `Test: ${habilitacionTest.categoria}` : '', obs].filter(Boolean).join(' — ');
       await guardarModuloRevision(client, usuarioId, row, 'habilitacion', 'pedida', detalleHab);
+    } else if (accion === 'pedir_direccion') {
+      await guardarModuloRevision(client, usuarioId, row, 'direccion', 'pedida', obs);
     }
     await client.query(
       `UPDATE usuarios
@@ -1027,7 +1030,7 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
 
     const wa = row.whatsapp || row.op_whatsapp;
     let whatsapp = null;
-    if (wa && ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion'].includes(accion)) {
+    if (wa && ['aprobar', 'observar', 'rechazar', 'pedir_documentos', 'pedir_contrato', 'pedir_habilitacion', 'pedir_direccion'].includes(accion)) {
       const portalUrl = `${req.protocol}://${req.get('host')}/portal.html?token=${portalToken}`;
       const contratoUrl = `${portalUrl}#contratos`;
       const testUrl = habilitacionTest.testId
@@ -1040,7 +1043,8 @@ router.post('/operadoras/revision/:usuarioId', auth, requireRole('superadmin', '
         rechazar: `DepiMóvil revisó tu registro y por ahora no quedó aprobado.${obs ? `\n\nMotivo: ${obs}` : ''}`,
         pedir_documentos: `DepiMóvil necesita que subas fotos de tu cédula/DNI frente y dorso para completar tu registro.${obs ? `\n\nNota: ${obs}` : ''}\n\nSubilos acá: ${portalUrl}`,
         pedir_contrato: `DepiMóvil necesita que firmes digitalmente el contrato de alquiler para completar tu alta o confirmar tu alquiler.${obs ? `\n\nNota: ${obs}` : ''}\n\nFirmalo acá: ${contratoUrl}`,
-        pedir_habilitacion: `DepiMóvil necesita completar tu habilitación técnica${testLabel} antes de dejar tu alta finalizada.${obs ? `\n\nNota: ${obs}` : ''}\n\nEntrá acá y completá las preguntas del test:\n${testUrl}`
+        pedir_habilitacion: `DepiMóvil necesita completar tu habilitación técnica${testLabel} antes de dejar tu alta finalizada.${obs ? `\n\nNota: ${obs}` : ''}\n\nEntrá acá y completá las preguntas del test:\n${testUrl}`,
+        pedir_direccion: `DepiMóvil necesita la dirección de tu estética o lugar de trabajo para dejar tu alta finalizada.${obs ? `\n\nNota: ${obs}` : ''}\n\nRespondé por acá con la dirección completa (calle, número y ciudad).`
       };
       const envio = await enviarOEncolarWhatsapp({
         telefono: wa,

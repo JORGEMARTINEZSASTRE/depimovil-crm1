@@ -23,6 +23,7 @@ function badgeRevisionEstado(estado){
     documentos_solicitados:'badge-blue',
     contrato_pendiente:'badge-blue',
     habilitacion_pendiente:'badge-blue',
+    direccion_pendiente:'badge-blue',
     observada:'badge-purple',
     aprobada:'badge-green',
     rechazada:'badge-red',
@@ -33,6 +34,7 @@ function badgeRevisionEstado(estado){
     documentos_solicitados:'Documentos solicitados',
     contrato_pendiente:'Contrato pendiente',
     habilitacion_pendiente:'Habilitación pendiente',
+    direccion_pendiente:'Dirección pendiente',
     observada:'Observada',
     aprobada:'Aprobada',
     rechazada:'Rechazada',
@@ -167,7 +169,12 @@ function renderRevisionModulos(row){
   const tieneCedula = docs.some(d => d.tipo === 'cedula') && docs.some(d => d.tipo === 'cedula_dorso');
   const tieneContrato = docs.some(d => d.tipo === 'contrato') || (DB.get('contratos') || []).some(c => parseInt(c.operadoraId) === parseInt(row.operadora_id) && (c.estado === 'firmado' || c.firmadoEn));
   const habs = (DB.get('habilitaciones') || []).filter(h => parseInt(h.operadoraId) === parseInt(row.operadora_id) && ['activa','activo'].includes(h.estado));
+  const direcciones = Array.isArray(row.direcciones_entrega) ? row.direcciones_entrega : [];
+  const tieneDireccion = direcciones.some(d => (d?.direccion || '').trim()) || !!(row.direccion_entrega || '').trim();
   return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px">
+    ${renderModuloRevisionCard(row, 'direccion', 'Dirección de la estética', tieneDireccion ? (direcciones[0]?.direccion || row.direccion_entrega || 'Cargada.') : 'Falta la dirección: pedila o cargala en la ficha.', tieneDireccion,
+      `<button class="action-btn" onclick="guardarRevisionModulo('direccion','pedir')">Pedir dirección</button>
+       ${row.operadora_id?`<button class="action-btn" onclick="showOpFicha(${row.operadora_id})">Cargar en la ficha</button>`:''}`)}
     ${renderModuloRevisionCard(row, 'cedula', 'CI / DNI', tieneCedula ? 'Frente y dorso cargados.' : 'Falta cargar o revisar cédula.', tieneCedula,
       `<button class="action-btn" onclick="guardarRevisionModulo('cedula','pedir')">Pedir CI</button>
        <button class="action-btn" onclick="guardarRevisionModulo('cedula','aceptar')">Aceptar CI</button>
@@ -213,21 +220,26 @@ function revisionEstado360(row){
   return {checks, faltante, completos, porcentaje, habs};
 }
 
+// Acción de "pedir" disponible para cada chequeo que puede faltar (no todos tienen una: ficha y datos se arreglan en la ficha)
+const REVISION_ACCION_POR_CHECK = {
+  localidades: {accion:'pedir_direccion', label:'Pedir dirección'},
+  documentos: {accion:'pedir_documentos', label:'Pedir documentos'},
+  contrato: {accion:'pedir_contrato', label:'Pedir contrato'},
+  habilitacion: {accion:'pedir_habilitacion', label:'Pedir habilitación'},
+};
 function renderRevisionRutaAprobacion(row){
   const st = revisionEstado360(row);
   const color = st.porcentaje >= 80 ? 'var(--green)' : (st.porcentaje >= 50 ? 'var(--yellow)' : 'var(--red)');
-  const next = st.faltante
-    ? `<span class="badge badge-yellow">${revEsc(st.faltante.accion)}</span>`
+  const faltantes = st.checks.filter(c => !c.ok);
+  const next = faltantes.length
+    ? faltantes.map(c => `<span class="badge badge-yellow">${revEsc(c.accion)}</span>`).join(' ')
     : '<span class="badge badge-green">Lista para aprobar</span>';
-  const quick = st.faltante?.key === 'documentos'
-    ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'pedir_documentos\')">Pedir documentos</button>'
-    : st.faltante?.key === 'contrato'
-      ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'pedir_contrato\')">Pedir contrato</button>'
-      : st.faltante?.key === 'habilitacion'
-        ? '<button class="action-btn" onclick="guardarRevisionOperadora(\'pedir_habilitacion\')">Pedir habilitación</button>'
-        : st.faltante
-          ? ''
-          : '<button class="action-btn" onclick="guardarRevisionOperadora(\'aprobar\')">Aprobar ahora</button>';
+  // Un botón por cada cosa que falta y que se puede pedir (pueden ser varios a la vez), más "Aprobar" si ya está todo
+  const quick = faltantes.length
+    ? faltantes.map(c => REVISION_ACCION_POR_CHECK[c.key]
+        ? `<button class="action-btn" onclick="guardarRevisionOperadora('${REVISION_ACCION_POR_CHECK[c.key].accion}')">${REVISION_ACCION_POR_CHECK[c.key].label}</button>`
+        : '').join('')
+    : '<button class="action-btn" onclick="guardarRevisionOperadora(\'aprobar\')">Aprobar ahora</button>';
   return `<div class="docs-detail-card" style="margin-top:12px">
     <div class="docs-detail-title" style="display:flex;justify-content:space-between;gap:8px;align-items:center">
       <span>Ruta de aprobación</span>
@@ -243,7 +255,7 @@ function renderRevisionRutaAprobacion(row){
       </div>`).join('')}
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px">
-      <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Próximo paso:</strong> ${next}</div>
+      <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Falta:</strong> ${next}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${quick}</div>
     </div>
   </div>`;
@@ -374,7 +386,8 @@ async function guardarRevisionModulo(modulo, accionModulo){
   const accionMap = {
     cedula:{pedir:'pedir_documentos', aceptar:'aceptar_documentos', denegar:'denegar_documentos'},
     contrato:{pedir:'pedir_contrato', aceptar:'aceptar_contrato', denegar:'denegar_contrato'},
-    habilitacion:{pedir:'pedir_habilitacion', aceptar:'aceptar_habilitacion', denegar:'denegar_habilitacion'}
+    habilitacion:{pedir:'pedir_habilitacion', aceptar:'aceptar_habilitacion', denegar:'denegar_habilitacion'},
+    direccion:{pedir:'pedir_direccion'}
   };
   const accion = accionMap[modulo]?.[accionModulo];
   if(!accion) return;
@@ -432,6 +445,8 @@ async function guardarRevisionOperadora(accion){
     rechazar:'rechazar este registro',
     pedir_documentos:'pedir documentos a esta operadora',
     pedir_contrato:'pedir firma de contrato a esta operadora',
+    pedir_habilitacion:'pedir la habilitación técnica a esta operadora',
+    pedir_direccion:'pedir la dirección de su estética a esta operadora',
     eliminar:'eliminar este pedido vacío'
   };
   if(!confirm('¿Confirmás ' + labels[accion] + '?')) return;
