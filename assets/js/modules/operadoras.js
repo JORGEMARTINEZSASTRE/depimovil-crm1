@@ -265,7 +265,16 @@ function mapOperadoraLocal(o){
 }
 async function pedirFaltantesOperadora(id, obs){
   if(!id)return;
-  const nota=obs!=null?obs:prompt('Detalle para enviar por WhatsApp (opcional):','Subir cédula/DNI frente y dorso');
+  let pregunta='Detalle para enviar por WhatsApp (opcional):';
+  if(obs==null){
+    const o=(DB.get('operadoras')||[]).find(x=>x.id===id);
+    if(o){
+      const faltan=op360Estado(o).checks.filter(c=>c.key!=='pagos'&&!c.ok).map(c=>c.label);
+      if(faltan.length)pregunta='Se va a avisar por WhatsApp que falta: '+faltan.join(', ')+'.\n\nNota extra (opcional):';
+      else pregunta='No falta nada pendiente de esta lista. Nota extra para WhatsApp (opcional):';
+    }
+  }
+  const nota=obs!=null?obs:prompt(pregunta,'');
   if(nota===null)return;
   try{
     const data=await api('/api/operadoras/'+id+'/pedir-faltantes',{method:'POST',body:JSON.stringify({obs:nota})});
