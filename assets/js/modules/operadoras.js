@@ -117,6 +117,7 @@ function renderOp360Panel(o){
             <span class="badge ${c.ok?'badge-green':'badge-yellow'}">${c.ok?'OK':'Pendiente'}</span>
           </div>
           <div style="font-size:11px;color:var(--text3);line-height:1.4">${escapeHTML(c.detalle)}</div>
+          ${!c.ok&&canEdit()&&['localidades','documentos','habilitacion'].includes(c.key)?`<button class="action-btn" style="margin-top:8px;font-size:11px;padding:3px 8px" onclick="pedirFaltantesOperadora(${o.id},this)">Pedir por WhatsApp</button>`:''}
         </div>`).join('')}
       </div>
     </div>
@@ -263,34 +264,20 @@ function mapOperadoraLocal(o){
     preparacion:o.preparacion||'',titulos:o.titulos||'',rangoDepimovil:o.rango_depimovil||o.rangoDepimovil||'',jornadasTotal:o.jornadas_total||o.jornadasTotal||0,
     perfilMinimo:!!o.perfil_minimo};
 }
-let pedirFaltantesTargetId=null;
-function pedirFaltantesOperadora(id){
+// Pide por WhatsApp lo que le falte a la operadora (dirección, documentos, contrato, habilitación).
+// Un solo click, sin ventanas: se puede disparar desde el botón general o desde cada tarjeta pendiente.
+async function pedirFaltantesOperadora(id, btn){
   if(!id)return;
-  pedirFaltantesTargetId=id;
-  const o=(DB.get('operadoras')||[]).find(x=>x.id===id);
-  const faltan=o?op360Estado(o).checks.filter(c=>c.key!=='pagos'&&!c.ok).map(c=>c.label):[];
-  const lista=document.getElementById('pedirFaltantesLista');
-  lista.innerHTML=faltan.length
-    ?`<div class="alert-banner warn"><span class="ab-icon">📋</span><div><strong>Se va a avisar por WhatsApp que falta:</strong><br>${faltan.map(f=>escapeHTML(f)).join(', ')}</div></div>`
-    :`<div class="alert-banner"><span class="ab-icon">✅</span><div>No falta nada pendiente de esta lista. Igual se puede mandar una nota.</div></div>`;
-  sv('pedirFaltantesObs','');
-  openModal('modalPedirFaltantes');
-}
-async function confirmarPedirFaltantesOperadora(){
-  const id=pedirFaltantesTargetId;
-  if(!id)return;
-  const nota=gv('pedirFaltantesObs').trim();
-  const btn=document.getElementById('btnEnviarPedirFaltantes');
-  btn.disabled=true;
+  if(btn)btn.disabled=true;
   try{
-    const data=await api('/api/operadoras/'+id+'/pedir-faltantes',{method:'POST',body:JSON.stringify({obs:nota})});
+    const data=await api('/api/operadoras/'+id+'/pedir-faltantes',{method:'POST',body:JSON.stringify({})});
     const extra=data.codigo_enviado?'WhatsApp enviado':'quedó en cola de WhatsApp';
-    showToast('✅ Pedido de faltantes '+extra);
-    closeModal('modalPedirFaltantes');
+    const faltan=(data.faltantes||[]).join(', ');
+    showToast('✅ Pedido de faltantes '+extra+(faltan?': '+faltan:''));
   }catch(e){
     showToast('❌ '+e.message,'error');
   }finally{
-    btn.disabled=false;
+    if(btn)btn.disabled=false;
   }
 }
 function showOpFicha(id){
