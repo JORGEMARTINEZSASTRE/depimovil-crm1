@@ -253,6 +253,27 @@
   </div>
 </div>
 
+<!-- MODAL PEDIR FALTANTES (operadora) -->
+<div class="modal-overlay" id="modalPedirFaltantes">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Pedir faltantes</h3>
+      <button class="modal-close" onclick="closeModal('modalPedirFaltantes')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="pedirFaltantesLista" style="margin-bottom:14px"></div>
+      <div class="form-field full">
+        <label>Nota extra para el WhatsApp (opcional)</label>
+        <textarea id="pedirFaltantesObs" placeholder="Ej: mandámela antes del viernes" style="width:100%;min-height:80px;box-sizing:border-box"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeModal('modalPedirFaltantes')">Cancelar</button>
+      <button class="btn-add" id="btnEnviarPedirFaltantes" onclick="confirmarPedirFaltantesOperadora()">Enviar por WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RESERVA -->
 <div class="modal-overlay" id="modalRes">
   <div class="modal-box">

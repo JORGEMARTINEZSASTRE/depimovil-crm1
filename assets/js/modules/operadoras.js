@@ -263,25 +263,34 @@ function mapOperadoraLocal(o){
     preparacion:o.preparacion||'',titulos:o.titulos||'',rangoDepimovil:o.rango_depimovil||o.rangoDepimovil||'',jornadasTotal:o.jornadas_total||o.jornadasTotal||0,
     perfilMinimo:!!o.perfil_minimo};
 }
-async function pedirFaltantesOperadora(id, obs){
+let pedirFaltantesTargetId=null;
+function pedirFaltantesOperadora(id){
   if(!id)return;
-  let pregunta='Detalle para enviar por WhatsApp (opcional):';
-  if(obs==null){
-    const o=(DB.get('operadoras')||[]).find(x=>x.id===id);
-    if(o){
-      const faltan=op360Estado(o).checks.filter(c=>c.key!=='pagos'&&!c.ok).map(c=>c.label);
-      if(faltan.length)pregunta='Se va a avisar por WhatsApp que falta: '+faltan.join(', ')+'.\n\nNota extra (opcional):';
-      else pregunta='No falta nada pendiente de esta lista. Nota extra para WhatsApp (opcional):';
-    }
-  }
-  const nota=obs!=null?obs:prompt(pregunta,'');
-  if(nota===null)return;
+  pedirFaltantesTargetId=id;
+  const o=(DB.get('operadoras')||[]).find(x=>x.id===id);
+  const faltan=o?op360Estado(o).checks.filter(c=>c.key!=='pagos'&&!c.ok).map(c=>c.label):[];
+  const lista=document.getElementById('pedirFaltantesLista');
+  lista.innerHTML=faltan.length
+    ?`<div class="alert-banner warn"><span class="ab-icon">📋</span><div><strong>Se va a avisar por WhatsApp que falta:</strong><br>${faltan.map(f=>escapeHTML(f)).join(', ')}</div></div>`
+    :`<div class="alert-banner"><span class="ab-icon">✅</span><div>No falta nada pendiente de esta lista. Igual se puede mandar una nota.</div></div>`;
+  sv('pedirFaltantesObs','');
+  openModal('modalPedirFaltantes');
+}
+async function confirmarPedirFaltantesOperadora(){
+  const id=pedirFaltantesTargetId;
+  if(!id)return;
+  const nota=gv('pedirFaltantesObs').trim();
+  const btn=document.getElementById('btnEnviarPedirFaltantes');
+  btn.disabled=true;
   try{
     const data=await api('/api/operadoras/'+id+'/pedir-faltantes',{method:'POST',body:JSON.stringify({obs:nota})});
     const extra=data.codigo_enviado?'WhatsApp enviado':'quedó en cola de WhatsApp';
     showToast('✅ Pedido de faltantes '+extra);
+    closeModal('modalPedirFaltantes');
   }catch(e){
     showToast('❌ '+e.message,'error');
+  }finally{
+    btn.disabled=false;
   }
 }
 function showOpFicha(id){

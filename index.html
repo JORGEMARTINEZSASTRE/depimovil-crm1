@@ -936,7 +936,7 @@
   var mount = document.getElementById('dmModalsMount');
   if (!mount) return;
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'partials/modals.html?v=20260919-coordinadora', false);
+  xhr.open('GET', 'partials/modals.html?v=20260922-faltantes', false);
   xhr.send(null);
   if (xhr.status >= 200 && xhr.status < 300) {
     mount.outerHTML = xhr.responseText;
