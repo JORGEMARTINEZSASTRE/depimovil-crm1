@@ -1,0 +1,25 @@
+name: servidor
+# Ejecuta un comando en el servidor Hetzner por SSH. Se dispara a mano (workflow_dispatch).
+# Requiere el secret SSH_KEY (llave privada con acceso root al servidor).
+on:
+  workflow_dispatch:
+    inputs:
+      cmd:
+        description: 'Comando a ejecutar en el servidor'
+        required: true
+concurrency: servidor
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Ejecutar en el servidor
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          CMD: ${{ github.event.inputs.cmd }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 65.21.153.147 >> ~/.ssh/known_hosts 2>/dev/null
+          printf '%s\n' "$CMD" | ssh -o BatchMode=yes root@65.21.153.147 'bash -s' 2>&1
