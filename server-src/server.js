@@ -56,6 +56,8 @@ const loginLimiter = rateLimit({
 });
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth/whatsapp/request', loginLimiter);
+app.use('/api/auth/password/forgot', loginLimiter);
+app.use('/api/auth/password/reset', loginLimiter);
 app.use('/api/auth/whatsapp/verify', loginLimiter);
 
 // Body parsing

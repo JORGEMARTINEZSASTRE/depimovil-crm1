@@ -54,6 +54,21 @@
       <div class="field-group"><label>Contraseña</label>
         <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/></div>
       <button class="btn-primary" onclick="doLogin()">Ingresar al Sistema</button>
+      <a href="#" onclick="abrirOlvide();return false" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:var(--text2,#888);text-decoration:underline">¿Olvidaste tu contraseña?</a>
+    </div>
+    <div id="loginOlvidePanel" style="display:none">
+      <p style="font-size:13px;margin:0 0 14px;opacity:.8">Te mandamos un código al WhatsApp que tenés cargado en tu usuario.</p>
+      <div class="field-group"><label>Email</label>
+        <input type="email" id="olvEmail" placeholder="usuario@depimovil.com" autocomplete="username"/></div>
+      <button class="btn-primary" id="olvPedirBtn" onclick="pedirCodigoReset()">Enviar código por WhatsApp</button>
+      <div id="olvPaso2" style="display:none;margin-top:14px">
+        <div class="field-group"><label>Código</label>
+          <input type="text" id="olvCodigo" placeholder="123456" maxlength="6" inputmode="numeric"/></div>
+        <div class="field-group"><label>Nueva contraseña</label>
+          <input type="password" id="olvPass" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/></div>
+        <button class="btn-primary" onclick="confirmarReset()">Cambiar contraseña</button>
+      </div>
+      <a href="#" onclick="cerrarOlvide();return false" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:var(--text2,#888);text-decoration:underline">← Volver al inicio de sesión</a>
     </div>
     <div id="loginWhatsappPanel">
       <input type="hidden" id="waLoginRol" value="admin"/>
@@ -950,7 +965,7 @@
 
 <script data-cfasync="false" src="assets/js/core/storage-api.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/core/seed-data.js?v=20260526-no-demo-prod"></script>
-<script data-cfasync="false" src="assets/js/core/auth.js?v=20260719-solo-mail"></script>
+<script data-cfasync="false" src="assets/js/core/auth.js?v=20261008-olvide"></script>
 <script data-cfasync="false" src="assets/js/core/navigation.js?v=20260919-coordinadora"></script>
 <script data-cfasync="false" src="assets/js/modules/dashboard.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260923-datos"></script>

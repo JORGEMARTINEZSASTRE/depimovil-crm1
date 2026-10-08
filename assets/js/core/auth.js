@@ -270,3 +270,52 @@ function startApp(){
     catch(e){ if(e?.status===401||String(e).includes('401')){ clearInterval(window._sessionCheckInterval); logout(); } }
   }, 2*60*1000);
 }
+
+
+/* ── Olvidé mi contraseña ── */
+function abrirOlvide(){
+  document.getElementById('loginAdminPanel').style.display='none';
+  document.getElementById('loginOlvidePanel').style.display='';
+  document.getElementById('loginError').style.display='none';
+  const e=document.getElementById('loginEmail').value.trim();
+  if(e) document.getElementById('olvEmail').value=e;
+}
+function cerrarOlvide(){
+  document.getElementById('loginOlvidePanel').style.display='none';
+  document.getElementById('olvPaso2').style.display='none';
+  document.getElementById('loginError').style.display='none';
+  switchLoginMode('admin');
+}
+async function pedirCodigoReset(){
+  const err=document.getElementById('loginError'); err.style.display='none';
+  const email=document.getElementById('olvEmail').value.trim().toLowerCase();
+  const btn=document.getElementById('olvPedirBtn');
+  if(!email){ err.textContent='Ingresá tu email'; err.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Enviando...';
+  try{
+    const data=await api('/api/auth/password/forgot',{method:'POST',body:JSON.stringify({email})});
+    document.getElementById('olvPaso2').style.display='';
+    btn.textContent='Reenviar código';
+    showToast(data.destino ? '📱 Código enviado al WhatsApp '+data.destino : '📱 Si el email está registrado, te llega un código por WhatsApp');
+  }catch(e){
+    err.textContent=e.message||'No se pudo enviar el código'; err.style.display='block';
+    btn.textContent='Enviar código por WhatsApp';
+  }finally{ btn.disabled=false; }
+}
+async function confirmarReset(){
+  const err=document.getElementById('loginError'); err.style.display='none';
+  const email=document.getElementById('olvEmail').value.trim().toLowerCase();
+  const codigo=document.getElementById('olvCodigo').value.trim();
+  const new_password=document.getElementById('olvPass').value;
+  try{
+    await api('/api/auth/password/reset',{method:'POST',body:JSON.stringify({email,codigo,new_password})});
+    showToast('✅ Contraseña actualizada. Ya podés ingresar.');
+    document.getElementById('loginEmail').value=email;
+    document.getElementById('loginPass').value='';
+    document.getElementById('olvCodigo').value='';
+    document.getElementById('olvPass').value='';
+    cerrarOlvide();
+  }catch(e){
+    err.textContent=e.message||'No se pudo cambiar la contraseña'; err.style.display='block';
+  }
+}

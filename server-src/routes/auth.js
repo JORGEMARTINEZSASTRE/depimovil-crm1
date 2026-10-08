@@ -1238,4 +1238,103 @@ router.post('/portal-login', async (req, res) => {
   }
 });
 
+
+/* ══════════════════════════════════════════════════════════
+   OLVIDÉ MI CONTRASEÑA — código de 6 dígitos por WhatsApp
+   POST /api/auth/password/forgot { email }
+   POST /api/auth/password/reset  { email, codigo, new_password }
+══════════════════════════════════════════════════════════ */
+let resetTablaLista = false;
+async function asegurarTablaReset() {
+  if (resetTablaLista) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id SERIAL PRIMARY KEY,
+      usuario_id INTEGER NOT NULL,
+      codigo_hash TEXT NOT NULL,
+      intentos INTEGER NOT NULL DEFAULT 0,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )`);
+  resetTablaLista = true;
+}
+
+function enmascararTel(tel) {
+  const d = String(tel || '').replace(/\D/g, '');
+  return d.length > 4 ? '•••• ' + d.slice(-3) : '';
+}
+
+router.post('/password/forgot', async (req, res) => {
+  const generico = { ok: true, message: 'Si el email está registrado, te mandamos un código por WhatsApp.' };
+  try {
+    await asegurarTablaReset();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'Email requerido' });
+
+    const { rows } = await pool.query(
+      `SELECT id, whatsapp FROM usuarios WHERE LOWER(email) = $1 AND status = 'activo' LIMIT 1`, [email]);
+    const user = rows[0];
+    if (!user || !user.whatsapp) return res.json(generico);
+
+    const reciente = await pool.query(
+      `SELECT 1 FROM password_resets WHERE usuario_id=$1 AND created_at > NOW() - INTERVAL '60 seconds'`, [user.id]);
+    if (reciente.rows.length) return res.status(429).json({ error: 'Esperá un minuto antes de pedir otro código' });
+
+    const codigo = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    await pool.query(`UPDATE password_resets SET used_at = NOW() WHERE usuario_id=$1 AND used_at IS NULL`, [user.id]);
+    await pool.query(
+      `INSERT INTO password_resets (usuario_id, codigo_hash, expires_at) VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
+      [user.id, await bcrypt.hash(codigo, 10)]);
+
+    await enviarOEncolarWhatsapp({
+      telefono: user.whatsapp,
+      mensaje: `🔐 DepiMóvil CRM\n\nTu código para cambiar la contraseña es: *${codigo}*\n\nVence en 10 minutos. Si no lo pediste, ignorá este mensaje.`,
+      tipo: 'codigo_reset_password',
+    });
+    res.json({ ...generico, destino: enmascararTel(user.whatsapp) });
+  } catch (err) {
+    console.error('Password forgot error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+router.post('/password/reset', async (req, res) => {
+  try {
+    await asegurarTablaReset();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const codigo = String(req.body.codigo || '').trim();
+    const nueva = String(req.body.new_password || '');
+    if (!email || !codigo || !nueva) return res.status(400).json({ error: 'Completá todos los campos' });
+    if (nueva.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+
+    const { rows: u } = await pool.query(
+      `SELECT id FROM usuarios WHERE LOWER(email) = $1 AND status = 'activo' LIMIT 1`, [email]);
+    if (!u.length) return res.status(400).json({ error: 'Código inválido o vencido' });
+
+    const { rows } = await pool.query(
+      `SELECT * FROM password_resets WHERE usuario_id=$1 AND used_at IS NULL AND expires_at > NOW()
+       ORDER BY created_at DESC LIMIT 1`, [u[0].id]);
+    const r = rows[0];
+    if (!r || r.intentos >= 5) return res.status(400).json({ error: 'Código inválido o vencido. Pedí uno nuevo.' });
+
+    if (!(await bcrypt.compare(codigo, r.codigo_hash))) {
+      await pool.query(`UPDATE password_resets SET intentos = intentos + 1 WHERE id=$1`, [r.id]);
+      return res.status(400).json({ error: 'Código incorrecto' });
+    }
+
+    await pool.query(`UPDATE usuarios SET password_hash=$1, updated_at=NOW() WHERE id=$2`,
+      [await bcrypt.hash(nueva, 12), u[0].id]);
+    await pool.query(`UPDATE password_resets SET used_at = NOW() WHERE id=$1`, [r.id]);
+    await pool.query(
+      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+      ['PASSWORD_RESET', 'usuario', u[0].id, 'Contraseña restablecida con código por WhatsApp', u[0].id, req.ip]
+    ).catch(() => {});
+    res.json({ ok: true, message: 'Contraseña actualizada' });
+  } catch (err) {
+    console.error('Password reset error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 module.exports = router;
