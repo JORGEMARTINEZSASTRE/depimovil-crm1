@@ -32,7 +32,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="DepiMóvil"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<link rel="stylesheet" href="assets/css/app.css?v=20260919-ancho-notebook"/>
+<link rel="stylesheet" href="assets/css/app.css?v=20261008-usr"/>
 </head>
 <body>
 
@@ -425,21 +425,15 @@
 
         <!-- USUARIOS -->
         <div class="view" id="view-usuarios">
-          <div class="table-container">
-            <div class="table-header">
-              <div>
-                <h3>👥 Usuarios internos</h3>
-                <div style="color:var(--text3);font-size:12px;margin-top:2px">Personal con acceso al CRM. Se ingresa con el WhatsApp cargado.</div>
-              </div>
-              <div class="table-actions">
-                <button class="btn-add" onclick="openUsuarioModal()">+ Nuevo usuario</button>
-              </div>
+          <div class="usr-head">
+            <div>
+              <h2 class="usr-title">Usuarios y roles</h2>
+              <p class="usr-sub">Personal con acceso al CRM. Cada rol define qué puede ver y hacer.</p>
             </div>
-            <div style="overflow-x:auto">
-              <table><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th style="text-align:right">Acciones</th></tr></thead>
-              <tbody id="usuariosTableBody"></tbody></table>
-            </div>
+            <button class="btn-add" onclick="openUsuarioModal()">+ Nuevo usuario</button>
           </div>
+          <div class="usr-filtros" id="usrFiltros"></div>
+          <div class="usr-grid" id="usuariosTableBody"></div>
         </div>
 
         <!-- LIMPIEZAS -->
@@ -974,7 +968,7 @@
 <script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260923-badge"></script>
 <script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/limpiezas.js?v=20260921-traslados"></script>
-<script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20261008-usuarios2"></script>
+<script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20261008-usuarios3"></script>
 <script data-cfasync="false" src="assets/js/modules/reservas.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/pagos.js?v=20260921-qa"></script>

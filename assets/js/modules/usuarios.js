@@ -16,34 +16,63 @@ function _esYo(u){
   return typeof currentUser!=='undefined'&&currentUser&&Number(currentUser.id)===Number(u.id);
 }
 
+const USR_ROL_COLOR={superadmin:'#d4a96a',administrador:'#d4a96a',operaciones:'#5c8fe0',coordinadora:'#c76b8a',comercial:'#52c48a'};
+let _usrFiltro='todos';
+
+function _iniciales(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'?';}
+
+function _rolLabel(r){return r==='superadmin'?'Administrador':(USUARIO_ROLES_INTERNOS[r]||ROLE_LABELS?.[r]||r);}
+
+function filtrarUsuarios(f){_usrFiltro=f;_pintarUsuarios();}
+
+function _pintarUsuarios(){
+  const grid=document.getElementById('usuariosTableBody');if(!grid)return;
+  const fil=document.getElementById('usrFiltros');
+  const rows=_usuariosCache;
+  const grupo=r=>r==='superadmin'?'administrador':r;
+  const cuenta={todos:rows.length};
+  rows.forEach(u=>{const g=grupo(u.rol);cuenta[g]=(cuenta[g]||0)+1;});
+  if(fil){
+    const chips=[['todos','Todos'],...Object.entries(USUARIO_ROLES_INTERNOS)].filter(([k])=>k==='todos'||cuenta[k]);
+    fil.innerHTML=chips.map(([k,v])=>`<button class="usr-chip${_usrFiltro===k?' on':''}" onclick="filtrarUsuarios('${k}')">${escapeHTML(v)}<b>${cuenta[k]||0}</b></button>`).join('');
+  }
+  const lista=_usrFiltro==='todos'?rows:rows.filter(u=>grupo(u.rol)===_usrFiltro);
+  if(!lista.length){grid.innerHTML='<div class="usr-vacio">👥<br>No hay usuarios en este rol</div>';return;}
+  grid.innerHTML=lista.map(u=>{
+    const activo=u.status==='activo', yo=_esYo(u);
+    const c=USR_ROL_COLOR[u.rol]||'#8892aa';
+    const acciones=activo
+      ?`<button class="usr-btn" onclick="openUsuarioModal(${u.id})">✏️ Editar</button>${yo?'':`<button class="usr-btn del" onclick="eliminarUsuario(${u.id})">🗑 Eliminar</button>`}`
+      :`<button class="usr-btn" onclick="reactivarUsuario(${u.id})">↩️ Reactivar</button>`;
+    return `<div class="usr-card${activo?'':' off'}">
+      <div class="usr-top">
+        <div class="usr-av" style="background:${c}">${escapeHTML(_iniciales(u.nombre))}</div>
+        <div class="usr-info">
+          <div class="usr-nombre">${escapeHTML(u.nombre||'')}${yo?'<span class="usr-yo">VOS</span>':''}</div>
+          <div class="usr-mail">${escapeHTML(u.email||'')}</div>
+        </div>
+      </div>
+      <div class="usr-meta">
+        <span class="usr-rol" style="background:${c}22;color:${c}">${escapeHTML(_rolLabel(u.rol))}</span>
+        <span class="usr-est">${activo?'Activo':'Inactivo'}</span>
+        ${u.whatsapp?`<span class="usr-wa">📱 ${escapeHTML(u.whatsapp)}</span>`:''}
+      </div>
+      <div class="usr-acc">${acciones}</div>
+    </div>`;
+  }).join('');
+}
+
 async function renderUsuarios(){
-  const tbody=document.getElementById('usuariosTableBody');if(!tbody)return;
-  tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><p>Cargando…</p></div></td></tr>';
+  const grid=document.getElementById('usuariosTableBody');if(!grid)return;
+  grid.innerHTML='<div class="usr-vacio">Cargando…</div>';
   try{
     const rows=(await api('/api/permisos/usuarios')).filter(u=>USUARIO_ROLES_LISTA.includes(u.rol));
-    rows.sort((a,b)=>(a.status==='activo'?0:1)-(b.status==='activo'?0:1));
+    rows.sort((a,b)=>((a.status==='activo'?0:1)-(b.status==='activo'?0:1))||String(a.nombre).localeCompare(String(b.nombre)));
     _usuariosCache=rows;
-    if(!rows.length){
-      tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div><h3>Sin usuarios internos</h3></div></td></tr>';
-      return;
-    }
-    tbody.innerHTML=rows.map(u=>{
-      const activo=u.status==='activo';
-      const yo=_esYo(u);
-      const acciones=activo
-        ?`<button class="action-btn" onclick="openUsuarioModal(${u.id})">✏️ Editar</button>
-           ${yo?'':`<button class="action-btn danger" onclick="eliminarUsuario(${u.id})">🗑 Eliminar</button>`}`
-        :`<button class="action-btn" onclick="reactivarUsuario(${u.id})">↩️ Reactivar</button>`;
-      return `<tr${activo?'':' style="opacity:.55"'}>
-        <td>${escapeHTML(u.nombre||'')}${yo?' <span style="color:var(--text3);font-size:12px">(vos)</span>':''}</td>
-        <td>${escapeHTML(u.email||'')}</td>
-        <td><span class="badge badge-blue">${escapeHTML(ROLE_LABELS[u.rol]||u.rol)}</span></td>
-        <td>${activo?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-gray">Inactivo</span>'}</td>
-        <td style="white-space:nowrap;text-align:right">${acciones}</td>
-      </tr>`;
-    }).join('');
+    if(!rows.length){grid.innerHTML='<div class="usr-vacio">👥<br>Sin usuarios internos</div>';return;}
+    _pintarUsuarios();
   }catch(e){
-    tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><p>No se pudieron cargar los usuarios: '+escapeHTML(e.message)+'</p></div></td></tr>';
+    grid.innerHTML='<div class="usr-vacio">No se pudieron cargar los usuarios: '+escapeHTML(e.message)+'</div>';
   }
 }
 
