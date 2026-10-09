@@ -1,6 +1,9 @@
-# diagnóstico inicial
-cd /app3; git log --oneline -1; git status --short | head -40
-echo ---API---; ls -la /opt/depimovil-api; git -C /opt/depimovil-api log --oneline -1 2>&1 | head -1
-echo ---DIFF---; diff -rq /opt/depimovil-api/routes /app3/server-src/routes | head -30
-echo ---PM2---; pm2 jlist 2>/dev/null | python3 -c "import json,sys;[print(p['name'],p['pm2_env'].get('pm_cwd'),p['pm2_env'].get('pm_exec_path'),p['pm2_env']['status']) for p in json.load(sys.stdin)]"
-echo ---NGINX---; grep -rhE "server_name|root |proxy_pass" /etc/nginx/sites-enabled/ 2>/dev/null | sort -u | head -30
+# 1) anular llave github_actions expuesta
+sed -i '/github-actions$/d' /root/.ssh/authorized_keys; rm -f /root/.ssh/github_actions /root/.ssh/github_actions.pub
+echo "llaves github-actions restantes: $(grep -c github-actions /root/.ssh/authorized_keys)"
+# 2) estructura real de la API
+echo ---SRC---; ls /opt/depimovil-api/src /opt/depimovil-api/src/*/ | head -80
+# 3) comparar API en produccion vs GitHub (server-src)
+cd /root && rm -rf cmp && git clone -q --depth 1 git@github.com:JORGEMARTINEZSASTRE/depimovil-crm1.git cmp
+echo ---DIFF-API-vs-GITHUB---; diff -rq /opt/depimovil-api/src /root/cmp/server-src | head -40
+echo ---DIFF-FRONT-vs-GITHUB---; diff -rq --exclude=.git /app3 /root/cmp | grep -v "^Only in /root/cmp: .github" | head -40
