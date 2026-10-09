@@ -1,166 +1,150 @@
-# run 0769787dd4a8 2026-10-09T00:38:02Z
-llaves github-actions restantes: 0
----SRC---
-/opt/depimovil-api/src:
-automatizaciones.js
-envios.js
-middleware
-migrations
-operadoras.js
-pagos.js
-recordatorios.js
-recordatorios.js.bak-leadsdigest-20260831145623
-reservas.js
-routes
-server.js
-server.js.bak-codex-20260702194931
-server.js.bak-lineaudit-20260523162806
-server.js.bak-mantenimientos-
-utils
+# run 04c9e4892861 2026-10-09T00:39:03Z
+===USUARIOS_JS===
+/* ══════════════════════════════════
+   USUARIOS INTERNOS (solo administradores)
+   Alta de personal del CRM: coordinadora, operaciones, comercial.
+══════════════════════════════════ */
+const USUARIO_ROLES_INTERNOS={
+  coordinadora:'Coordinadora',
+  operaciones:'Administración / Ops',
+  comercial:'Comercial / CRM'
+};
+const USUARIO_ROLES_LISTA=['superadmin','administrador','operaciones','comercial','coordinadora'];
 
-/opt/depimovil-api/src/middleware/:
-auth.js
-auth.js.bak-lineaudit-20260523162806
+async function renderUsuarios(){
+  const tbody=document.getElementById('usuariosTableBody');if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="4"><div class="empty-state"><p>Cargando…</p></div></td></tr>';
+  try{
+    const rows=(await api('/api/permisos/usuarios')).filter(u=>USUARIO_ROLES_LISTA.includes(u.rol));
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="4"><div class="empty-state"><div class="icon">👥</div><h3>Sin usuarios internos</h3></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML=rows.map(u=>`<tr>
+      <td>${escapeHTML(u.nombre||'')}</td>
+      <td>${escapeHTML(u.email||'')}</td>
+      <td><span class="badge badge-blue">${escapeHTML(ROLE_LABELS[u.rol]||u.rol)}</span></td>
+      <td>${u.status==='activo'?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-gray">'+escapeHTML(u.status||'')+'</span>'}</td>
+    </tr>`).join('');
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="4"><div class="empty-state"><p>No se pudieron cargar los usuarios: '+escapeHTML(e.message)+'</p></div></td></tr>';
+  }
+}
 
-/opt/depimovil-api/src/migrations/:
-006_usuarios_roles_constraint.sql
-007_maquinas_foto_url.sql
-008_mantenimientos_maquinas.sql
-009_reserva_historial_columns.sql
-010_remove_fake_transportistas.sql
-011_transportistas_constraints_cleanup.sql
-012_automation_engine.sql
-014_adn_precios_maquinas.sql
-015_rol_coordinadora.sql
+function openUsuarioModal(){
+  document.getElementById('usrRol').innerHTML=Object.entries(USUARIO_ROLES_INTERNOS)
+    .map(([k,v])=>`<option value="${k}">${escapeHTML(v)}</option>`).join('');
+  ['usrNombre','usrEmail','usrWhatsapp','usrPassword'].forEach(id=>sv(id,''));
+  openModal('modalUsuario');
+}
 
-/opt/depimovil-api/src/routes/:
-auth.js
-auth.js.bak-alta-fix-20260526210747
-auth.js.bak-alta-instagram-spa-
-auth.js.bak-alta-whatsapp-reuso-
-auth.js.bak-lineaudit-20260523162806
-auth.js.bak-quita-suspendido-20260523063426
-auth.js.bak-registro-operadora-20260526182240
-auth.js.bak-reusar-usuario-whatsapp-
-auth.js.bak-security-20260523155904
-auth.js.bak-wa-auth-
-automatizaciones.js
-contratos.js
-contratos.js.bak-contrato-marco-
-contratos.js.bak-docs-nombre-
-contratos.js.bak-security-20260523155904
-contratos.js.bak-short-filenames-
-envios.js
-envios.js.bak-lineaudit-20260523162806
-envios.js.bak-permisos-
-envios.js.bak-security-20260523155904
-finanzas.js
-leads.js
-leads.js.bak-lineaudit-20260523162806
-limpiezas.js
-mantenimientos.js
-maquinas.js
-maquinas.js.bak-dbfix-
-maquinas.js.bak-foto-20260523232808
-maquinas.js.bak-mantenimientos-
-maquinas.js.bak-security-20260523155904
-maquinas.js.bak-viajeraciudad-20260827231221
-operadoras.js
-operadoras.js.backup-habilitaciones-20260517165758
-operadoras.js.bak-actividad-
-operadoras.js.bak-delete-fk-dynamic-
-operadoras.js.bak-directorio-
-operadoras.js.bak-eliminar-operadora-
-operadoras.js.bak-eliminar-simple-
-operadoras.js.bak-habilitaciones-compat-
-operadoras.js.bak-lineaudit-20260523162806
-operadoras.js.bak-security-20260523155904
-pagos.js
-pagos.js.bak
-permisos.js
-permisos.js.bak-lineaudit-20260523162806
-permisos.js.bak-permisos-
-permisos.js.bak-security-20260523155904
----DIFF-API-vs-GITHUB---
-Only in /opt/depimovil-api/src: automatizaciones.js
-Only in /opt/depimovil-api/src: envios.js
-Only in /opt/depimovil-api/src/middleware: ._auth.js
-Files /opt/depimovil-api/src/middleware/auth.js and /root/cmp/server-src/middleware/auth.js differ
-Only in /opt/depimovil-api/src/middleware: auth.js.bak-lineaudit-20260523162806
-Only in /root/cmp/server-src/migrations: 002_production_compat.sql
-Only in /root/cmp/server-src/migrations: 003_audit_log_compat.sql
-Only in /root/cmp/server-src/migrations: 004_seed_transportistas_reales.sql
-Only in /root/cmp/server-src/migrations: 005_operadoras_ficha_mejoras.sql
-Only in /opt/depimovil-api/src/migrations: ._006_usuarios_roles_constraint.sql
-Only in /opt/depimovil-api/src/migrations: ._007_maquinas_foto_url.sql
-Only in /opt/depimovil-api/src/migrations: ._008_mantenimientos_maquinas.sql
-Only in /opt/depimovil-api/src/migrations: ._009_reserva_historial_columns.sql
-Only in /opt/depimovil-api/src/migrations: ._010_remove_fake_transportistas.sql
-Only in /opt/depimovil-api/src/migrations: ._011_transportistas_constraints_cleanup.sql
-Only in /opt/depimovil-api/src/migrations: ._012_automation_engine.sql
-Only in /root/cmp/server-src/migrations: 013_maquina_tarifas.sql
-Only in /opt/depimovil-api/src: operadoras.js
-Only in /opt/depimovil-api/src: pagos.js
-Files /opt/depimovil-api/src/recordatorios.js and /root/cmp/server-src/recordatorios.js differ
-Only in /opt/depimovil-api/src: recordatorios.js.bak-leadsdigest-20260831145623
-Only in /opt/depimovil-api/src: reservas.js
-Only in /opt/depimovil-api/src/routes: ._auth.js
-Files /opt/depimovil-api/src/routes/auth.js and /root/cmp/server-src/routes/auth.js differ
-Only in /opt/depimovil-api/src/routes: auth.js.bak-alta-fix-20260526210747
-Only in /opt/depimovil-api/src/routes: auth.js.bak-alta-instagram-spa-
-Only in /opt/depimovil-api/src/routes: auth.js.bak-alta-whatsapp-reuso-
-Only in /opt/depimovil-api/src/routes: auth.js.bak-lineaudit-20260523162806
-Only in /opt/depimovil-api/src/routes: auth.js.bak-quita-suspendido-20260523063426
-Only in /opt/depimovil-api/src/routes: auth.js.bak-registro-operadora-20260526182240
-Only in /opt/depimovil-api/src/routes: auth.js.bak-reusar-usuario-whatsapp-
-Only in /opt/depimovil-api/src/routes: auth.js.bak-security-20260523155904
-Only in /opt/depimovil-api/src/routes: auth.js.bak-wa-auth-
-Only in /opt/depimovil-api/src/routes: ._automatizaciones.js
-Only in /opt/depimovil-api/src/routes: ._contratos.js
-Only in /opt/depimovil-api/src/routes: contratos.js.bak-contrato-marco-
-Only in /opt/depimovil-api/src/routes: contratos.js.bak-docs-nombre-
-Only in /opt/depimovil-api/src/routes: contratos.js.bak-security-20260523155904
-Only in /opt/depimovil-api/src/routes: contratos.js.bak-short-filenames-
-Only in /opt/depimovil-api/src/routes: ._envios.js
----DIFF-FRONT-vs-GITHUB---
-Only in /app3/assets/css: app.css.bak-logo-20260807
-Only in /app3/assets/css: app.css.bak-logo-20260808
-Files /app3/assets/js/core/auth.js and /root/cmp/assets/js/core/auth.js differ
-Only in /app3/assets/js/core: auth.js.bak-login-20260807
-Files /app3/assets/js/core/helpers.js and /root/cmp/assets/js/core/helpers.js differ
-Files /app3/assets/js/core/navigation.js and /root/cmp/assets/js/core/navigation.js differ
-Files /app3/assets/js/core/storage-api.js and /root/cmp/assets/js/core/storage-api.js differ
-Only in /app3/assets/js: mobile-admin-entry.js.bak-fix-operadoras-20260725
-Only in /app3/assets/js: mobile-admin-entry.js.bak-login-20260807
-Files /app3/assets/js/modules/busqueda.js and /root/cmp/assets/js/modules/busqueda.js differ
-Files /app3/assets/js/modules/caja.js and /root/cmp/assets/js/modules/caja.js differ
-Files /app3/assets/js/modules/compras-proveedores.js and /root/cmp/assets/js/modules/compras-proveedores.js differ
-Files /app3/assets/js/modules/configuracion.js and /root/cmp/assets/js/modules/configuracion.js differ
-Only in /app3/assets/js/modules: contratos.js.bak-codex-20260702194931
-Only in /app3/assets/js/modules: contratos.js.bak-codex-20260703004407
-Files /app3/assets/js/modules/dashboard.js and /root/cmp/assets/js/modules/dashboard.js differ
-Files /app3/assets/js/modules/embudo.js and /root/cmp/assets/js/modules/embudo.js differ
-Files /app3/assets/js/modules/envios.js and /root/cmp/assets/js/modules/envios.js differ
-Files /app3/assets/js/modules/formacion-capacitaciones.js and /root/cmp/assets/js/modules/formacion-capacitaciones.js differ
-Files /app3/assets/js/modules/formacion-evaluaciones.js and /root/cmp/assets/js/modules/formacion-evaluaciones.js differ
-Files /app3/assets/js/modules/formacion-helpers.js and /root/cmp/assets/js/modules/formacion-helpers.js differ
-Files /app3/assets/js/modules/leads.js and /root/cmp/assets/js/modules/leads.js differ
-Files /app3/assets/js/modules/logistica.js and /root/cmp/assets/js/modules/logistica.js differ
-Files /app3/assets/js/modules/mantenimientos.js and /root/cmp/assets/js/modules/mantenimientos.js differ
-Files /app3/assets/js/modules/maquinas.js and /root/cmp/assets/js/modules/maquinas.js differ
-Files /app3/assets/js/modules/operadoras.js and /root/cmp/assets/js/modules/operadoras.js differ
-Files /app3/assets/js/modules/pagos.js and /root/cmp/assets/js/modules/pagos.js differ
-Files /app3/assets/js/modules/reportes.js and /root/cmp/assets/js/modules/reportes.js differ
-Files /app3/assets/js/modules/reserva-automatizacion.js and /root/cmp/assets/js/modules/reserva-automatizacion.js differ
-Files /app3/assets/js/modules/reservas.js and /root/cmp/assets/js/modules/reservas.js differ
-Files /app3/assets/js/modules/revision-operadoras.js and /root/cmp/assets/js/modules/revision-operadoras.js differ
-Files /app3/assets/js/modules/transportistas.js and /root/cmp/assets/js/modules/transportistas.js differ
-Files /app3/assets/js/modules/usuarios.js and /root/cmp/assets/js/modules/usuarios.js differ
-Files /app3/assets/js/modules/ventas-maquinas.js and /root/cmp/assets/js/modules/ventas-maquinas.js differ
-Files /app3/assets/js/modules/whatsapp.js and /root/cmp/assets/js/modules/whatsapp.js differ
-Only in /app3: conectar-crm-celular.html.bak-mobile-admin-20260703014807
-Only in /root/cmp: deploy-trigger.txt
-Files /app3/index.html and /root/cmp/index.html differ
-Only in /app3: index.html.bak-login-20260807
-Only in /app3: index.html.bak-logo-20260807
+async function saveUsuario(){
+  const payload={
+    nombre:gv('usrNombre').trim(),
+    email:gv('usrEmail').trim().toLowerCase(),
+    whatsapp:gv('usrWhatsapp').trim(),
+    password:gv('usrPassword'),
+    rol:gv('usrRol')
+  };
+  if(!payload.nombre||!payload.email||!payload.password||!payload.rol){
+    showToast('⚠️ Nombre, email, contraseña y rol son obligatorios','warn');
+    return;
+  }
+  if(payload.password.length<8){
+    showToast('⚠️ La contraseña debe tener al menos 8 caracteres','warn');
+    return;
+  }
+  try{
+    await api('/api/auth/register',{method:'POST',body:JSON.stringify(payload)});
+    closeModal('modalUsuario');
+    showToast('✅ Usuario creado: '+payload.nombre);
+    renderUsuarios();
+  }catch(e){
+    showToast('❌ '+e.message,'error');
+  }
+}
+===INDEX_USUARIOS===
+424:              <table><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th></tr></thead>
+425:              <tbody id="usuariosTableBody"></tbody></table>
+962:<script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20260919-usuarios"></script>
+===PERMISOS_JS_HEAD===
+const express = require('express');
+const pool = require('../utils/db');
+const { auth, requireRole, isOperadoraRole, isOpsRole, isOpsOrCoordinadora } = require('../middleware/auth');
+
+const router = express.Router();
+
+// ─────────────────────────────────────────────
+// HELPERS — tabla habilitaciones (permisos/categorías habilitadas por operadora)
+===PERMISOS_JS_TAIL===
+    { id: 'superadmin',             label: 'Administrador',              descripcion: 'Acceso total. Jorge y Julieta.' },
+    { id: 'operaciones',            label: 'Administración / Ops',       descripcion: 'Gestión operativa sin borrar usuarios críticos' },
+    { id: 'coordinadora',           label: 'Coordinadora',               descripcion: 'Reservas, fechas, máquinas, envíos y transportistas. Sin finanzas, contratos, reportes ni configuración.' },
+    { id: 'comercial',              label: 'Comercial',                  descripcion: 'Leads, embudo y WhatsApp comercial' },
+    { id: 'operadora_habilitada',   label: 'Operadora habilitada',       descripcion: 'Puede ver sus reservas, pagos, envíos, equipos y formación' },
+    { id: 'operadora_limitada',     label: 'Operadora en capacitación',  descripcion: 'Solo inicio y formación hasta completar habilitación' },
+    { id: 'operadora',              label: 'Operadora automática',       descripcion: 'Se clasifica como habilitada o en capacitación según sus habilitaciones activas' },
+    { id: 'transportista',          label: 'Transportista',              descripcion: 'Solo logística/envíos propios' },
+  ]);
+});
+
+// ─────────────────────────────────────────────
+// GET /api/permisos/usuarios — listar usuarios (admin)
+// ─────────────────────────────────────────────
+router.get('/usuarios', auth, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, nombre, email, rol, status, operadora_id, transportista_id,
+             registro_origen, created_at, ultimo_login_whatsapp AS ultimo_login
+      FROM usuarios
+      ORDER BY nombre
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /api/permisos/usuarios error:', err);
+    res.status(500).json({ error: 'Error al obtener usuarios' });
+  }
+});
+
+module.exports = router;
+===MW_EXPORTS===
+39:function isAdminRole(rol) {
+44:  return isAdminRole(rol) || rol === 'operaciones';
+114:function requireRole(...roles) {
+121:      if (role === 'superadmin' && isAdminRole(req.user.rol)) return true;
+132:module.exports = { auth, requireRole, generateToken, isAdminRole, isOpsRole, isCoordinadoraRole, isOpsOrCoordinadora, isOperadoraRole };
+===SERVER_PERMISOS===
+92:app.use('/api/permisos', require('./routes/permisos'));
+===ROLE_LABELS===
+37:const ROLE_LABELS={
+38-  superadmin:'Administrador',
+39-  administrador:'Administrador',
+40-  operaciones:'Administración / Ops',
+41-  coordinadora:'Coordinadora',
+42-  comercial:'Comercial / CRM',
+43-  operadora:'Operadora',
+44-  operadora_habilitada:'Operadora habilitada',
+45-  operadora_limitada:'Operadora en capacitación',
+46-  transportista:'Transportista',
+47-};
+48-const VIEW_PERMISSIONS={
+49-  superadmin:['*'],
+===CURRENTUSER===
+4:let currentUser=null;
+35:    currentUser={id:data.user.id,nombre:data.user.nombre,email:data.user.email,
+88:    currentUser={id:data.user.id,nombre:data.user.nombre,email:data.user.email,
+210:  TOKEN.del();currentUser=null;
+222:      currentUser={id:data.user.id,nombre:data.user.nombre,email:data.user.email,
+===USR_ROLES_CHECK===
+CHECK (((rol)::text = ANY ((ARRAY['superadmin'::character varying, 'administrador'::character varying, 'operaciones'::character varying, 'coordinadora'::character varying, 'comercial'::character varying, 'operadora'::character varying, 'operadora_habilitada'::character varying, 'operadora_limitada'::character varying, 'transportista'::character varying])::text[])))
+===AUDIT===
+id|integer||not null|nextval('audit_log_id_seq'::regclass)
+accion|character varying(20)||not null|
+entidad|character varying(40)||not null|
+entidad_id|integer|||
+detalle|text|||''::text
+usuario_id|integer|||
+ip|character varying(45)|||''::character varying
+created_at|timestamp with time zone|||now()
+usuario_email|character varying(200)|||
 # exit 0
