@@ -1,9 +1,11 @@
-# 1) anular llave github_actions expuesta
-sed -i '/github-actions$/d' /root/.ssh/authorized_keys; rm -f /root/.ssh/github_actions /root/.ssh/github_actions.pub
-echo "llaves github-actions restantes: $(grep -c github-actions /root/.ssh/authorized_keys)"
-# 2) estructura real de la API
-echo ---SRC---; ls /opt/depimovil-api/src /opt/depimovil-api/src/*/ | head -80
-# 3) comparar API en produccion vs GitHub (server-src)
-cd /root && rm -rf cmp && git clone -q --depth 1 git@github.com:JORGEMARTINEZSASTRE/depimovil-crm1.git cmp
-echo ---DIFF-API-vs-GITHUB---; diff -rq /opt/depimovil-api/src /root/cmp/server-src | head -40
-echo ---DIFF-FRONT-vs-GITHUB---; diff -rq --exclude=.git /app3 /root/cmp | grep -v "^Only in /root/cmp: .github" | head -40
+# leer archivos de produccion para el parche de roles
+echo ===USUARIOS_JS===; cat /app3/assets/js/modules/usuarios.js
+echo ===INDEX_USUARIOS===; grep -n "usuariosTableBody\|modules/usuarios.js\|<th>Rol</th>" /app3/index.html
+echo ===PERMISOS_JS_HEAD===; head -8 /opt/depimovil-api/src/routes/permisos.js
+echo ===PERMISOS_JS_TAIL===; tail -30 /opt/depimovil-api/src/routes/permisos.js
+echo ===MW_EXPORTS===; grep -n "module.exports\|function requireRole\|isAdminRole" /opt/depimovil-api/src/middleware/auth.js
+echo ===SERVER_PERMISOS===; grep -n "permisos" /opt/depimovil-api/src/server.js
+echo ===ROLE_LABELS===; grep -n -A12 "const ROLE_LABELS" /app3/assets/js/core/helpers.js
+echo ===CURRENTUSER===; grep -n "currentUser *=" /app3/assets/js/core/auth.js | head -5
+echo ===USR_ROLES_CHECK===; sudo -u postgres psql depimovil_crm -tAc "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='usuarios_rol_check'"
+echo ===AUDIT===; sudo -u postgres psql depimovil_crm -tAc "\d audit_log" | head -12
