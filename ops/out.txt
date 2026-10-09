@@ -1,29 +1,14 @@
-# run d1a3257806e1 2026-10-09T00:45:03Z
-===NORM===
-29:function normalizeWhatsapp(input) {
-30-  let digits = String(input || '').replace(/\D/g, '');
-31-  if (!digits) return '';
-32-  if (digits.startsWith('00')) digits = digits.slice(2);
-33-  if (digits.startsWith('0')) digits = '598' + digits.slice(1);
-34-  if (!digits.startsWith('598') && digits.length <= 9) digits = '598' + digits;
-35-  return '+' + digits;
-36-}
-37-
-38-function phoneVariants(whatsapp) {
-39-  const digits = normalizeWhatsapp(whatsapp).replace(/\D/g, '');
-40-  const variants = new Set([digits]);
-41-  if (digits.startsWith('598')) {
-42-    variants.add(digits.slice(3));
-43-    variants.add('0' + digits.slice(3));
-===ACTIONBTN===
-/app3/assets/js/modules/contratos.js:69:        <button class="action-btn danger" onclick="deleteContrato(${c.id})">🗑</button>
-/app3/assets/js/modules/contratos.js:191:        btn.className = 'action-btn danger';
-/app3/assets/js/modules/whatsapp.js:394:                <button class="action-btn danger" onclick="eliminarNotif(${n.id})">✕ Descartar</button>
-308:.action-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:5px 10px;
-310:.action-btn:hover{border-color:var(--accent);color:var(--accent)}
-311:.action-btn.danger:hover{border-color:var(--red);color:var(--red)}
-===WAUSERS===
-+59899921164
-+59892383368
-+59899306639
+# run ea8011d44741 2026-10-09T00:47:03Z
+16
+depimovil-api online
+PUT /api/permisos/usuarios/1 -> 401
+DELETE /api/permisos/usuarios/1 -> 401
+POST /api/permisos/usuarios/1/reactivar -> 401
+GET /api/permisos/usuarios -> 401
+crm -> 200
+0|depimovi |   status: 400,
+0|depimovi |   body: '{"query":"{__schema{types{name fields{name type{name kind}}}}}"}{"query":"query IntrospectionQuery{__schema{queryType{name}mutationType{name}subscriptionType{name}types{...FullType}directives{name description locations args{...InputValue}}}}fragment FullType on __Type{kind name description fields(includeDeprecated:true){name description args{...InputValue}type{...TypeRef}isDeprecated deprecationReason}inputFields{...InputValue}interfaces{...TypeRef}enumValues{...EnumValue}possibleTypes{...TypeRef}}fragment InputValue on __InputValue{name description type{...TypeRef}defaultValue}fragment TypeRef on __Type{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name}}}}}}}}fragment EnumValue on __EnumValue{name description isDeprecated deprecationReason…',
+0|depimovi |   type: 'entity.parse.failed'
+0|depimovi | }
+
 # exit 0
