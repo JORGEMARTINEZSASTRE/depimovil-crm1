@@ -1,14 +1,132 @@
-# run 209a015751da 2026-10-09T00:40:03Z
-2
-depimovil-api online restarts 13
-PUT sin token -> 401
-login page -> 200
-0|depimovi | 
-0|depimovi |   ╔═══════════════════════════════════════╗
-0|depimovi |   ║   DepiMóvil API v1.0                  ║
-0|depimovi |   ║   Puerto: 3004                         ║
-0|depimovi |   ║   Entorno: production             ║
-0|depimovi |   ╚═══════════════════════════════════════╝
-0|depimovi |   
-
+# run 57f13a2c1e18 2026-10-09T00:44:03Z
+===MODAL===
+145:<div class="modal-overlay" id="modalUsuario">
+146-  <div class="modal-box">
+147-    <div class="modal-head">
+148-      <h3>Nuevo usuario interno</h3>
+149-      <button class="modal-close" onclick="closeModal('modalUsuario')">✕</button>
+150-    </div>
+151-    <div class="modal-body">
+152-      <div class="form-grid">
+153-        <div class="form-field full">
+154-          <label>Nombre completo <span style="color:var(--red)">*</span></label>
+155-          <input type="text" id="usrNombre" autocomplete="off"/>
+156-        </div>
+157-        <div class="form-field full">
+158-          <label>Email <span style="color:var(--red)">*</span></label>
+159-          <input type="email" id="usrEmail" autocomplete="off"/>
+160-        </div>
+161-        <div class="form-field">
+162-          <label>WhatsApp</label>
+163-          <input type="tel" id="usrWhatsapp" placeholder="099 123 456" autocomplete="off"/>
+164-        </div>
+165-        <div class="form-field">
+166-          <label>Rol <span style="color:var(--red)">*</span></label>
+167-          <select id="usrRol"></select>
+168-        </div>
+169-        <div class="form-field full">
+170-          <label>Contraseña temporal <span style="color:var(--red)">*</span></label>
+171-          <input type="text" id="usrPassword" placeholder="Mínimo 8 caracteres" autocomplete="off"/>
+172-          <div style="color:var(--text3);font-size:12px;margin-top:4px">Con este email y esta contraseña la persona ingresa al CRM. Puede cambiarla después desde su perfil.</div>
+173-        </div>
+174-      </div>
+175-    </div>
+176-    <div class="modal-foot">
+177-      <button class="btn-secondary" onclick="closeModal('modalUsuario')">Cancelar</button>
+178-      <button class="btn-add" onclick="saveUsuario()">💾 Crear usuario</button>
+179-    </div>
+===MODALS_LOAD===
+/app3/index.html:940:  xhr.open('GET', 'partials/modals.html?v=20260923-semi', false);
+/app3/index.html:946:    console.error('No se pudo cargar partials/modals.html', xhr.status);
+===ACTION_BTNS===
+    130 class="action-btn"
+      7 class="btn-danger"
+      2 class="action-btn lead-wa-agendado"
+      2 class="action-btn danger"
+===CSS===
+332:.btn-danger{background:rgba(224,92,107,0.1);border:1px solid rgba(224,92,107,0.3);color:var(--red);
+335:.btn-danger:hover{background:rgba(224,92,107,0.2)}
+===STATUS===
+CHECK (((rol)::text = ANY ((ARRAY['superadmin'::character varying, 'administrador'::character varying, 'operaciones'::character varying, 'coordinadora'::character varying, 'comercial'::character varying, 'operadora'::character varying, 'operadora_habilitada'::character varying, 'operadora_limitada'::character varying, 'transportista'::character varying])::text[])))
+CHECK (((status)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))
+activo
+inactivo
+===FKS===
+reserva_historial|usuario_id|a
+reservas|creada_por|a
+permisos_usuario|usuario_id|c
+leads|asignado_a|a
+audit_log|usuario_id|a
+sesiones_whatsapp|usuario_id|n
+proveedores|created_by|a
+compras|created_by|a
+ventas_maquinas|created_by|a
+caja_movimientos|confirmado_por|a
+caja_movimientos|created_by|a
+caja_cierres|created_by|a
+===LOGIN_STATUS===
+79:       AND status = $2
+100:       AND rol = $2 AND status = $3
+276:         AND status = 'activo'
+379:      return res.status(400).json({ error: 'Email y contraseña requeridos' });
+383:      'SELECT * FROM usuarios WHERE email = $1 AND status = $2',
+388:      return res.status(401).json({ error: 'Credenciales inválidas' });
+394:      return res.status(401).json({ error: 'Credenciales inválidas' });
+418:    res.status(500).json({ error: 'Error interno' });
+428:      'SELECT id, nombre, email, rol, operadora_id, transportista_id, whatsapp, status FROM usuarios WHERE id = $1',
+431:    if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+434:    res.status(500).json({ error: 'Error interno' });
+444:    if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+69:    return res.status(401).json({ error: 'Token requerido' });
+75:      return res.status(401).json({ error: 'Token inválido' });
+78:      `SELECT id, nombre, email, rol, operadora_id, transportista_id, whatsapp, status,
+81:       WHERE id = $1 AND status = $2`,
+85:      return res.status(401).json({ error: 'Usuario inactivo o no encontrado' });
+90:      return res.status(403).json({ error: 'Tu alta está pendiente de autorización. Te avisamos por WhatsApp cuando quede habilitada.' });
+96:        return res.status(401).json({ error: 'Cuenta deshabilitada. Contactá a administración.' });
+103:      return res.status(401).json({ error: 'Token vencido' });
+105:    return res.status(401).json({ error: 'Token inválido' });
+117:      return res.status(401).json({ error: 'No autenticado' });
+===REGISTER===
+1066:router.post('/register', auth, requireRole('superadmin'), async (req, res) => {
+1067-  try {
+1068-    const { nombre, email, password, operadora_id, transportista_id } = req.body;
+1069-    const rol = normalizeRole(req.body.rol);
+1070-    const whatsapp = normalizeWhatsapp(req.body.whatsapp);
+1071-    
+1072-    if (!nombre || !email || !password || !rol) {
+1073-      return res.status(400).json({ error: 'Campos obligatorios: nombre, email, password, rol' });
+1074-    }
+1075-
+1076-    if (!LOGIN_ROLES.includes(rol)) {
+1077-      return res.status(400).json({ error: 'Rol inválido' });
+1078-    }
+1079-    if (password.length < 8) {
+1080-      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+1081-    }
+1082-
+1083-    // Verificar email único
+1084-    const existing = await pool.query('SELECT id FROM usuarios WHERE email = $1', [email.toLowerCase()]);
+1085-    if (existing.rows.length) {
+1086-      return res.status(409).json({ error: 'Email ya registrado' });
+1087-    }
+1088-
+1089-    const hash = await bcrypt.hash(password, 12);
+1090-    const { rows } = await pool.query(
+1091-      `INSERT INTO usuarios (nombre, email, password_hash, rol, whatsapp, operadora_id, transportista_id)
+1092-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, nombre, email, rol, whatsapp, operadora_id, transportista_id`,
+1093-      [nombre.trim(), email.toLowerCase().trim(), hash, rol, whatsapp || null, operadora_id || null, transportista_id || null]
+1094-    );
+1095-
+1096-    await pool.query(
+1097-      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id) VALUES ($1,$2,$3,$4,$5)',
+1098-      ['CREATE', 'usuario', rows[0].id, `${nombre} (${rol})`, req.user.id]
+1099-    );
+1100-
+1101-    res.status(201).json(rows[0]);
+1102-  } catch (err) {
+1103-    console.error('Register error:', err);
+1104-    res.status(500).json({ error: 'Error interno' });
+1105-  }
+1106-});
 # exit 0
