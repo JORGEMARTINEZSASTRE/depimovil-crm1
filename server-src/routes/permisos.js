@@ -171,7 +171,7 @@ router.get('/roles', auth, requireRole('superadmin'), async (req, res) => {
 router.get('/usuarios', auth, requireRole('superadmin'), async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT id, nombre, email, rol, status, operadora_id, transportista_id,
+      SELECT id, nombre, email, whatsapp, rol, status, operadora_id, transportista_id,
              registro_origen, created_at, ultimo_login_whatsapp AS ultimo_login
       FROM usuarios
       ORDER BY nombre
@@ -184,35 +184,125 @@ router.get('/usuarios', auth, requireRole('superadmin'), async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// PUT /api/permisos/usuarios/:id/rol — cambiar rol de un usuario interno (admin)
+// USUARIOS INTERNOS — editar / eliminar / reactivar (admin)
 // ─────────────────────────────────────────────
 const ROLES_INTERNOS = ['superadmin', 'administrador', 'operaciones', 'comercial', 'coordinadora'];
+const ROLES_ADMIN = ['superadmin', 'administrador'];
 
-router.put('/usuarios/:id/rol', auth, requireRole('superadmin'), async (req, res) => {
+function normWhatsapp(input) {
+  let d = String(input || '').replace(/\D/g, '');
+  if (!d) return null;
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('0')) d = '598' + d.slice(1);
+  if (!d.startsWith('598') && d.length <= 9) d = '598' + d;
+  return '+' + d;
+}
+
+async function getInterno(id) {
+  const { rows } = await pool.query('SELECT id, nombre, email, rol, status FROM usuarios WHERE id = $1', [id]);
+  const u = rows[0];
+  if (!u || !ROLES_INTERNOS.includes(u.rol)) return null;
+  return u;
+}
+
+async function otrosAdminsActivos(id) {
+  const { rows } = await pool.query(
+    "SELECT COUNT(*)::int AS n FROM usuarios WHERE id <> $1 AND status = 'activo' AND rol = ANY($2)",
+    [id, ROLES_ADMIN]
+  );
+  return rows[0].n;
+}
+
+function audit(req, accion, id, detalle) {
+  return pool.query(
+    'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+    [accion, 'usuario', id, detalle, req.user.id, req.ip]
+  ).catch(() => {});
+}
+
+// PUT /api/permisos/usuarios/:id — editar nombre, email, whatsapp, rol y (opcional) contraseña
+router.put('/usuarios/:id', auth, requireRole('superadmin'), async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const { rol } = req.body || {};
-  if (!id || !ROLES_INTERNOS.includes(rol)) {
-    return res.status(400).json({ error: 'Rol inválido' });
-  }
-  if (id === req.user.id) {
-    return res.status(400).json({ error: 'No podés cambiar tu propio rol' });
-  }
+  const b = req.body || {};
+  const nombre = String(b.nombre || '').trim();
+  const email = String(b.email || '').trim().toLowerCase();
+  const rol = b.rol === 'superadmin' ? 'superadmin' : b.rol;
+  const password = b.password ? String(b.password) : '';
+  if (!id || !nombre || !email) return res.status(400).json({ error: 'Nombre y email son obligatorios' });
+  if (!ROLES_INTERNOS.includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
+  if (password && password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
   try {
-    const { rows } = await pool.query('SELECT id, email, rol FROM usuarios WHERE id = $1', [id]);
-    const u = rows[0];
+    const u = await getInterno(id);
     if (!u) return res.status(404).json({ error: 'Usuario no encontrado' });
-    if (!ROLES_INTERNOS.includes(u.rol)) {
-      return res.status(400).json({ error: 'Solo se puede cambiar el rol de usuarios internos' });
+    if (id === req.user.id && rol !== u.rol) return res.status(400).json({ error: 'No podés cambiar tu propio rol' });
+    if (ROLES_ADMIN.includes(u.rol) && !ROLES_ADMIN.includes(rol) && (await otrosAdminsActivos(id)) === 0) {
+      return res.status(400).json({ error: 'Tiene que quedar al menos un administrador' });
     }
-    await pool.query('UPDATE usuarios SET rol = $1 WHERE id = $2', [rol, id]);
-    await pool.query(
-      'INSERT INTO audit_log (accion, entidad, entidad_id, detalle, usuario_id, ip) VALUES ($1,$2,$3,$4,$5,$6)',
-      ['CAMBIO_ROL', 'usuario', id, `${u.email}: ${u.rol} → ${rol}`, req.user.id, req.ip]
-    ).catch(() => {});
-    res.json({ ok: true, id, rol });
+    const dup = await pool.query('SELECT 1 FROM usuarios WHERE email = $1 AND id <> $2', [email, id]);
+    if (dup.rows.length) return res.status(409).json({ error: 'Ese email ya lo usa otro usuario' });
+    const params = [nombre, email, normWhatsapp(b.whatsapp), rol, id];
+    let sql = 'UPDATE usuarios SET nombre=$1, email=$2, whatsapp=$3, rol=$4';
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      params.push(await bcrypt.hash(password, 12));
+      sql += ', password_hash=$6';
+    }
+    await pool.query(sql + ' WHERE id=$5', params);
+    const cambios = [u.rol !== rol ? `rol ${u.rol}→${rol}` : '', password ? 'contraseña' : ''].filter(Boolean).join(', ');
+    await audit(req, 'UPDATE', id, `${email}${cambios ? ' (' + cambios + ')' : ''}`);
+    res.json({ ok: true });
   } catch (err) {
-    console.error('PUT /api/permisos/usuarios/:id/rol error:', err);
-    res.status(500).json({ error: 'Error al cambiar el rol' });
+    console.error('PUT /api/permisos/usuarios/:id error:', err);
+    res.status(500).json({ error: 'Error al guardar el usuario' });
+  }
+});
+
+// DELETE /api/permisos/usuarios/:id — elimina; si tiene historial, lo desactiva
+router.delete('/usuarios/:id', auth, requireRole('superadmin'), async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'ID inválido' });
+  if (id === req.user.id) return res.status(400).json({ error: 'No podés eliminar tu propio usuario' });
+  try {
+    const u = await getInterno(id);
+    if (!u) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (ROLES_ADMIN.includes(u.rol) && (await otrosAdminsActivos(id)) === 0) {
+      return res.status(400).json({ error: 'Tiene que quedar al menos un administrador' });
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM usuarios WHERE id = $1', [id]);
+      await client.query('COMMIT');
+      await audit(req, 'DELETE', id, `${u.email} (${u.rol})`);
+      return res.json({ ok: true, eliminado: true });
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
+      if (e.code !== '23503') throw e;
+    } finally {
+      client.release();
+    }
+    // Tiene reservas, pagos o historial asociados: se desactiva para no perder datos.
+    await pool.query("UPDATE usuarios SET status = 'inactivo' WHERE id = $1", [id]);
+    await audit(req, 'DESACTIVAR', id, `${u.email} (${u.rol})`);
+    res.json({ ok: true, desactivado: true });
+  } catch (err) {
+    console.error('DELETE /api/permisos/usuarios/:id error:', err);
+    res.status(500).json({ error: 'Error al eliminar el usuario' });
+  }
+});
+
+// POST /api/permisos/usuarios/:id/reactivar
+router.post('/usuarios/:id/reactivar', auth, requireRole('superadmin'), async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const u = await getInterno(id);
+    if (!u) return res.status(404).json({ error: 'Usuario no encontrado' });
+    await pool.query("UPDATE usuarios SET status = 'activo' WHERE id = $1", [id]);
+    await audit(req, 'REACTIVAR', id, u.email);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/permisos/usuarios/:id/reactivar error:', err);
+    res.status(500).json({ error: 'Error al reactivar el usuario' });
   }
 });
 

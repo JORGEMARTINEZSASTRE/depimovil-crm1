@@ -1,39 +1,73 @@
 /* ══════════════════════════════════
    USUARIOS INTERNOS (solo administradores)
-   Alta de personal del CRM: coordinadora, operaciones, comercial.
+   Alta, edición, baja y reactivación del personal del CRM.
 ══════════════════════════════════ */
 const USUARIO_ROLES_INTERNOS={
-  coordinadora:'Coordinadora',
+  administrador:'Administrador',
   operaciones:'Administración / Ops',
+  coordinadora:'Coordinadora',
   comercial:'Comercial / CRM'
 };
 const USUARIO_ROLES_LISTA=['superadmin','administrador','operaciones','comercial','coordinadora'];
+let _usuariosCache=[];
+let _usuarioEditId=null;
+
+function _esYo(u){
+  return typeof currentUser!=='undefined'&&currentUser&&Number(currentUser.id)===Number(u.id);
+}
 
 async function renderUsuarios(){
   const tbody=document.getElementById('usuariosTableBody');if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><p>Cargando…</p></div></td></tr>';
   try{
     const rows=(await api('/api/permisos/usuarios')).filter(u=>USUARIO_ROLES_LISTA.includes(u.rol));
+    rows.sort((a,b)=>(a.status==='activo'?0:1)-(b.status==='activo'?0:1));
+    _usuariosCache=rows;
     if(!rows.length){
       tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div><h3>Sin usuarios internos</h3></div></td></tr>';
       return;
     }
-    tbody.innerHTML=rows.map(u=>`<tr>
-      <td>${escapeHTML(u.nombre||'')}</td>
-      <td>${escapeHTML(u.email||'')}</td>
-      <td><span class="badge badge-blue">${escapeHTML(ROLE_LABELS[u.rol]||u.rol)}</span></td>
-      <td>${u.status==='activo'?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-gray">'+escapeHTML(u.status||'')+'</span>'}</td>
-      <td>${usuarioRolControl(u)}</td>
-    </tr>`).join('');
+    tbody.innerHTML=rows.map(u=>{
+      const activo=u.status==='activo';
+      const yo=_esYo(u);
+      const acciones=activo
+        ?`<button class="action-btn" onclick="openUsuarioModal(${u.id})">✏️ Editar</button>
+           ${yo?'':`<button class="action-btn danger" onclick="eliminarUsuario(${u.id})">🗑 Eliminar</button>`}`
+        :`<button class="action-btn" onclick="reactivarUsuario(${u.id})">↩️ Reactivar</button>`;
+      return `<tr${activo?'':' style="opacity:.55"'}>
+        <td>${escapeHTML(u.nombre||'')}${yo?' <span style="color:var(--text3);font-size:12px">(vos)</span>':''}</td>
+        <td>${escapeHTML(u.email||'')}</td>
+        <td><span class="badge badge-blue">${escapeHTML(ROLE_LABELS[u.rol]||u.rol)}</span></td>
+        <td>${activo?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-gray">Inactivo</span>'}</td>
+        <td style="white-space:nowrap;text-align:right">${acciones}</td>
+      </tr>`;
+    }).join('');
   }catch(e){
     tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><p>No se pudieron cargar los usuarios: '+escapeHTML(e.message)+'</p></div></td></tr>';
   }
 }
 
-function openUsuarioModal(){
-  document.getElementById('usrRol').innerHTML=Object.entries(USUARIO_ROLES_INTERNOS)
-    .map(([k,v])=>`<option value="${k}">${escapeHTML(v)}</option>`).join('');
-  ['usrNombre','usrEmail','usrWhatsapp','usrPassword'].forEach(id=>sv(id,''));
+function openUsuarioModal(id){
+  const u=id?_usuariosCache.find(x=>Number(x.id)===Number(id)):null;
+  _usuarioEditId=u?u.id:null;
+  const modal=document.getElementById('modalUsuario');
+  const rolActual=u?(u.rol==='superadmin'?'administrador':u.rol):'operaciones';
+  const sel=document.getElementById('usrRol');
+  sel.innerHTML=Object.entries(USUARIO_ROLES_INTERNOS)
+    .map(([k,v])=>`<option value="${k}"${k===rolActual?' selected':''}>${escapeHTML(v)}</option>`).join('');
+  sel.disabled=!!(u&&_esYo(u));
+  sv('usrNombre',u?u.nombre||'':'');
+  sv('usrEmail',u?u.email||'':'');
+  sv('usrWhatsapp',u?u.whatsapp||'':'');
+  sv('usrPassword','');
+  const pass=document.getElementById('usrPassword');
+  if(pass){
+    pass.placeholder=u?'Dejar vacío para no cambiarla':'Mínimo 8 caracteres';
+    const lbl=pass.closest('.form-field')?.querySelector('label');
+    if(lbl)lbl.innerHTML=u?'Nueva contraseña':'Contraseña temporal <span style="color:var(--red)">*</span>';
+  }
+  const h=modal.querySelector('.modal-head h3');if(h)h.textContent=u?'Editar usuario':'Nuevo usuario interno';
+  const btn=modal.querySelector('.modal-foot .btn-add');if(btn)btn.textContent=u?'💾 Guardar cambios':'💾 Crear usuario';
   openModal('modalUsuario');
 }
 
@@ -45,50 +79,53 @@ async function saveUsuario(){
     password:gv('usrPassword'),
     rol:gv('usrRol')
   };
-  if(!payload.nombre||!payload.email||!payload.password||!payload.rol){
-    showToast('⚠️ Nombre, email, contraseña y rol son obligatorios','warn');
+  const editando=!!_usuarioEditId;
+  if(!payload.nombre||!payload.email||!payload.rol||(!editando&&!payload.password)){
+    showToast('⚠️ '+(editando?'Nombre, email y rol son obligatorios':'Nombre, email, contraseña y rol son obligatorios'),'warn');
     return;
   }
-  if(payload.password.length<8){
+  if(payload.password&&payload.password.length<8){
     showToast('⚠️ La contraseña debe tener al menos 8 caracteres','warn');
     return;
   }
   try{
-    await api('/api/auth/register',{method:'POST',body:JSON.stringify(payload)});
+    if(editando){
+      const u=_usuariosCache.find(x=>Number(x.id)===Number(_usuarioEditId));
+      if(u&&u.rol==='superadmin'&&payload.rol==='administrador')payload.rol='superadmin';
+      await api('/api/permisos/usuarios/'+_usuarioEditId,{method:'PUT',body:JSON.stringify(payload)});
+      showToast('✅ Usuario actualizado: '+payload.nombre);
+    }else{
+      await api('/api/auth/register',{method:'POST',body:JSON.stringify(payload)});
+      showToast('✅ Usuario creado: '+payload.nombre);
+    }
     closeModal('modalUsuario');
-    showToast('✅ Usuario creado: '+payload.nombre);
+    _usuarioEditId=null;
     renderUsuarios();
   }catch(e){
     showToast('❌ '+e.message,'error');
   }
 }
 
-const USUARIO_ROLES_EDITABLES={
-  administrador:'Administrador',
-  operaciones:'Administración / Ops',
-  coordinadora:'Coordinadora',
-  comercial:'Comercial / CRM'
-};
-
-function usuarioRolControl(u){
-  if(typeof currentUser!=='undefined'&&currentUser&&Number(currentUser.id)===Number(u.id)){
-    return '<span style="color:var(--text3);font-size:12px">(vos)</span>';
+async function eliminarUsuario(id){
+  const u=_usuariosCache.find(x=>Number(x.id)===Number(id));if(!u)return;
+  if(!confirm(`¿Eliminar a ${u.nombre}?\n\nYa no va a poder entrar al CRM.`))return;
+  try{
+    const r=await api('/api/permisos/usuarios/'+id,{method:'DELETE'});
+    showToast(r&&r.desactivado
+      ?'✅ '+u.nombre+' quedó desactivado (tiene historial, se conserva)'
+      :'✅ Usuario eliminado: '+u.nombre);
+    renderUsuarios();
+  }catch(e){
+    showToast('❌ '+e.message,'error');
   }
-  const actual=u.rol==='superadmin'?'administrador':u.rol;
-  const opts=Object.entries(USUARIO_ROLES_EDITABLES)
-    .map(([k,v])=>`<option value="${k}"${k===actual?' selected':''}>${escapeHTML(v)}</option>`).join('');
-  return `<select id="usrRolSel_${u.id}" style="padding:4px 6px;font-size:12px">${opts}</select>
-    <button class="btn-secondary" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="cambiarRolUsuario(${u.id},'${escapeHTML(u.nombre||'').replace(/'/g,'')}','${actual}')">Guardar</button>`;
 }
 
-async function cambiarRolUsuario(id,nombre,rolActual){
-  const sel=document.getElementById('usrRolSel_'+id);if(!sel)return;
-  const rol=sel.value;
-  if(rol===rolActual){showToast('Ya tiene ese rol','warn');return;}
-  if(!confirm(`¿Cambiar el rol de ${nombre} a "${USUARIO_ROLES_EDITABLES[rol]}"?`))return;
+async function reactivarUsuario(id){
+  const u=_usuariosCache.find(x=>Number(x.id)===Number(id));if(!u)return;
+  if(!confirm(`¿Reactivar a ${u.nombre}?`))return;
   try{
-    await api('/api/permisos/usuarios/'+id+'/rol',{method:'PUT',body:JSON.stringify({rol})});
-    showToast('✅ Rol actualizado: '+nombre);
+    await api('/api/permisos/usuarios/'+id+'/reactivar',{method:'POST'});
+    showToast('✅ Usuario reactivado: '+u.nombre);
     renderUsuarios();
   }catch(e){
     showToast('❌ '+e.message,'error');
