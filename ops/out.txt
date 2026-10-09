@@ -1,1 +1,115 @@
-(sin salida todavía)
+# run 19e364d8bf27 2026-10-09T00:36:32Z
+d4a1231 fix: corregir errores encontrados en la prueba integral del piloto (Paula + operadoras de Salto)
+ M assets/js/core/auth.js
+ M assets/js/core/helpers.js
+ M assets/js/core/navigation.js
+ M assets/js/core/storage-api.js
+ M assets/js/modules/busqueda.js
+ M assets/js/modules/caja.js
+ M assets/js/modules/compras-proveedores.js
+ M assets/js/modules/configuracion.js
+ M assets/js/modules/dashboard.js
+ M assets/js/modules/embudo.js
+ M assets/js/modules/envios.js
+ M assets/js/modules/formacion-capacitaciones.js
+ M assets/js/modules/formacion-evaluaciones.js
+ M assets/js/modules/formacion-helpers.js
+ M assets/js/modules/leads.js
+ M assets/js/modules/limpiezas.js
+ M assets/js/modules/logistica.js
+ M assets/js/modules/mantenimientos.js
+ M assets/js/modules/maquinas.js
+ M assets/js/modules/operadoras.js
+ M assets/js/modules/pagos.js
+ M assets/js/modules/reportes.js
+ M assets/js/modules/reserva-automatizacion.js
+ M assets/js/modules/reservas.js
+ M assets/js/modules/revision-operadoras.js
+ M assets/js/modules/transportistas.js
+ M assets/js/modules/ventas-maquinas.js
+ M assets/js/modules/whatsapp.js
+ D deploy-trigger.txt
+ M index.html
+ D logo.jpg
+ M partials/modals.html
+ M server-src/middleware/auth.js
+ D server-src/migrations/015_rol_coordinadora.sql
+ M server-src/recordatorios.js
+ M server-src/routes/auth.js
+ M server-src/routes/envios.js
+ M server-src/routes/finanzas.js
+ D server-src/routes/limpiezas.js
+ M server-src/routes/mantenimientos.js
+---API---
+total 156
+drwxr-xr-x  10 root root  4096 Sep 19 19:44 .
+drwxr-xr-x   6 root root  4096 Sep 21 01:00 ..
+-rw-------   1 root root   185 Apr  4  2026 .credentials
+-rw-r--r--   1 root root  1161 Sep 30 22:25 .env
+-rw-r--r--   1 root root   664 May 17 16:24 .env.backup-punto3-20260517162457
+-rw-r--r--   1 root root   902 May 22 01:42 .env.bak-cors-admin
+-rw-r--r--   1 root root   791 May 22 01:41 .env.bak-evolution-20260522014157
+-rw-r--r--   1 root root   791 May 22 01:42 .env.bak-evolution-20260522014209
+-rw-r--r--   1 root root   931 Sep 14 21:21 .env.bak-leads-webhook
+-rw-r--r--   1 root root   608 Apr  4  2026 .env.example
+-rw-r--r--   1 root root  5706 Apr  4  2026 README.md
+drwxr-xr-x   3 root root  4096 May 24 23:00 backups
+-rw-r--r--   1 root root   385 Jul  2 19:56 count_wa_queue.js
+-rw-r--r--   1 root root   703 Jul  2 20:08 evolution_pairing_code.js
+-rw-r--r--   1 root root  1408 Jul  2 20:01 evolution_status_qr.js
+-rw-r--r--   1 root root   581 Jul  2 19:52 inspect_tables.js
+drwxr-xr-x   2 root root  4096 May 24 23:00 migrations
+drwxr-xr-x 116 root root  4096 May 18 05:04 node_modules
+-rw-r--r--   1 root root 47730 May 18 05:04 package-lock.json
+-rw-r--r--   1 root root   665 May 18 05:04 package.json
+drwxr-xr-x   2 root root  4096 Jun  2 11:59 routes
+-rw-r--r--   1 root root   228 Jul  2 19:51 run_ensure_auth_tables.js
+-rw-r--r--   1 root root   784 Jul  2 20:02 save_evolution_qr.js
+drwxr-xr-x   2 root root  4096 Apr  5  2026 scripts
+drwxr-xr-x   6 root root  4096 Sep 21 00:53 src
+drwxr-xr-x   5 root root  4096 May 23 23:28 uploads
+drwxr-xr-x   3 root root  4096 Apr  4  2026 {src
+fatal: not a git repository (or any of the parent directories): .git
+---DIFF---
+Files /opt/depimovil-api/routes/auth.js and /app3/server-src/routes/auth.js differ
+Only in /app3/server-src/routes: automatizaciones.js
+Only in /app3/server-src/routes: contratos.js
+Only in /app3/server-src/routes: envios.js
+Only in /app3/server-src/routes: finanzas.js
+Only in /app3/server-src/routes: leads.js
+Only in /app3/server-src/routes: mantenimientos.js
+Only in /app3/server-src/routes: maquinas
+Only in /app3/server-src/routes: maquinas.js
+Only in /app3/server-src/routes: operadoras.js
+Only in /app3/server-src/routes: pagos.js
+Only in /app3/server-src/routes: permisos.js
+Only in /app3/server-src/routes: portal.js
+Only in /app3/server-src/routes: reservas.js
+Only in /opt/depimovil-api/routes: routes_transportistas.js
+Only in /app3/server-src/routes: transportistas.js
+Only in /app3/server-src/routes: whatsapp.js
+---PM2---
+depimovil-api /opt/depimovil-api /opt/depimovil-api/src/server.js online
+---NGINX---
+        proxy_pass http://127.0.0.1:3004;
+        proxy_pass http://127.0.0.1:5678/;
+        proxy_pass http://localhost:3005/;
+        proxy_pass http://localhost:3006/;
+        proxy_pass http://localhost:3007/;
+        proxy_pass http://localhost:3008/;
+        proxy_pass http://localhost:3009/;
+        proxy_pass http://localhost:3010/;
+        proxy_pass http://localhost:3010/api/;
+        proxy_pass http://localhost:3011/;
+        proxy_pass http://localhost:3012/;
+        proxy_pass http://localhost:3013/;
+        proxy_pass http://localhost:3014/;
+        proxy_pass http://localhost:8080;
+    return 301 https://$server_name$request_uri;
+    root /app3;
+    root /var/www/depimovil.live;
+    server_name crm.depimovil.live;
+    server_name depimovil.live;
+    server_name wa.depimovil.live;
+    server_name www.depimovil.live;
+# exit 0
