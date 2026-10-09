@@ -1,33 +1,11 @@
-# parche: editar roles de usuarios internos (prod)
-set -e
-TS=$(date +%Y%m%d%H%M)
-R=/root/ops-runner/ops
-API=/opt/depimovil-api/src/routes/permisos.js
-FE=/app3/assets/js/modules/usuarios.js
-IDX=/app3/index.html
-cp $API $API.bak-roles-$TS; cp $FE $FE.bak-roles-$TS; cp $IDX $IDX.bak-roles-$TS
-# API
-grep -q "usuarios/:id/rol" $API || python3 - "$API" "$R/permisos_rol.js" <<'PY'
-import sys
-p,add=sys.argv[1],open(sys.argv[2]).read()
-s=open(p).read()
-assert s.count('module.exports = router;')==1
-s=s.replace('module.exports = router;', add.rstrip()+'\n')
-open(p,'w').write(s)
-PY
-node --check $API
-# Frontend
-cp $R/usuarios.js $FE
-python3 - "$IDX" <<'PY'
-import sys
-p=sys.argv[1]; s=open(p).read()
-s=s.replace('<th>Rol</th><th>Estado</th></tr></thead>\n              <tbody id="usuariosTableBody">','<th>Rol</th><th>Estado</th><th>Cambiar rol</th></tr></thead>\n              <tbody id="usuariosTableBody">',1)
-s=s.replace('usuarios.js?v=20260919-usuarios','usuarios.js?v=20261008-roles')
-open(p,'w').write(s)
-PY
-grep -c "Cambiar rol</th>\|20261008-roles" $IDX
-pm2 restart depimovil-api >/dev/null; sleep 4
-pm2 jlist | python3 -c "import json,sys;[print(p['name'],p['pm2_env']['status'],'restarts',p['pm2_env']['restart_time']) for p in json.load(sys.stdin)]"
-echo "PUT sin token -> $(curl -s -o /dev/null -w '%{http_code}' -X PUT http://127.0.0.1:3004/api/permisos/usuarios/1/rol)"
-echo "login page -> $(curl -s -o /dev/null -w '%{http_code}' https://crm.depimovil.live/)"
-pm2 logs depimovil-api --lines 8 --nostream 2>&1 | tail -8
+# leer: modal usuario, estilos de acciones, FKs y status
+echo ===MODAL===; grep -n -A34 'id="modalUsuario"' /app3/partials/modals.html
+echo ===MODALS_LOAD===; grep -rn "partials/modals.html" /app3/index.html /app3/assets/js/core/*.js | head -3
+echo ===ACTION_BTNS===; grep -rhoE 'class="(btn-icon|btn-edit|btn-del|btn-danger|action-btn|btn-sm)[^"]*"' /app3/assets/js/modules/*.js | sort | uniq -c | sort -rn | head -8
+grep -n -m3 -B1 -A3 "btn-icon" /app3/assets/js/modules/transportistas.js
+echo ===CSS===; grep -nE "^\.(btn-icon|btn-danger|btn-sm|actions-cell|row-actions)" /app3/assets/css/*.css | head
+echo ===STATUS===; sudo -u postgres psql depimovil_crm -tAc "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid='usuarios'::regclass AND contype='c'"
+sudo -u postgres psql depimovil_crm -tAc "SELECT DISTINCT status FROM usuarios"
+echo ===FKS===; sudo -u postgres psql depimovil_crm -tAc "SELECT conrelid::regclass, a.attname, confdeltype FROM pg_constraint c JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=ANY(c.conkey) WHERE confrelid='usuarios'::regclass"
+echo ===LOGIN_STATUS===; grep -n "status" /opt/depimovil-api/src/routes/auth.js | head -12; grep -n "status" /opt/depimovil-api/src/middleware/auth.js | head
+echo ===REGISTER===; grep -n -A40 "router.post('/register'" /opt/depimovil-api/src/routes/auth.js | head -45
