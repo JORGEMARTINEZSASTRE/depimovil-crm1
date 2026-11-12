@@ -3,41 +3,315 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Alta online de operadoras DepiMóvil</title>
-<meta name="description" content="Completá tus datos para ingresar al sistema DepiMóvil y comenzar el proceso de habilitación como operadora."/>
+<title>Alta de operadoras · DepiMóvil</title>
+<meta name="description" content="Registrate como operadora DepiMóvil y accedé a aparatología profesional sin inversión inicial. Alquiler flexible, logística coordinada y acompañamiento."/>
 <meta property="og:type" content="website"/>
-<meta property="og:site_name" content="DepiMóvil CRM"/>
-<meta property="og:title" content="Alta online de operadoras DepiMóvil"/>
-<meta property="og:description" content="Completá tus datos para ingresar al sistema y comenzar el proceso de habilitación."/>
+<meta property="og:site_name" content="DepiMóvil"/>
+<meta property="og:title" content="Registrate como operadora DepiMóvil"/>
+<meta property="og:description" content="Alquilá aparatología profesional sin inversión inicial. Probá, trabajá, medí tus resultados y decidí."/>
 <meta property="og:url" content="https://crm.depimovil.live/alta-operadoras.html"/>
 <meta property="og:image" content="https://crm.depimovil.live/assets/img/depimovil-alta-operadoras-share.jpg?v=20260518b"/>
 <meta property="og:image:secure_url" content="https://crm.depimovil.live/assets/img/depimovil-alta-operadoras-share.jpg?v=20260518b"/>
 <meta property="og:image:type" content="image/jpeg"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
-<meta property="og:image:alt" content="DepiMóvil - Alta online de operadoras"/>
+<meta property="og:image:alt" content="DepiMóvil - Alta de operadoras"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Alta online de operadoras DepiMóvil"/>
-<meta name="twitter:description" content="Completá tus datos para ingresar al sistema y comenzar el proceso de habilitación."/>
+<meta name="twitter:title" content="Registrate como operadora DepiMóvil"/>
+<meta name="twitter:description" content="Alquilá aparatología profesional sin inversión inicial. Probá, trabajá, medí tus resultados y decidí."/>
 <meta name="twitter:image" content="https://crm.depimovil.live/assets/img/depimovil-alta-operadoras-share.jpg?v=20260518b"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32.png?v=20260922"/>
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=20260922"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
 <style>
-  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#111216;color:#f4f1ee;font-family:Arial,sans-serif}
-  .card{max-width:430px;margin:24px;padding:28px;border:1px solid #3a3328;border-radius:16px;background:#1b1c22;text-align:center}
-  img{width:110px;height:110px;border-radius:22px;object-fit:cover;margin-bottom:18px}
-  h1{font-size:24px;margin:0 0 10px}
-  p{color:#c9c0b7;line-height:1.5;margin:0 0 20px}
-  a{display:inline-block;background:#d4a96a;color:#171014;text-decoration:none;font-weight:700;border-radius:10px;padding:12px 18px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#111216;--bg2:#1b1c22;--bg3:#22232d;
+  --border:rgba(255,255,255,0.09);
+  --text:#F4F1EE;--text2:#9B938A;
+  --accent:#D4A96A;--accent2:rgba(212,169,106,0.14);
+  --green:#1D9E75;
+  color-scheme:dark
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+img{max-width:100%;display:block}
+.wrap{
+  max-width:640px;margin:0 auto;
+  padding-left:max(20px,env(safe-area-inset-left,0px));
+  padding-right:max(20px,env(safe-area-inset-right,0px));
+}
+.display{font-family:'Playfair Display',Georgia,serif;line-height:1.18;text-wrap:balance}
+.label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+
+/* Header */
+header{border-bottom:1px solid var(--border);padding:20px 0}
+.header-inner{display:flex;align-items:center;gap:12px}
+.logo-mark{
+  width:42px;height:42px;border-radius:11px;flex-shrink:0;
+  background:var(--accent2);border:1px solid rgba(212,169,106,0.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;color:var(--accent)
+}
+.logo-img{width:42px;height:42px;border-radius:11px;object-fit:cover;flex-shrink:0}
+header h1{font-size:17px;font-weight:600}
+header p{font-size:12px;color:var(--text2)}
+
+/* Hero */
+.hero{padding:48px 0 40px;border-bottom:1px solid var(--border)}
+.pill{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:100px;padding:6px 14px 6px 10px;
+  font-size:12px;color:var(--text2);margin-bottom:22px
+}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.hero h2{font-size:clamp(2rem,8vw,2.8rem);font-weight:700;margin-bottom:18px}
+.hero h2 em{font-style:normal;color:var(--accent)}
+.hero .sub{font-size:17px;color:var(--text2);max-width:500px;line-height:1.65;margin-bottom:30px}
+.btn-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--accent);color:#171014;
+  font-family:inherit;font-size:15px;font-weight:700;
+  padding:14px 26px;border-radius:12px;border:none;
+  text-decoration:none;cursor:pointer;transition:opacity .15s
+}
+.btn-cta:hover{opacity:.88}
+.btn-cta:active{opacity:.75}
+.btn-cta.lg{font-size:16px;padding:16px 32px;border-radius:14px}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;color:var(--text2);
+  font-family:inherit;font-size:14px;font-weight:500;
+  padding:14px 20px;border-radius:12px;border:1px solid var(--border);
+  text-decoration:none;transition:border-color .15s,color .15s
+}
+.btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px}
+
+/* Secciones */
+section{padding:40px 0;border-bottom:1px solid var(--border)}
+section:last-of-type{border-bottom:none}
+.sh{margin-bottom:26px}
+.sh h3{font-family:'Playfair Display',serif;font-size:clamp(1.35rem,4vw,1.8rem);text-wrap:balance}
+.sh p{color:var(--text2);font-size:15px;margin-top:8px;max-width:490px}
+
+/* Pasos */
+.step{
+  display:grid;grid-template-columns:36px 1fr;gap:0 16px;
+  padding:20px 0;border-bottom:1px solid var(--border)
+}
+.step:last-child{border-bottom:none}
+.step-num{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  background:var(--accent2);border:1px solid rgba(212,169,106,0.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--accent);margin-top:2px
+}
+.step h4{font-size:15px;font-weight:600;margin-bottom:4px}
+.step p{font-size:14px;color:var(--text2);line-height:1.55}
+
+/* Máquinas */
+.maq-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:420px){.maq-grid{grid-template-columns:repeat(4,1fr)}}
+.maq-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:18px 14px;text-align:center;
+  transition:border-color .15s
+}
+.maq-card:hover{border-color:rgba(212,169,106,0.35)}
+.maq-icon{font-size:26px;margin-bottom:9px}
+.maq-name{font-size:13px;font-weight:600;line-height:1.3}
+.maq-desc{font-size:11px;color:var(--text2);margin-top:3px}
+
+/* Beneficios */
+.benefit-grid{display:flex;flex-direction:column;gap:12px}
+@media(min-width:480px){.benefit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+.benefit{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:16px
+}
+.bi{
+  width:38px;height:38px;border-radius:10px;flex-shrink:0;
+  background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:17px
+}
+.benefit h4{font-size:14px;font-weight:600;margin-bottom:3px}
+.benefit p{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* CTA final */
+.cta-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:20px;padding:36px 24px;text-align:center;
+  margin:40px 0
+}
+.cta-box h3{font-family:'Playfair Display',serif;font-size:clamp(1.4rem,4vw,1.8rem);margin-bottom:12px;text-wrap:balance}
+.cta-box p{color:var(--text2);font-size:15px;margin-bottom:26px;max-width:380px;margin-left:auto;margin-right:auto}
+
+/* Footer */
+footer{padding:22px 0 32px;border-top:1px solid var(--border)}
+.foot-inner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+footer p{font-size:13px;color:var(--text2)}
+footer a{color:var(--accent);text-decoration:none;font-size:13px}
 </style>
 </head>
 <body>
-  <div class="card">
-    <img src="/logo.jpg?v=20260518" alt="DepiMóvil"/>
-    <h1>Alta online de operadoras</h1>
-    <p>Completá tus datos para ingresar al sistema DepiMóvil y comenzar el proceso de habilitación.</p>
-    <a href="/?registro=operadora">Abrir formulario</a>
+
+<header>
+  <div class="wrap">
+    <div class="header-inner">
+      <img src="/logo.jpg?v=20260518" alt="DepiMóvil" class="logo-img" onerror="this.outerHTML='<div class=logo-mark>✦</div>'"/>
+      <div>
+        <h1>DepiMóvil</h1>
+        <p>Plataforma Operativa · Uruguay</p>
+      </div>
+    </div>
   </div>
-<script>
-  setTimeout(function(){ window.location.replace('/?registro=operadora'); }, 900);
-</script>
+</header>
+
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="pill"><span class="dot"></span> Registros abiertos</div>
+    <div class="label">Alta de operadoras</div>
+    <h2 class="display">La tecnología<br>la ponemos <em>nosotros</em>.<br>Vos hacé crecer<br>tu negocio.</h2>
+    <p class="sub">Alquilá aparatología profesional por jornadas o períodos. Sin inversión inicial. Con acompañamiento, capacitación y respaldo.</p>
+    <div class="hero-actions">
+      <a href="/?registro=operadora" class="btn-cta">✅ Registrarme ahora</a>
+    </div>
+  </div>
+
+  <!-- Pasos -->
+  <section>
+    <div class="sh">
+      <div class="label">Cómo funciona</div>
+      <h3 class="display">Probá, trabajá y medí tus resultados</h3>
+      <p>Un proceso diseñado para que arranques sin riesgo y crezcas a tu ritmo.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h4>Te registrás como operadora</h4>
+        <p>Completás tus datos, elegís la máquina que te interesa y esperás la habilitación. Te avisamos por WhatsApp.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h4>Alquilás el equipo que necesitás</h4>
+        <p>Por jornadas o períodos. Coordinamos logística, envío y retiro. Vos solo te concentrás en tus clientas.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h4>Trabajás y medís</h4>
+        <p>Agenda, pagos y seguimiento desde el sistema. Sabés exactamente cuánto generó cada jornada.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <h4>Decidís si comprás</h4>
+        <p>Si los números cierran y la máquina funciona para tu negocio, podés avanzar a la compra. Si no, nada.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Máquinas -->
+  <section>
+    <div class="sh">
+      <div class="label">Equipos disponibles</div>
+      <h3 class="display">Aparatología profesional para tu estética</h3>
+    </div>
+    <div class="maq-grid">
+      <div class="maq-card">
+        <div class="maq-icon">❄️</div>
+        <div class="maq-name">Láser Depilación</div>
+        <div class="maq-desc">Diodo · Largo pulso</div>
+      </div>
+      <div class="maq-card">
+        <div class="maq-icon">✨</div>
+        <div class="maq-name">Radiofrecuencia / HIFU</div>
+        <div class="maq-desc">Rejuvenecimiento</div>
+      </div>
+      <div class="maq-card">
+        <div class="maq-icon">🌊</div>
+        <div class="maq-name">Pressoterapia</div>
+        <div class="maq-desc">Drenaje · Circulación</div>
+      </div>
+      <div class="maq-card">
+        <div class="maq-icon">⚡</div>
+        <div class="maq-name">Electroestimulación</div>
+        <div class="maq-desc">Modelado corporal</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Beneficios -->
+  <section>
+    <div class="sh">
+      <div class="label">Por qué elegir DepiMóvil</div>
+      <h3 class="display">Tu socio tecnológico y comercial</h3>
+    </div>
+    <div class="benefit-grid">
+      <div class="benefit">
+        <div class="bi">📦</div>
+        <div>
+          <h4>Sin inversión inicial</h4>
+          <p>Accedés a equipos de alto valor sin inmovilizar capital. Pagás solo cuando trabajás.</p>
+        </div>
+      </div>
+      <div class="benefit">
+        <div class="bi">🚚</div>
+        <div>
+          <h4>Logística coordinada</h4>
+          <p>Enviamos y retiramos el equipo. Llegamos al interior del Uruguay.</p>
+        </div>
+      </div>
+      <div class="benefit">
+        <div class="bi">📱</div>
+        <div>
+          <h4>Sistema de gestión</h4>
+          <p>Agenda, pagos y seguimiento desde el celular. Sabés en tiempo real cómo va tu negocio.</p>
+        </div>
+      </div>
+      <div class="benefit">
+        <div class="bi">🎓</div>
+        <div>
+          <h4>Capacitación y respaldo</h4>
+          <p>Te acompañamos con formación técnica y soporte durante todo el proceso.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Final -->
+  <div class="cta-box">
+    <div class="label">¿Lista para empezar?</div>
+    <h3 class="display">Registrate hoy.<br>Es rápido y gratis.</h3>
+    <p>Completás el formulario, nosotros lo revisamos y te avisamos por WhatsApp cuando tu cuenta esté habilitada.</p>
+    <a href="/?registro=operadora" class="btn-cta lg">✅ Registrarme como operadora</a>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  <div class="wrap">
+    <div class="foot-inner">
+      <p>© 2026 DepiMóvil · Uruguay</p>
+      <a href="/?registro=operadora">Ir al formulario →</a>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>
