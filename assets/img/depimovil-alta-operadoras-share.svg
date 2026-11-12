@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#111216;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1b1c22;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#D4A96A;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#e8c08a;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="circleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4A96A;stop-opacity:0.18"/>
+      <stop offset="100%" style="stop-color:#D4A96A;stop-opacity:0.03"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+
+  <!-- Círculos decorativos fondo -->
+  <circle cx="980" cy="80" r="320" fill="url(#circleGrad)"/>
+  <circle cx="980" cy="80" r="200" fill="none" stroke="#D4A96A" stroke-width="1" opacity="0.12"/>
+  <circle cx="980" cy="80" r="120" fill="none" stroke="#D4A96A" stroke-width="1" opacity="0.1"/>
+
+  <!-- Línea decorativa izquierda -->
+  <rect x="72" y="72" width="4" height="486" rx="2" fill="url(#accentGrad)" opacity="0.6"/>
+
+  <!-- Badge "Registros abiertos" -->
+  <rect x="100" y="88" width="220" height="36" rx="18" fill="#1b1c22" stroke="rgba(255,255,255,0.09)" stroke-width="1"/>
+  <circle cx="122" cy="106" r="6" fill="#1D9E75"/>
+  <text x="138" y="111" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#9B938A" letter-spacing="0.02em">Registros abiertos</text>
+
+  <!-- Label superior -->
+  <text x="100" y="175" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#D4A96A" letter-spacing="0.1em" text-transform="uppercase">ALTA DE OPERADORAS</text>
+
+  <!-- Título principal -->
+  <text x="100" y="250" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700" fill="#F4F1EE" letter-spacing="-0.01em">La tecnología</text>
+  <text x="100" y="325" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700" fill="#F4F1EE">la ponemos</text>
+  <text x="100" y="400" font-family="Georgia, 'Times New Roman', serif" font-size="62" font-weight="700" fill="url(#accentGrad)">nosotros.</text>
+
+  <!-- Subtítulo -->
+  <text x="100" y="456" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#9B938A" font-weight="400">Alquilá aparatología profesional sin inversión inicial.</text>
+  <text x="100" y="484" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#9B938A" font-weight="400">Probá, trabajá, medí y decidí.</text>
+
+  <!-- Botón CTA -->
+  <rect x="100" y="514" width="288" height="58" rx="14" fill="#D4A96A"/>
+  <text x="244" y="549" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="700" fill="#171014" text-anchor="middle">✅ Registrarme ahora</text>
+
+  <!-- Logo / Nombre marca -->
+  <rect x="880" y="490" width="230" height="82" rx="16" fill="#1b1c22" stroke="rgba(212,169,106,0.2)" stroke-width="1"/>
+  <text x="995" y="527" font-family="Georgia, 'Times New Roman', serif" font-size="26" font-weight="700" fill="#F4F1EE" text-anchor="middle">DepiMóvil</text>
+  <text x="995" y="553" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#9B938A" text-anchor="middle" letter-spacing="0.05em">Plataforma Operativa · Uruguay</text>
+
+  <!-- URL -->
+  <text x="100" y="598" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="rgba(155,147,138,0.5)" letter-spacing="0.03em">crm.depimovil.live</text>
+</svg>
