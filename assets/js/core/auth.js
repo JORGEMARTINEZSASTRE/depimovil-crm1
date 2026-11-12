@@ -272,7 +272,7 @@ function startApp(){
     try{ await api('/api/auth/me'); }
     catch(e){ if(e?.status===401||String(e).includes('401')){ clearInterval(window._sessionCheckInterval); logout(); } }
   }, 2*60*1000);
-  if(typeof window.depimovilShowQrBtn==='function') window.depimovilShowQrBtn();
+  if(typeof window.depimovilShowQrBtn==='function'&&currentUser&&!['operadora','transportista'].includes(currentUser.rol)) window.depimovilShowQrBtn();
 }
 
 
