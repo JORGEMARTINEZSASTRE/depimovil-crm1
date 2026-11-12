@@ -433,7 +433,10 @@ async function cargarKpisFinancieros(){
           <span class="kfi-val" style="color:#e05c5c">${data.deudas_vencidas.count} · $ ${fmt(data.deudas_vencidas.monto)}</span>
         </div>
       </div>`;
-  }catch(e){console.warn('KPIs financieros no disponibles',e);}
+  }catch(e){
+    if(!e||e.status!==401){const el=document.getElementById('kpisFinancieros');if(el)el.innerHTML='<div style="font-size:12px;color:var(--text2);text-align:center;padding:8px 0">Métricas no disponibles</div>';}
+    console.warn('KPIs financieros no disponibles',e);
+  }
 }
 
 function renderDashboard(){

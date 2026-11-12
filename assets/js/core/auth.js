@@ -188,6 +188,8 @@ async function submitOperadoraRegistro(){
       showToast('✅ Ya estás dada de alta. Pedí el código por WhatsApp para ingresar.');
     }else if(data.pendiente_autorizacion){
       showToast('✅ Registro recibido. Te avisamos por WhatsApp cuando administración lo autorice.');
+      const pendDiv=document.getElementById('loginRegistroPendiente');
+      if(pendDiv){pendDiv.style.display='';document.getElementById('loginWhatsappPanel').style.display='none';}
     }else if(data.codigo_enviado){
       document.getElementById('waCodeGroup').style.display='';
       document.getElementById('waVerifyBtn').style.display='';
