@@ -107,11 +107,8 @@
     document.body.appendChild(button);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureButton);
-  } else {
-    ensureButton();
-  }
+  // El botón sólo se muestra después del login (llamado desde startApp)
+  window.depimovilShowQrBtn = ensureButton;
 
   window.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') closeModal();

@@ -212,6 +212,7 @@ function doLogout(){
   TOKEN.del();currentUser=null;
   document.getElementById('app').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
+  var fab=document.getElementById('mobileQrFab');if(fab)fab.style.display='none';
 }
 async function tryRestoreSession(){
   // Auto-login por portal token (link enviado por WA al aprobar)
@@ -271,6 +272,7 @@ function startApp(){
     try{ await api('/api/auth/me'); }
     catch(e){ if(e?.status===401||String(e).includes('401')){ clearInterval(window._sessionCheckInterval); logout(); } }
   }, 2*60*1000);
+  if(typeof window.depimovilShowQrBtn==='function') window.depimovilShowQrBtn();
 }
 
 
