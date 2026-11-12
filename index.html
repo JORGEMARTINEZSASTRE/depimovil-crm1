@@ -124,6 +124,10 @@
           <input type="tel" id="regOpWhatsapp" placeholder="+598 99 123 456" inputmode="tel" autocomplete="off" style="width:100%;box-sizing:border-box"/>
         </div>
         <div class="form-field" style="margin:0">
+          <label style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block">Cédula / DNI <span style="color:var(--accent)">*</span></label>
+          <input type="text" id="regOpDocumento" placeholder="Ej: 1.234.567-8" inputmode="numeric" autocomplete="off" style="width:100%;box-sizing:border-box"/>
+        </div>
+        <div class="form-field" style="margin:0">
           <label style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block">Ciudad donde trabajás <span style="color:var(--accent)">*</span></label>
           <input type="text" id="regOpCiudad" placeholder="Ej: Salto, Montevideo, Paysandú..." autocomplete="off" style="width:100%;box-sizing:border-box"/>
         </div>
@@ -144,7 +148,6 @@
         </div>
       </div>
       <!-- Campos ocultos para compatibilidad con submitOperadoraRegistro() -->
-      <input type="hidden" id="regOpDocumento" value="00000"/>
       <input type="hidden" id="regOpDepartamento" value=""/>
       <input type="hidden" id="regOpCumpleDia" value="1"/>
       <select id="regOpCumpleMes" style="display:none"><option value="1" selected>Enero</option></select>
