@@ -100,13 +100,13 @@ async function registrarMovimientoMaquina(client, { maquinaId, tipo, estadoAnter
 }
 
 async function assertCanViewMachine(req, maquinaId, scope = 'máquinas') {
-  const { isOpsOrCoordinadora, isOperadoraRole } = require('../../middleware/auth');
+  const { isOpsRole, isOperadoraRole } = require('../../middleware/auth');
   if (req.user.rol === 'transportista' && !req.user.transportista_id) {
     const err = new Error(`Sin permisos para ${scope}`);
     err.status = 403;
     throw err;
   }
-  if (!isOpsOrCoordinadora(req.user.rol) && !isOperadoraRole(req.user.rol) && req.user.rol !== 'transportista') {
+  if (!isOpsRole(req.user.rol) && !isOperadoraRole(req.user.rol) && req.user.rol !== 'transportista') {
     const err = new Error(`Sin permisos para ${scope}`);
     err.status = 403;
     throw err;

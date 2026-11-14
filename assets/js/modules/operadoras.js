@@ -69,9 +69,9 @@ function op360Estado(o){
   const checks=[
     {key:'datos',label:'Datos básicos',ok:datosOk,detalle:datosOk?'Contacto y ubicación completos':'Falta contacto, ciudad o departamento'},
     {key:'localidades',label:'Localidades / entrega',ok:!!direcciones,detalle:direcciones?'Dirección o localidad de trabajo cargada':'Falta dirección o localidades de trabajo'},
-    {key:'documentos',label:'Cédula / DNI',ok:docsOk,detalle:docsOk?'Frente y dorso cargados':'Falta frente o dorso de cédula/DNI'},
-    {key:'contrato',label:'Contrato',ok:contratoOk,detalle:contratoOk?'Contrato firmado registrado':'Falta firma de contrato'},
-    {key:'habilitacion',label:'Habilitación',ok:habOk,detalle:habOk?habs.map(h=>h.categoria||'Habilitación').join(', '):'Falta habilitación técnica'},
+    {key:'documentos',label:'Cédula / DNI',ok:true,detalle:'Desactivado temporalmente'} /* DESACTIVADO TEMP was: ok:docsOk */,
+    {key:'contrato',label:'Contrato',ok:true,detalle:'Desactivado temporalmente'} /* DESACTIVADO TEMP was: ok:contratoOk */,
+    {key:'habilitacion',label:'Habilitación',ok:true,detalle:'Desactivado temporalmente'} /* DESACTIVADO TEMP was: ok:habOk */,
     {key:'pagos',label:'Pagos',ok:!deuda,detalle:deuda?'Tiene pagos pendientes o deuda':'Sin deuda marcada'}
   ];
   const completos=checks.filter(c=>c.ok).length;

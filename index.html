@@ -32,7 +32,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="DepiMóvil"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<link rel="stylesheet" href="assets/css/app.css?v=20261008-usr"/>
+<link rel="stylesheet" href="assets/css/app.css?v=20261011-leasing"/>
 </head>
 <body>
 
@@ -54,21 +54,6 @@
       <div class="field-group"><label>Contraseña</label>
         <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/></div>
       <button class="btn-primary" onclick="doLogin()">Ingresar al Sistema</button>
-      <a href="#" onclick="abrirOlvide();return false" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:var(--text2,#888);text-decoration:underline">¿Olvidaste tu contraseña?</a>
-    </div>
-    <div id="loginOlvidePanel" style="display:none">
-      <p style="font-size:13px;margin:0 0 14px;opacity:.8">Te mandamos un código al WhatsApp que tenés cargado en tu usuario.</p>
-      <div class="field-group"><label>Email</label>
-        <input type="email" id="olvEmail" placeholder="usuario@depimovil.com" autocomplete="username"/></div>
-      <button class="btn-primary" id="olvPedirBtn" onclick="pedirCodigoReset()">Enviar código por WhatsApp</button>
-      <div id="olvPaso2" style="display:none;margin-top:14px">
-        <div class="field-group"><label>Código</label>
-          <input type="text" id="olvCodigo" placeholder="123456" maxlength="6" inputmode="numeric"/></div>
-        <div class="field-group"><label>Nueva contraseña</label>
-          <input type="password" id="olvPass" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/></div>
-        <button class="btn-primary" onclick="confirmarReset()">Cambiar contraseña</button>
-      </div>
-      <a href="#" onclick="cerrarOlvide();return false" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:var(--text2,#888);text-decoration:underline">← Volver al inicio de sesión</a>
     </div>
     <div id="loginWhatsappPanel">
       <input type="hidden" id="waLoginRol" value="admin"/>
@@ -85,11 +70,6 @@
       <button class="btn-secondary full-width" onclick="openOperadoraRegistro()" style="margin-top:10px">Registrarme como nueva operadora</button>
     </div>
     <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
-    <div id="loginRegistroPendiente" style="display:none;margin-top:14px;padding:14px 16px;background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.3);border-radius:10px;text-align:center">
-      <div style="font-size:22px;margin-bottom:6px">✅</div>
-      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">¡Registro recibido!</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.5">Te avisamos por WhatsApp cuando tu cuenta esté habilitada. ¡Ya podés cerrar esta pantalla!</div>
-    </div>
   </div>
 </div>
 
@@ -106,7 +86,7 @@
       </div>
       <button class="modal-close" onclick="closeModal('modalRegistroOperadora')">✕</button>
     </div>
-    <div class="modal-body" style="padding:20px 24px;max-height:calc(90dvh - 170px);overflow-y:auto">
+    <div class="modal-body" style="padding:20px 24px">
       <div style="background:rgba(212,169,106,0.08);border:1px solid rgba(212,169,106,0.2);border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:13px;color:var(--text2);line-height:1.5">
         📱 Te avisamos por WhatsApp cuando tu cuenta quede habilitada. ¡Es rápido!
       </div>
@@ -208,6 +188,7 @@
           <button class="nav-item" data-view="compras" onclick="navigate('compras')"><span class="icon">🧾</span> Compras <span class="nav-badge" id="navBadgeCompras" style="display:none">0</span></button>
           <button class="nav-item" data-view="ventas-maquinas" onclick="navigate('ventas-maquinas')"><span class="icon">🏷</span> Ventas Máquinas <span class="nav-badge" id="navBadgeVentasMaq" style="display:none">0</span></button>
           <button class="nav-item" data-view="contratos" onclick="navigate('contratos')"><span class="icon">📋</span> Contratos <span class="nav-badge" id="navBadgeContratos" style="display:none">0</span></button>
+          <button class="nav-item" data-view="leasing" onclick="navigate('leasing')"><span class="icon">📑</span> Leasing <span class="nav-badge" id="navBadgeLeasing" style="display:none">0</span></button>
         </details>
         <details class="nav-group" data-nav-group="logistica">
           <summary><span>Logística</span><span class="chev">⌄</span></summary>
@@ -215,11 +196,6 @@
           <button class="nav-item" data-view="transportistas" onclick="navigate('transportistas')"><span class="icon">🚛</span> Transportistas</button>
           <button class="nav-item" data-view="limpiezas" onclick="navigate('limpiezas')"><span class="icon">🧽</span> Limpiezas</button>
           <button class="nav-item" data-view="logistica" onclick="navigate('logistica')"><span class="icon">🗺</span> Reglas Logísticas</button>
-        </details>
-        <details class="nav-group" data-nav-group="comercial">
-          <summary><span>Comercial</span><span class="chev">⌄</span></summary>
-          <button class="nav-item" data-view="leads" onclick="navigate('leads')"><span class="icon">🎯</span> Leads <span class="nav-badge" id="navBadgeLeads" style="display:none">0</span></button>
-          <button class="nav-item" data-view="embudo" onclick="navigate('embudo')"><span class="icon">🏆</span> Embudo</button>
         </details>
         <details class="nav-group" id="adminNav" data-nav-group="sistema">
           <summary><span>Sistema</span><span class="chev">⌄</span></summary>
@@ -369,6 +345,7 @@
 
         <!-- MÁQUINAS LIST -->
         <div class="view" id="view-maquinas">
+          <div id="maqTabBar" class="maq-tab-bar"></div>
           <div class="table-container">
             <div class="table-header">
               <h3>⚙️ Máquinas</h3>
@@ -433,15 +410,21 @@
 
         <!-- USUARIOS -->
         <div class="view" id="view-usuarios">
-          <div class="usr-head">
-            <div>
-              <h2 class="usr-title">Usuarios y roles</h2>
-              <p class="usr-sub">Personal con acceso al CRM. Cada rol define qué puede ver y hacer.</p>
+          <div class="table-container">
+            <div class="table-header">
+              <div>
+                <h3>👥 Usuarios internos</h3>
+                <div style="color:var(--text3);font-size:12px;margin-top:2px">Personal con acceso al CRM. Se ingresa con el WhatsApp cargado.</div>
+              </div>
+              <div class="table-actions">
+                <button class="btn-add" onclick="openUsuarioModal()">+ Nuevo usuario</button>
+              </div>
             </div>
-            <button class="btn-add" onclick="openUsuarioModal()">+ Nuevo usuario</button>
+            <div style="overflow-x:auto">
+              <table><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th style="text-align:right">Acciones</th></tr></thead>
+              <tbody id="usuariosTableBody"></tbody></table>
+            </div>
           </div>
-          <div class="usr-filtros" id="usrFiltros"></div>
-          <div class="usr-grid" id="usuariosTableBody"></div>
         </div>
 
         <!-- LIMPIEZAS -->
@@ -582,6 +565,19 @@
         </div>
 
         <!-- CONTRATOS -->
+        <!-- LEASING -->
+        <div class="view" id="view-leasing">
+          <div class="table-container">
+            <div id="leasingContent"><div class="loading">Cargando...</div></div>
+          </div>
+        </div>
+
+        <!-- LEASING FICHA -->
+        <div class="view" id="view-leasing-ficha">
+          <button class="back-btn" onclick="navigate('leasing')">← Volver a Leasing</button>
+          <div id="fichaLeasingContent"></div>
+        </div>
+
         <div class="view" id="view-contratos">
           <div class="table-container">
             <div class="table-header">
@@ -801,7 +797,6 @@
               <button class="btn-export" onclick="exportarCSV('operadoras')">⬇ Operadoras CSV</button>
               <button class="btn-export" onclick="exportarCSV('pagos')">⬇ Pagos CSV</button>
               <button class="btn-export" onclick="exportarCSV('envios')">⬇ Envíos CSV</button>
-              <button class="btn-export" onclick="exportarCSV('leads')">⬇ Leads CSV</button>
             </div>
           </div>
           <div id="reportesContent"></div>
@@ -875,76 +870,30 @@
           <div id="materialesContent"></div>
         </div>
 
-        <!-- LEADS -->
-        <div class="view" id="view-leads">
-          <div id="leadsAlerts"></div>
-          <div class="table-container">
-            <div class="table-header">
-              <h3>🎯 Leads / Prospectos</h3>
-              <div class="table-actions">
-                <input class="search-input" type="text" placeholder="🔍 Buscar nombre, negocio, ciudad…" oninput="filterLeads(this.value)"/>
-                <select class="filter-select" onchange="filterLeadEstado(this.value)" id="filterLeadStatus">
-                  <option value="">Todos los estados</option>
-                  <option value="nuevo">Nuevo</option>
-                  <option value="contactado">Contactado</option>
-                  <option value="interesado">Interesado</option>
-                  <option value="calificado">Calificado</option>
-                  <option value="presupuesto_enviado">Presupuesto Enviado</option>
-                  <option value="pendiente_respuesta">Pendiente Respuesta</option>
-                  <option value="pendiente_sena">Pendiente Seña</option>
-                  <option value="reserva_confirmada">Reserva Confirmada</option>
-                  <option value="cliente_activa">Cliente Activa</option>
-                  <option value="cliente_inactiva">Cliente Inactiva</option>
-                  <option value="recuperacion">Recuperación</option>
-                  <option value="seguimiento">Seguimiento</option>
-                  <option value="ganado">Ganado</option>
-                  <option value="perdido">Perdido</option>
-                  <option value="reactivar_luego">Reactivar Luego</option>
-                </select>
-                <select class="filter-select" onchange="filterLeadFuente(this.value)" id="filterLeadFuente">
-                  <option value="">Todas las fuentes</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="referido">Referido</option>
-                  <option value="web">Web / Google</option>
-                  <option value="feria">Feria / Evento</option>
-                  <option value="llamada">Llamada entrante</option>
-                  <option value="otro">Otro</option>
-                </select>
-                <button class="btn-add" onclick="openLeadModal()" id="btnAddLead">+ Nuevo Lead</button>
-              </div>
-            </div>
-            <div style="overflow-x:auto">
-              <table><thead><tr>
-                <th>Nombre</th><th>Negocio</th><th>Ciudad</th><th>WhatsApp</th>
-                <th>Fuente</th><th>Estado</th><th>Próxima Acción</th><th>Alta</th><th>Acciones</th>
-              </tr></thead><tbody id="leadsTableBody"></tbody></table>
-            </div>
-          </div>
-        </div>
-
-        <!-- LEAD FICHA -->
-        <div class="view" id="view-lead-ficha">
-          <button class="back-btn" onclick="navigate('leads')">← Volver a Leads</button>
-          <div id="fichaLeadContent"></div>
-        </div>
-
-        <!-- EMBUDO COMERCIAL -->
-        <div class="view" id="view-embudo">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-            <div>
-              <h2 style="font-size:18px;font-weight:700;color:var(--text)">🏆 Embudo Comercial</h2>
-              <p style="font-size:13px;color:var(--text2);margin-top:3px">Visión del pipeline por estado.</p>
-            </div>
-            <button class="btn-add" onclick="openLeadModal()">+ Nuevo Lead</button>
-          </div>
-          <div class="embudo-stats" id="embudoStats"></div>
-          <div class="kanban-board" id="kanbanBoard"></div>
-        </div>
-
       </div>
     </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav" id="bottomNav">
+      <div class="bottom-nav-inner">
+        <button class="bottom-nav-btn active" data-bnav="dashboard" onclick="navigate('dashboard')">
+          <span class="bnav-icon">⊞</span>Inicio
+        </button>
+        <button class="bottom-nav-btn" data-bnav="maquinas" onclick="navigate('maquinas')">
+          <span class="bnav-icon">⚙️</span>Máquinas
+        </button>
+        <button class="bottom-nav-btn" data-bnav="reservas" onclick="navigate('reservas')">
+          <span class="bnav-icon">📅</span>Reservas
+        </button>
+        <button class="bottom-nav-btn" data-bnav="operadoras" onclick="navigate('operadoras')">
+          <span class="bnav-icon">👩‍💼</span>Operas.
+        </button>
+        <button class="bottom-nav-btn" data-bnav="mas" onclick="toggleSidebar()">
+          <span class="bnav-icon">☰</span>Más
+        </button>
+      </div>
+    </nav>
+
   </div>
 </div>
 
@@ -954,7 +903,7 @@
   var mount = document.getElementById('dmModalsMount');
   if (!mount) return;
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'partials/modals.html?v=20260923-semi', false);
+  xhr.open('GET', 'partials/modals.html?v=20261011-alqmensual', false);
   xhr.send(null);
   if (xhr.status >= 200 && xhr.status < 300) {
     mount.outerHTML = xhr.responseText;
@@ -967,23 +916,23 @@
 
 <script data-cfasync="false" src="assets/js/core/storage-api.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/core/seed-data.js?v=20260526-no-demo-prod"></script>
-<script data-cfasync="false" src="assets/js/core/auth.js?v=20261008-olvide"></script>
-<script data-cfasync="false" src="assets/js/core/navigation.js?v=20260919-coordinadora"></script>
-<script data-cfasync="false" src="assets/js/modules/dashboard.js?v=20260921-qa"></script>
-<script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20260923-datos"></script>
+<script data-cfasync="false" src="assets/js/core/auth.js?v=20260719-solo-mail"></script>
+<script data-cfasync="false" src="assets/js/core/navigation.js?v=20261011-noleads"></script>
+<script data-cfasync="false" src="assets/js/modules/dashboard.js?v=20261011-noleads"></script>
+<script data-cfasync="false" src="assets/js/modules/operadoras.js?v=20261108-min"></script>
 <script data-cfasync="false" src="assets/js/modules/revision-operadoras.js?v=20260923-semi"></script>
 <script data-cfasync="false" src="assets/js/modules/documentos.js?v=20260531-certificados"></script>
-<script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20260923-badge"></script>
+<script data-cfasync="false" src="assets/js/modules/maquinas.js?v=20261108-salto"></script>
 <script data-cfasync="false" src="assets/js/modules/mantenimientos.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/limpiezas.js?v=20260921-traslados"></script>
-<script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20261008-usuarios3"></script>
-<script data-cfasync="false" src="assets/js/modules/reservas.js?v=20260921-qa"></script>
+<script data-cfasync="false" src="assets/js/modules/usuarios.js?v=20261008-usuarios2"></script>
+<script data-cfasync="false" src="assets/js/modules/reservas.js?v=20261108-salto"></script>
 <script data-cfasync="false" src="assets/js/modules/logistica.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/pagos.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/caja.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/compras-proveedores.js?v=20260921-qa"></script>
-<script data-cfasync="false" src="assets/js/modules/ventas-maquinas.js?v=20260921-15d"></script>
-<script data-cfasync="false" src="assets/js/modules/reserva-automatizacion.js?v=20260921-qa"></script>
+<script data-cfasync="false" src="assets/js/modules/ventas-maquinas.js?v=20261108-salto"></script>
+<script data-cfasync="false" src="assets/js/modules/reserva-automatizacion.js?v=20261108-min"></script>
 <script data-cfasync="false" src="assets/js/modules/whatsapp.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/envios.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/configuracion.js?v=20260921-qa"></script>
@@ -991,20 +940,18 @@
 <script data-cfasync="false" src="assets/js/modules/auditoria.js?v=20260523-xss"></script>
 <script data-cfasync="false" src="assets/js/modules/busqueda.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/exportacion.js"></script>
-<script data-cfasync="false" src="assets/js/modules/leads.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/perfil.js?v=20260523-security"></script>
-<script data-cfasync="false" src="assets/js/modules/embudo.js?v=20260921-qa"></script>
-<script data-cfasync="false" src="assets/js/modules/notas-leads.js"></script>
 <script data-cfasync="false" src="assets/js/modules/formacion-data.js?v=20260611-split"></script>
-<script data-cfasync="false" src="assets/js/modules/formacion-helpers.js?v=20260921-qa"></script>
+<script data-cfasync="false" src="assets/js/modules/formacion-helpers.js?v=20261108-salto"></script>
 <script data-cfasync="false" src="assets/js/modules/formacion-evaluaciones.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/formacion-capacitaciones.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/formacion-render.js?v=20260611-split"></script>
-<script data-cfasync="false" src="assets/js/core/helpers.js?v=20260919-coordinadora"></script>
+<script data-cfasync="false" src="assets/js/core/helpers.js?v=20261108-salto"></script>
 <script data-cfasync="false" src="assets/js/core/boot.js?v=20260602-contrato-unico"></script>
 <script data-cfasync="false" src="assets/js/modules/transportistas.js?v=20260921-qa"></script>
 <script data-cfasync="false" src="assets/js/modules/contratos-y-filtros.js?v=20260527-contrato-marco"></script>
 <script data-cfasync="false" src="assets/js/modules/contratos.js?v=20260921-qa"></script>
+<script data-cfasync="false" src="assets/js/modules/leasing.js?v=20261011-v1"></script>
 <script src="/assets/js/mobile-qr.js?v=20260703"></script>
 <script src="/assets/js/mobile-admin-entry.js?v=20260807"></script>
 <script>

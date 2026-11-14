@@ -53,7 +53,7 @@ function validarReservaAutomatica(reservaLike){
     if(revision && revision.requiere_revision_admin && revision.revision_admin_estado!=='aprobada'){
       bloqueos.push(`Registro de operadora pendiente: ${revision.revision_admin_estado}`);
     }
-    if(!(ctl?!!ctlOp.cedula_ok:tieneCedulaCompleta(op.id))) bloqueos.push('Falta cédula/DNI frente y dorso');
+    /* DESACTIVADO TEMP */ // if(!(ctl?!!ctlOp.cedula_ok:tieneCedulaCompleta(op.id))) bloqueos.push('Falta cédula/DNI frente y dorso');
   }
 
   if(!maq) bloqueos.push('Falta máquina vinculada');
@@ -62,7 +62,7 @@ function validarReservaAutomatica(reservaLike){
     if(!disp.ok) bloqueos.push(disp.msg.replace(/^[^A-Za-zÁÉÍÓÚáéíóú]+/,''));
   }
 
-  if(op && maq && !(ctl?(ctl.contratos.includes(r.operadoraId+':'+r.maquinaId)||(ctl.contratos_marco||[]).includes(r.operadoraId)):tieneContratoFirmadoReserva(r))) bloqueos.push('Falta contrato firmado para esta máquina');
+  /* DESACTIVADO TEMP */ // if(op && maq && !(ctl?(ctl.contratos.includes(r.operadoraId+':'+r.maquinaId)||(ctl.contratos_marco||[]).includes(r.operadoraId)):tieneContratoFirmadoReserva(r))) bloqueos.push('Falta contrato firmado para esta máquina');
 
   const pagos=(DB.get('pagos')||[]).filter(p=>parseInt(p.reservaId)===parseInt(r.id));
   if(op && (ctl?!!(ctl.por_operadora[op.id]||{}).deuda_vencida:(typeof tieneDeudaVencida==='function' && tieneDeudaVencida(op.id)))){

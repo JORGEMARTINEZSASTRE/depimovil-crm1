@@ -297,7 +297,7 @@ function updateEnviosBadge(){
   if(badge){badge.textContent=count;badge.style.display=count>0?'inline':'none';}
 }
 
-function updateMaqBadge(){
+function updateMaqBadge(){ return;
   const maqs=DB.get('maquinas')||[];
   const hoy=today();
   const count=maqs.filter(m=>

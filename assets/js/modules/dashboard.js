@@ -36,14 +36,6 @@ function dashboardStatNavigate(kind){
     setDashboardFilterValue('pagos','#filterPagoStatus','pendientes');
     return;
   }
-  if(kind==='leads'){
-    if(typeof leadFilter==='object'){leadFilter.search='';leadFilter.estado='';leadFilter.fuente='';}
-    navigate('leads');
-    setDashboardFilterValue('leads','.search-input','');
-    setDashboardFilterValue('leads','#filterLeadStatus','');
-    setDashboardFilterValue('leads','#filterLeadFuente','');
-    return;
-  }
   if(kind==='envios'){
     if(typeof envioFilter==='object'){envioFilter.search='';envioFilter.estado='';}
     navigate('envios');
@@ -147,7 +139,7 @@ function dashTaskItem(t){
   </div>`;
 }
 
-function dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos}){
+function dashboardDailyItems({reservas,pagos,envios,maqs,hoy,puedeVerPagos}){
   const automationTasks=(DB.get('automation_tasks')||[])
     .filter(t=>(t.status||'pendiente')==='pendiente')
     .filter(dashboardCanSeeAutomationTask)
@@ -165,19 +157,12 @@ function dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos
     return (!due||due>hoy)&&['logistica','operaciones','administracion'].includes(t.area);
   }).map(t=>dashboardAutomationItem(t,hoy));
   const activeRes=reservas.filter(r=>ESTADOS_ACTIVOS.includes(r.estado));
-  const closedLeadStates=['ganado','perdido','cliente_activa'];
   const senasPend=puedeVerPagos?pagos.filter(p=>
     p.estado==='sena_pendiente' || ((p.senaRequerida||0)>0 && (p.senaAbonada||0)<(p.senaRequerida||0))
   ):[];
   const saldosPend=puedeVerPagos?pagos.filter(p=>
     (p.saldoPendiente||0)>0 && !['validado','cancelado'].includes(p.estado)
   ):[];
-  const leadsCalientes=leads.filter(l=>
-    Number(l.whatsappScore||0)>=45 || ['pendiente_sena','reserva_confirmada'].includes(l.estado)
-  ).sort((a,b)=>(Number(b.whatsappScore||0)-Number(a.whatsappScore||0)) || (b.id-a.id));
-  const leadsVencidos=leads.filter(l=>
-    l.proxFecha && l.proxFecha<=hoy && !closedLeadStates.includes(l.estado)
-  ).sort((a,b)=>(a.proxFecha||'').localeCompare(b.proxFecha||''));
   const reservasProximas=activeRes.filter(r=>{
     const f=r.tipo==='jornada'?r.fechaJornada:r.fechaInicio;
     return f && f>=hoy && daysDiff(hoy,f)<=2;
@@ -207,13 +192,11 @@ function dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos
       const op=getOp(r.operadoraId); const maq=getMaq(r.maquinaId);
       return {priority:'alta',icon:'⏰',title:'Reserva vencida sin cierre',sub:`${r.codigo} · ${escapeHTML(maq?maq.nombre:'Máquina')} · ${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')}`,action:dashAction('Ver',`showResFicha(${r.id})`)};
     }),
-    ...leadsVencidos.slice(0,3).map(l=>({priority:'alta',icon:'📞',title:'Seguimiento vencido',sub:`${escapeHTML(l.nombre)} ${escapeHTML(l.apellido||'')} · ${l.proxAccion||'Sin acción'}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
     ...viajerasTecnico.filter(m=>m.diasTecnico>=7).slice(0,3).map(m=>({priority:'alta',icon:'🛠',title:'Máquina en técnico demorada',sub:`${m.codigo} · ${escapeHTML(m.nombre)} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
   ];
 
   const comercial=[
     ...automationComercial.slice(0,4),
-    ...leadsCalientes.slice(0,5).map(l=>({priority:'media',icon:'🔥',title:'Lead caliente',sub:`${escapeHTML(l.nombre)} ${escapeHTML(l.apellido||'')} · ${LEAD_ESTADOS[l.estado]?.label||l.estado} · score ${Number(l.whatsappScore||0)}`,action:dashAction('Ver',`showLeadFicha(${l.id})`)})),
     ...saldosPend.slice(0,4).map(p=>{
       const op=getOp(p.operadoraId);
       return {priority:'media',icon:'💰',title:'Saldo pendiente',sub:`${escapeHTML(op?op.nombre+' '+op.apellido:'Operadora')} · ${(p.saldoPendiente||0).toLocaleString()} ${p.moneda||'UYU'}`,action:dashAction('Pago',`showPagoFicha(${p.id})`)};
@@ -238,7 +221,7 @@ function dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos
     ...viajerasTecnico.filter(m=>m.diasTecnico<7).slice(0,4).map(m=>({priority:'media',icon:'🛠',title:'En técnico',sub:`${m.codigo} · ${escapeHTML(m.nombre)} · ${m.diasTecnico} día${m.diasTecnico!==1?'s':''}`,action:dashAction('Ver',dashboardMaqAction(m.id,'fuera_servicio'))})),
   ];
 
-  return {alta,comercial,operaciones,totales:{senasPend,leadsCalientes,reservasProximas,enviosSalida,retiros,saldosPend,viajerasPendientes,viajerasTecnico,automationTasks}};
+  return {alta,comercial,operaciones,totales:{senasPend,reservasProximas,enviosSalida,retiros,saldosPend,viajerasPendientes,viajerasTecnico,automationTasks}};
 }
 
 function renderDailyPanel(items){
@@ -250,7 +233,6 @@ function renderDailyPanel(items){
         <div class="daily-panel-sub">Prioridades comerciales, cobros, reservas, envíos, retiros y automatizaciones.</div>
       </div>
       <div class="daily-panel-actions">
-        ${dashAction('Leads',`dashboardStatNavigate('leads')`)}
         ${dashAction('Pagos',`dashboardStatNavigate('pagos')`)}
         ${dashAction('Envíos',`dashboardStatNavigate('envios')`)}
       </div>
@@ -433,10 +415,7 @@ async function cargarKpisFinancieros(){
           <span class="kfi-val" style="color:#e05c5c">${data.deudas_vencidas.count} · $ ${fmt(data.deudas_vencidas.monto)}</span>
         </div>
       </div>`;
-  }catch(e){
-    if(!e||e.status!==401){const el=document.getElementById('kpisFinancieros');if(el)el.innerHTML='<div style="font-size:12px;color:var(--text2);text-align:center;padding:8px 0">Métricas no disponibles</div>';}
-    console.warn('KPIs financieros no disponibles',e);
-  }
+  }catch(e){console.warn('KPIs financieros no disponibles',e);}
 }
 
 function renderDashboard(){
@@ -462,8 +441,7 @@ function renderDashboard(){
   const envTransito=envios.filter(e=>e.estado==='en_transito');
   const puedeVerPagos=typeof canView==='function'&&canView('pagos');
   const puedeVerMant=typeof canView==='function'&&canView('mantenimientos');
-  const leads=DB.get('leads')||[];
-  const dailyItems=dashboardDailyItems({reservas,pagos,envios,leads,maqs,hoy,puedeVerPagos});
+  const dailyItems=dashboardDailyItems({reservas,pagos,envios,maqs,hoy,puedeVerPagos});
   const viajerasPendDemoradas=dailyItems.totales.viajerasPendientes.filter(m=>m.diasGestion>=1);
   const viajerasTecnicoDemoradas=dailyItems.totales.viajerasTecnico.filter(m=>m.diasTecnico>=7);
 
@@ -494,7 +472,6 @@ function renderDashboard(){
   );
   if(!isOperadoraUser()){
     statsData.push(
-      {icon:'🔥',label:'Leads Calientes',value:dailyItems.totales.leadsCalientes.length,color:'#ff9f43',bg:'rgba(255,159,67,0.1)',trend:`${dailyItems.totales.senasPend.length} seña${dailyItems.totales.senasPend.length!==1?'s':''} pendiente${dailyItems.totales.senasPend.length!==1?'s':''}`,action:'leads'},
       {icon:'↩️',label:'Retiros Pendientes',value:dailyItems.totales.retiros.length,color:'#5c8fe0',bg:'rgba(92,143,224,0.1)',trend:`${dailyItems.totales.enviosSalida.length} salida${dailyItems.totales.enviosSalida.length!==1?'s':''} próxima${dailyItems.totales.enviosSalida.length!==1?'s':''}`,action:'envios'},
       {icon:'🧼',label:'Viajeras a Preparar',value:dailyItems.totales.viajerasPendientes.length,color:'#e0c05c',bg:'rgba(224,192,92,0.1)',trend:`${dailyItems.totales.viajerasTecnico.length} en técnico`,action:'maquinas'}
     );
@@ -571,17 +548,6 @@ function renderDashboard(){
       })()}
       <div style="text-align:right;margin-top:12px">
         <button class="action-btn" onclick="navigate('whatsapp')">Ver centro →</button></div>
-    </div>
-    <div class="dash-card">
-      <h3>🎯 Leads — Pipeline</h3>
-      ${(()=>{
-        const leads=DB.get('leads')||[];
-        const activos=leads.filter(l=>!['ganado','perdido'].includes(l.estado));
-        if(!activos.length) return '<div class="dash-list-item"><div class="name" style="color:var(--text2)">Sin leads activos</div></div>';
-        return activos.slice(0,5).map(l=>'<div class="dash-list-item"><div><div class="name">'+escapeHTML(l.nombre)+' '+escapeHTML(l.apellido)+'</div><div class="sub">'+escapeHTML(l.gabinete||l.ciudad||'—')+'</div></div><div>'+badgeLead(l.estado)+'</div></div>').join('');
-      })()}
-      <div style="text-align:right;margin-top:12px">
-        <button class="action-btn" onclick="navigate('leads')">Ver todos →</button></div>
     </div>
     <div class="dash-card" style="grid-column:1/-1">
       <h3>📊 Distribución por Estado</h3>

@@ -1,7 +1,7 @@
 /* ══════════════════════════════════
    MÁQUINAS
 ══════════════════════════════════ */
-let maqFilter={search:'',status:'',ciudad:''};
+let maqFilter={search:'',status:'',ciudad:'',tab:'operativas'};
 let maqPrecioEditId=null;
 const MAQ_CATEGORIAS_DEFAULT=['Láser Depilación','Radiofrecuencia / HIFU','IPL','Pressoterapia','Hidrofacial','Electroestimulación','Ultrasonido','Cavitación','Diodo + NDYAG','Otro'];
 function maqTipoOperativoLabel(tipo){
@@ -23,8 +23,8 @@ function maqTipoOperativoBadge(m){
   return '';
 }
 function badgeMaq(e){
-  const m={disponible:'badge-green',reservada:'badge-rose',mantenimiento:'badge-yellow',fuera_servicio:'badge-red',en_viaje:'badge-blue'};
-  const l={disponible:'Disponible',reservada:'Reservada',mantenimiento:'Mantenimiento',fuera_servicio:'Fuera Servicio',en_viaje:'En Viaje de China'};
+  const m={disponible:'badge-green',reservada:'badge-rose',mantenimiento:'badge-yellow',fuera_servicio:'badge-red',en_viaje:'badge-blue',alquilada_mensual:'badge-purple'};
+  const l={disponible:'Disponible',reservada:'Reservada',mantenimiento:'Mantenimiento',fuera_servicio:'Fuera Servicio',en_viaje:'En Viaje de China',alquilada_mensual:'Alquilada Mensual'};
   return `<span class="badge ${m[e]||'badge-gray'}">${l[e]||e}</span>`;
 }
 function badgeSubEstadoMaq(m){
@@ -319,19 +319,43 @@ function syncMaqFilterCiudad(visibles){
     ciudades.map(c=>`<option value="${escapeAttr(c)}">${escapeHTML(c)}</option>`).join('');
   if(ciudades.includes(prev))select.value=prev;else{select.value='';maqFilter.ciudad='';}
 }
+function filterMaqTab(tab){
+  maqFilter.tab=tab;
+  document.querySelectorAll('.maq-tab-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector('[data-maq-tab="'+tab+'"]');
+  if(btn)btn.classList.add('active');
+  renderMaquinas();
+}
 function renderMaquinas(){
   const opActual=isOperadoraUser()?getOp(currentUser?.operadora_id):null;
-  const visibles=(DB.get('maquinas')||[]).filter(m=>maquinaVisibleParaOperadora(m,opActual));
-  renderMaquinasViajerasPanel(visibles);
-  syncMaqFilterCiudad(visibles);
-  const maqs=visibles.filter(m=>{
+  const visibles=filtrarMaquinasAdmin((DB.get('maquinas')||[]).filter(m=>maquinaVisibleParaOperadora(m,opActual))); /* DESACTIVADO TEMP wrap */
+  const isVenta=maqFilter.tab==='venta';
+  const tabFiltered=visibles.filter(m=>{
+    const tipo=m.tipoOperativo||'base_ciudad';
+    return isVenta?(tipo==='solo_venta'):(tipo!=='solo_venta');
+  });
+  const countOp=visibles.filter(m=>(m.tipoOperativo||'base_ciudad')!=='solo_venta').length;
+  const countVenta=visibles.filter(m=>m.tipoOperativo==='solo_venta').length;
+  const tabBar=document.getElementById('maqTabBar');
+  if(tabBar){
+    tabBar.innerHTML=`<button class="maq-tab-btn ${!isVenta?'active':''}" data-maq-tab="operativas" onclick="filterMaqTab('operativas')">⚙️ Operativas <span class="maq-tab-count">${countOp}</span></button>`+
+      `<button class="maq-tab-btn ${isVenta?'active':''}" data-maq-tab="venta" onclick="filterMaqTab('venta')">🏷️ Stock Venta <span class="maq-tab-count">${countVenta}</span></button>`;
+  }
+  const viajerasPanel=document.getElementById('maquinasViajerasPanel');
+  if(isVenta){
+    if(viajerasPanel)viajerasPanel.innerHTML='';
+  }else{
+    renderMaquinasViajerasPanel(tabFiltered);
+  }
+  syncMaqFilterCiudad(tabFiltered);
+  const maqs=tabFiltered.filter(m=>{
     const q=maqFilter.search.toLowerCase();
     const ms=!q||(m.codigo+' '+m.nombre+' '+m.categoria+' '+m.ubicacion).toLowerCase().includes(q);
     const cs=!maqFilter.ciudad||maqCiudadEfectiva(m)===maqFilter.ciudad;
     return ms&&cs&&(!maqFilter.status||m.estado===maqFilter.status);
   });
   const tbody=document.getElementById('maqTableBody');
-  if(!maqs.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">⚙️</div><h3>Sin resultados</h3></div></td></tr>`;return;}
+  if(!maqs.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="icon">${isVenta?'🏷️':'⚙️'}</div><h3>Sin ${isVenta?'máquinas en stock para venta':'resultados'}</h3></div></td></tr>`;return;}
   tbody.innerHTML=maqs.map(m=>`<tr>
     <td><span style="font-family:monospace;color:var(--accent);font-size:12px">${escapeHTML(m.codigo)}</span></td>
     <td><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">${maquinaPhotoUrl(m)?`<img class="machine-mini-thumb" src="${escapeAttr(maquinaPhotoUrl(m))}" alt="${escapeAttr(m.nombre)}"/>`:'<span class="machine-mini-thumb" style="display:inline-flex;align-items:center;justify-content:center;color:var(--text3);font-size:15px">⚙️</span>'}<span class="bold">${escapeHTML(m.nombre)}</span>${maqTipoOperativoBadge(m)}</div></td><td>${escapeHTML(m.categoria)}</td>
@@ -445,7 +469,7 @@ function showMaqFicha(id){
         ${badgeMaq(m.estado)}
         ${badgeSubEstadoMaq(m)}
         ${canEdit()?`<button class="btn-secondary" onclick="openMaqModal(${m.id})">✏️ Editar</button>`:''}
-        ${isSuperAdmin()?`<button class="btn-danger" onclick="deleteMaquina(${m.id})">🗑</button>`:''}
+        ${canEdit()?`<button class="btn-danger" onclick="deleteMaquina(${m.id})">🗑 Eliminar</button>`:''}
       </div>
     </div>
     <div class="ficha-grid">
@@ -473,6 +497,7 @@ function showMaqFicha(id){
       </div>
       ${renderMaqPreciosFicha(m)}
       ${renderGestionViajeraPanel(m)}
+      ${renderConversionUsoPanel(m)}
       <div class="info-card">
         <h4>📅 Reservas (${reservas.length})</h4>
         ${reservas.length?reservas.slice(0,5).map(r=>{
@@ -621,6 +646,81 @@ function renderGestionViajeraPanel(m){
     <div class="docs-line" style="margin-top:8px">Mientras está en puesta a punto o técnico queda fuera de disponibilidad para reservas.</div>
     ${renderPuestaPuntoChecklist(m)}
   </div>`;
+}
+function renderConversionUsoPanel(m){
+  if(!canEdit())return '';
+  const esViajera=(m.tipoOperativo==='viajera'||m.tipoOperativo==='alquiler'||m.esViajera);
+  const esBase=(m.tipoOperativo==='base_ciudad');
+  if(!esViajera&&!esBase)return '';
+  const ciudadesDisponibles=['MALDONADO','SALTO','CONCORDIA','TACUAREMBÓ','MONTEVIDEO','CANELONES','PAYSANDÚ'];
+  if(esViajera){
+    return `<div class="info-card full">
+      <h4>🔄 Cambio de uso operativo</h4>
+      <div class="docs-line" style="margin-bottom:10px">Esta máquina es <strong>viajera</strong>. Podés fijarla como base en una ciudad para que deje de viajar y quede asignada fija.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+        <div class="form-field" style="margin:0;min-width:180px">
+          <label style="font-size:11px;color:var(--text2)">Ciudad destino</label>
+          <select id="convCiudadDestino" style="width:100%">
+            ${ciudadesDisponibles.map(c=>`<option value="${escapeAttr(c)}">${escapeHTML(c)}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn-add" onclick="convertirViajeraABase(${m.id})">📌 Fijar como base en ciudad</button>
+      </div>
+      <div class="docs-line" style="margin-top:8px;font-size:12px;color:var(--text3)">Al fijarla, la máquina aparecerá solo en la ciudad seleccionada y dejará de ser viajera. Ideal para estéticas con escalera o ciudades sin máquina grande propia.</div>
+    </div>`;
+  }
+  if(esBase){
+    return `<div class="info-card full">
+      <h4>🔄 Cambio de uso operativo</h4>
+      <div class="docs-line" style="margin-bottom:10px">Esta máquina es <strong>base fija</strong> en <strong>${escapeHTML(m.ciudadBase||m.ubicacion||'ciudad')}</strong>. Podés convertirla en viajera para que circule por todo el país.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-secondary" onclick="convertirBaseAViajera(${m.id})">🚐 Convertir a viajera</button>
+      </div>
+      <div class="docs-line" style="margin-top:8px;font-size:12px;color:var(--text3)">Al convertirla, dejará de estar asignada a ${escapeHTML(m.ciudadBase||'esta ciudad')} y podrá ofrecerse en todas las ciudades (salvo las restringidas).</div>
+    </div>`;
+  }
+  return '';
+}
+async function convertirViajeraABase(id){
+  const ciudad=gv('convCiudadDestino');
+  if(!ciudad){showToast('⚠️ Seleccioná una ciudad destino','warn');return;}
+  if(!confirm(`¿Fijar esta máquina como base en ${ciudad}? Dejará de ser viajera.`))return;
+  const m=(DB.get('maquinas')||[]).find(x=>x.id===id);if(!m)return;
+  try{
+    await api('/api/maquinas/'+id,{method:'PUT',body:JSON.stringify({
+      codigo:m.codigo,
+      nombre:m.nombre,
+      categoria:m.categoria||m.category||'',
+      tipo_operativo:'base_ciudad',
+      ciudad_base:ciudad,
+      ubicacion:ciudad,
+      es_viajera:false
+    })});
+    const maqs=await api('/api/maquinas');
+    DB.set('maquinas',maqs.map(mapMaquinaLocal));
+    renderMaquinas();
+    showMaqFicha(id);
+    showToast(`✅ Máquina fijada como base en ${ciudad}`);
+  }catch(e){showToast('❌ '+e.message,'error');}
+}
+async function convertirBaseAViajera(id){
+  const m=(DB.get('maquinas')||[]).find(x=>x.id===id);if(!m)return;
+  if(!confirm(`¿Convertir ${m.codigo} a viajera? Dejará de estar fija en ${m.ciudadBase||'su ciudad'}.`))return;
+  try{
+    await api('/api/maquinas/'+id,{method:'PUT',body:JSON.stringify({
+      codigo:m.codigo,
+      nombre:m.nombre,
+      categoria:m.categoria||m.category||'',
+      tipo_operativo:'viajera',
+      ciudad_base:null,
+      es_viajera:true
+    })});
+    const maqs=await api('/api/maquinas');
+    DB.set('maquinas',maqs.map(mapMaquinaLocal));
+    renderMaquinas();
+    showMaqFicha(id);
+    showToast('✅ Máquina convertida a viajera');
+  }catch(e){showToast('❌ '+e.message,'error');}
 }
 
 function puestaPuntoChecklistItems(){

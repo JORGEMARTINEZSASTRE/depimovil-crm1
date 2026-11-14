@@ -133,11 +133,11 @@ a{color:var(--accent);text-decoration:none}
 .signature-preview img{max-width:100%;max-height:88px}
 .signature-ready{border-color:rgba(82,196,138,.5);background:rgba(82,196,138,.08);color:var(--green)}
 .contract-submit-note{font-size:12px;color:var(--text2);margin:10px auto 0;max-width:420px;line-height:1.45}
-.signature-modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.signature-modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;overscroll-behavior:contain}
 .signature-modal.open{display:flex}
 .signature-box{width:min(560px,100%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
-.signature-canvas-wrap{background:#fff;border-radius:10px;margin:12px 0;overflow:hidden;touch-action:none}
-#signatureCanvas{width:100%;height:210px;display:block;touch-action:none}
+.signature-canvas-wrap{background:#fff;border-radius:10px;margin:12px 0;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#signatureCanvas{width:100%;height:210px;display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .signature-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
 /* Loading */
@@ -731,7 +731,7 @@ function setupSignatureCanvas() {
     const p = pos(e);
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch(_){}
   });
   canvas.addEventListener('pointermove', e => {
     if (!signatureDrawing) return;
@@ -740,19 +740,41 @@ function setupSignatureCanvas() {
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
   });
-  ['pointerup','pointercancel','pointerleave'].forEach(type => canvas.addEventListener(type, () => { signatureDrawing = false; }));
+  canvas.addEventListener('pointerup', () => { signatureDrawing = false; });
+  canvas.addEventListener('pointercancel', () => { signatureDrawing = false; });
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    signatureDrawing = true;
+    signatureHasStroke = true;
+    const t = e.touches[0];
+    const p = { x: t.clientX - canvas.getBoundingClientRect().left, y: t.clientY - canvas.getBoundingClientRect().top };
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    if (!signatureDrawing) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const p = { x: t.clientX - canvas.getBoundingClientRect().left, y: t.clientY - canvas.getBoundingClientRect().top };
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { signatureDrawing = false; });
+  canvas.addEventListener('touchcancel', () => { signatureDrawing = false; });
   window.addEventListener('resize', resize);
   resize();
 }
 
 function openSignatureDialog() {
   document.getElementById('signatureModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
   setupSignatureCanvas();
   clearSignatureCanvas();
 }
 
 function closeSignatureDialog() {
   document.getElementById('signatureModal').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 function clearSignatureCanvas() {

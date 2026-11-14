@@ -55,6 +55,7 @@ function checkDisponibilidad(maquinaId, fechaInicio, fechaFin, excluirResId, dep
   const maq=getMaq(maquinaId);
   if(!maq) return {ok:false,msg:'Máquina no encontrada.'};
   if(maq.tipoOperativo==='solo_venta') return {ok:false,msg:`⛔ "${escapeHTML(maq.nombre)}" está marcada como solo venta y no se puede alquilar.`};
+  if(maq.estado==='alquilada_mensual') return {ok:false,msg:`⛔ "${escapeHTML(maq.nombre)}" está alquilada en modalidad mensual.`};
   if(maq.estado==='mantenimiento') return {ok:false,msg:`⚠️ "${escapeHTML(maq.nombre)}" está en mantenimiento.`};
   if(maq.estado==='fuera_servicio') return {ok:false,msg:`⛔ "${escapeHTML(maq.nombre)}" está fuera de servicio.`};
   if(!fechaInicio||!fechaFin) return {ok:true,msg:''};
@@ -374,8 +375,8 @@ async function cargarReservaIncidencias(r){
 /* Modal nueva / editar */
 function reservaMaquinaOption(m, opId){
   const ciudadOk=opId?validarCiudadReservaLocal(opId,m.id):{ok:true};
-  const disabled=(m.estado==='mantenimiento'||m.estado==='fuera_servicio'||m.tipoOperativo==='solo_venta'||!ciudadOk.ok)?'disabled style="color:var(--text3)"':'';
-  const lbl={disponible:'Disponible',reservada:'Reservada',mantenimiento:'⚠️ Mantenimiento',fuera_servicio:'⛔ Fuera servicio'}[m.estado]||m.estado;
+  const disabled=(m.estado==='mantenimiento'||m.estado==='fuera_servicio'||m.estado==='alquilada_mensual'||m.tipoOperativo==='solo_venta'||!ciudadOk.ok)?'disabled style="color:var(--text3)"':'';
+  const lbl={disponible:'Disponible',reservada:'Reservada',alquilada_mensual:'🔒 Alquilada Mensual',mantenimiento:'⚠️ Mantenimiento',fuera_servicio:'⛔ Fuera servicio'}[m.estado]||m.estado;
   const uso=m.tipoOperativo==='solo_venta'?' · Solo venta':m.tipoOperativo==='base_ciudad'?` · Base ${m.ciudadBase||m.ubicacion||''}`:'';
   const motivo=!ciudadOk.ok?` · ${ciudadOk.msg}`:'';
   return `<option value="${m.id}" ${disabled}>${m.codigo} — ${escapeHTML(m.nombre)} [${lbl}${uso}${motivo}]</option>`;
@@ -385,7 +386,7 @@ function filterMaquinasReservaByOperadora(){
   const opId=parseInt(gv('resOperadoraId'))||0;
   document.getElementById('resMaquinaId').innerHTML=
     '<option value="">— Seleccionar máquina disponible —</option>'+
-    (DB.get('maquinas')||[]).map(m=>reservaMaquinaOption(m,opId)).join('');
+    filtrarMaquinasAdmin(DB.get('maquinas')||[]).map(m=>reservaMaquinaOption(m,opId)).join(''); /* DESACTIVADO TEMP wrap */
   onResSelectionChange();
 }
 

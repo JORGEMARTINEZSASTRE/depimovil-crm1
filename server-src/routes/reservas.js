@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../utils/db');
-const { auth, requireRole, isOperadoraRole, isOpsOrCoordinadora } = require('../middleware/auth');
+const { auth, requireRole, isOperadoraRole, isOpsRole } = require('../middleware/auth');
 const { enviarMensaje } = require('../utils/wa_sender');
 // wa_queue stub — Evolution API deshabilitado, Meta Cloud API es el canal principal
 const encolar = async (opts) => { console.log('[wa_queue stub]', opts?.tipo); return { ok: false }; };
@@ -670,58 +670,6 @@ async function notificarWA(reservaId, nuevoEstado, client) {
 }
 
 // ─────────────────────────────────────────────
-// GET /api/reservas/control/indicadores — datos mínimos para el "Control" de reservas
-// Solo ids y sí/no (sin montos, archivos ni contratos). Lo usa la coordinadora,
-// que no tiene acceso a pagos, contratos ni documentos.
-// ─────────────────────────────────────────────
-router.get('/control/indicadores', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
-  try {
-    const [ops, contratos, senas, registros] = await Promise.all([
-      pool.query(`
-        SELECT o.id,
-          (EXISTS (SELECT 1 FROM documentos_operadora d WHERE d.operadora_id = o.id AND d.tipo = 'cedula')
-           AND EXISTS (SELECT 1 FROM documentos_operadora d WHERE d.operadora_id = o.id AND d.tipo = 'cedula_dorso')) AS cedula_ok,
-          EXISTS (SELECT 1 FROM pagos p WHERE p.operadora_id = o.id AND p.estado = 'deuda_vencida') AS deuda_vencida
-        FROM operadoras o
-      `),
-      pool.query(`
-        SELECT operadora_id, maquina_id FROM documentos_operadora WHERE tipo = 'contrato'
-        UNION
-        SELECT operadora_id, maquina_id FROM contratos
-         WHERE (estado = 'firmado' OR firmado_en IS NOT NULL)
-      `),
-      pool.query(`
-        SELECT DISTINCT reserva_id FROM pagos
-        WHERE reserva_id IS NOT NULL AND estado = 'sena_pendiente'
-      `),
-      pool.query(`
-        SELECT operadora_id, revision_admin_estado
-        FROM usuarios
-        WHERE rol = 'operadora' AND operadora_id IS NOT NULL
-          AND requiere_revision_admin = true AND COALESCE(revision_admin_estado, '') <> 'aprobada'
-      `),
-    ]);
-    const por_operadora = {};
-    ops.rows.forEach(o => {
-      por_operadora[o.id] = { cedula_ok: !!o.cedula_ok, deuda_vencida: !!o.deuda_vencida, registro_estado: null };
-    });
-    registros.rows.forEach(r => {
-      if (por_operadora[r.operadora_id]) por_operadora[r.operadora_id].registro_estado = r.revision_admin_estado || 'pendiente';
-    });
-    res.json({
-      por_operadora,
-      // contrato por máquina y contrato marco (sin máquina: vale para todas las de la operadora)
-      contratos: contratos.rows.filter(c => c.maquina_id && c.operadora_id).map(c => c.operadora_id + ':' + c.maquina_id),
-      contratos_marco: [...new Set(contratos.rows.filter(c => !c.maquina_id && c.operadora_id).map(c => c.operadora_id))],
-      senas_pendientes: senas.rows.map(s => s.reserva_id),
-    });
-  } catch (err) {
-    console.error('GET /api/reservas/control/indicadores error:', err);
-    res.status(500).json({ error: 'Error al obtener indicadores de control' });
-  }
-});
-
-// ─────────────────────────────────────────────
 // GET /api/reservas — listar todas
 // ─────────────────────────────────────────────
 router.get('/', auth, async (req, res) => {
@@ -737,7 +685,7 @@ router.get('/', auth, async (req, res) => {
       if (!req.user.transportista_id) return res.json([]);
       params.push(req.user.transportista_id);
       where.push(`EXISTS (SELECT 1 FROM envios e WHERE e.reserva_id = r.id AND e.transportista_id = $${params.length})`);
-    } else if (!isOpsOrCoordinadora(req.user.rol)) {
+    } else if (!isOpsRole(req.user.rol)) {
       return res.json([]);
     }
     let query = `
@@ -775,7 +723,7 @@ router.get('/:id', auth, async (req, res) => {
     } else if (req.user.rol === 'transportista') {
       params.push(req.user.transportista_id || 0);
       query += ` AND EXISTS (SELECT 1 FROM envios e WHERE e.reserva_id = reservas.id AND e.transportista_id = $${params.length})`;
-    } else if (!isOpsOrCoordinadora(req.user.rol)) {
+    } else if (!isOpsRole(req.user.rol)) {
       return res.status(403).json({ error: 'Sin permisos para reservas' });
     }
     const { rows } = await pool.query(query, params);
@@ -798,7 +746,7 @@ router.post('/', auth, async (req, res) => {
     monto, moneda, notas
   } = req.body;
 
-  if (!isOpsOrCoordinadora(req.user.rol) && !isOperadoraRole(req.user.rol)) {
+  if (!isOpsRole(req.user.rol) && !isOperadoraRole(req.user.rol)) {
     return res.status(403).json({ error: 'Sin permisos para crear reservas' });
   }
 
@@ -810,15 +758,6 @@ router.post('/', auth, async (req, res) => {
 
   if (!operadoraIdFinal || !maquina_id) {
     return res.status(400).json({ error: 'operadora_id y maquina_id son obligatorios' });
-  }
-
-  if (isOperadoraRole(req.user.rol)) {
-    // Una operadora no puede pedir fechas ya pasadas (se compara con la fecha de hoy en Uruguay)
-    const hoyUy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Montevideo' });
-    const inicioPedido = String(fecha_jornada || fecha_inicio || '').slice(0, 10);
-    if (inicioPedido && inicioPedido < hoyUy) {
-      return res.status(400).json({ error: 'La fecha de la reserva no puede ser anterior a hoy' });
-    }
   }
 
   const client = await pool.connect();
@@ -922,7 +861,7 @@ router.post('/', auth, async (req, res) => {
 // ─────────────────────────────────────────────
 // PUT /api/reservas/:id — actualizar
 // ─────────────────────────────────────────────
-router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
+router.put('/:id', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const {
     operadora_id, maquina_id, tipo, estado,
     fecha_jornada, fecha_inicio, fecha_fin,
@@ -1015,7 +954,7 @@ router.put('/:id', auth, requireRole('superadmin', 'operaciones', 'coordinadora'
 // ─────────────────────────────────────────────
 // PATCH /api/reservas/:id/estado — cambio de estado
 // ─────────────────────────────────────────────
-router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones', 'coordinadora'), async (req, res) => {
+router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones'), async (req, res) => {
   const { estado, motivo } = req.body;
   if (!estado) return res.status(400).json({ error: 'estado es requerido' });
   if (!motivo) return res.status(400).json({ error: 'motivo es requerido' });
@@ -1099,7 +1038,7 @@ router.patch('/:id/estado', auth, requireRole('superadmin', 'operaciones', 'coor
 // ─────────────────────────────────────────────
 // DELETE /api/reservas/:id — eliminar
 // ─────────────────────────────────────────────
-router.delete('/:id', auth, requireRole('superadmin', 'coordinadora'), async (req, res) => {
+router.delete('/:id', auth, requireRole('superadmin'), async (req, res) => {
   try {
     const { rows } = await pool.query('DELETE FROM reservas WHERE id=$1 RETURNING id, codigo', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Reserva no encontrada' });

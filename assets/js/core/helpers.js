@@ -47,7 +47,7 @@ const ROLE_LABELS={
 };
 const VIEW_PERMISSIONS={
   superadmin:['*'],
-  administrador:['*'],
+  administrador:['dashboard','operadoras','operadora-ficha','maquinas','maquina-ficha','reservas','reserva-ficha','calendario','pagos','pago-ficha','caja','whatsapp','envios','envio-ficha'],
   operaciones:['dashboard','operadoras','operadora-ficha','revision-operadoras','documentos','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','contratos','whatsapp','envios','envio-ficha','transportistas','limpiezas','materiales'],
   coordinadora:['dashboard','maquinas','maquina-ficha','mantenimientos','reservas','reserva-ficha','calendario','logistica','envios','envio-ficha','transportistas','limpiezas','revision-operadoras','operadora-ficha'],
   comercial:['dashboard','whatsapp'],
@@ -62,6 +62,12 @@ const VIEW_PERMISSIONS={
   operadora_limitada:['dashboard','materiales'],
   transportista:['dashboard','maquinas','maquina-ficha','envios','envio-ficha','transportistas'],
 };
+
+/* DESACTIVADO TEMP - filtro solo maquinas fijas Salto (sin hidrafacial/emsculpt) para administrador */
+function filtrarMaquinasAdmin(maqs){
+  if(!currentUser||currentUser.rol!=='administrador')return maqs;
+  return maqs.filter(m=>!m.esViajera&&(m.ciudadBase||'').toUpperCase()==='SALTO'&&!/hidrafacial|emsculpt|emscul/i.test(m.nombre||''));
+}
 function isAdminRole(rol){return ['superadmin','administrador'].includes(rol);}
 function isOpsRole(rol){return isAdminRole(rol)||rol==='operaciones'||rol==='coordinadora';}
 function canDelete(){return !!(currentUser&&(isAdminRole(currentUser.rol)||currentUser.rol==='coordinadora'));}

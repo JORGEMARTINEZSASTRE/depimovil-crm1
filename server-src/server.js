@@ -11,15 +11,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const ensureAuthTables = require('./utils/ensure_auth_tables');
 
 const app = express();
 app.set('trust proxy', 1); // Trust Nginx proxy
 const PORT = process.env.PORT || 3004;
-
-ensureAuthTables().catch(err => {
-  console.error('Error preparando tablas de autenticación:', err.message);
-});
 
 // ══════════════════════════════════
 // SEGURIDAD
@@ -62,20 +57,6 @@ app.use('/api/auth/whatsapp/verify', loginLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '5mb' }));
-
-// Defensa en profundidad contra HTML/JavaScript inyectado: el texto que llega desde la web no puede llevar < ni >.
-// (No se toca la contraseña, los tokens ni la firma; tampoco los webhooks de WhatsApp.)
-const CLAVES_SIN_LIMPIAR = /pass|token|firma|secret|codigo|data_url/i;
-function sinEtiquetas(v, key) {
-  if (typeof v === 'string') return CLAVES_SIN_LIMPIAR.test(key || '') ? v : v.replace(/[<>]/g, '');
-  if (Array.isArray(v)) return v.map(x => sinEtiquetas(x, key));
-  if (v && typeof v === 'object') { for (const k of Object.keys(v)) v[k] = sinEtiquetas(v[k], k); return v; }
-  return v;
-}
-app.use((req, res, next) => {
-  if (req.body && typeof req.body === 'object' && !req.path.startsWith('/api/webhook')) sinEtiquetas(req.body);
-  next();
-});
 app.use('/uploads', express.static(require('path').join(__dirname, '../uploads')));
 
 // ══════════════════════════════════
@@ -86,14 +67,12 @@ app.use('/api/operadoras', require('./routes/operadoras'));
 app.use('/api/portal', require('./routes/portal'));
 app.use('/api/maquinas', require('./routes/maquinas'));
 app.use('/api/mantenimientos', require('./routes/mantenimientos'));
-app.use('/api/limpiezas', require('./routes/limpiezas'));
 app.use('/api/reservas', require('./routes/reservas'));
 app.use('/api/pagos', require('./routes/pagos'));
 app.use('/api/finanzas', require('./routes/finanzas'));
 app.use('/api/leads', require('./routes/leads'));
 app.use('/api/envios', require('./routes/envios'));
 app.use('/api/transportistas', require('./routes/transportistas'));
-app.use('/api/webhook/whatsapp', require('./routes/wa_queue_admin'));
 app.use('/api/webhook/whatsapp', require('./routes/whatsapp'));
 app.use('/api/contratos', require('./routes/contratos'));
 app.use('/api/permisos', require('./routes/permisos'));

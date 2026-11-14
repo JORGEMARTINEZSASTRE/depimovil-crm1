@@ -18,20 +18,18 @@ const viewTitles={'transportistas':'Transportistas',
   compras:'Compras',
   'ventas-maquinas':'Ventas de Máquinas',
   contratos:'Contratos de Alquiler',
+  leasing:'Leasing','leasing-ficha':'Ficha de Leasing',
   whatsapp:'Centro de Notificaciones WhatsApp',
   envios:'Envíos de Máquinas','envio-ficha':'Ficha de Envío',
   configuracion:'Colores',
   reportes:'Reportes Operativos',
   auditoria:'Log de Auditoría',
-  leads:'Leads / Prospectos CRM','lead-ficha':'Ficha de Lead',
-  embudo:'Embudo Comercial',
   materiales:'Certificaciones',
 };
 const navGroupByView={
   'revision-operadoras':'operaciones',documentos:'operaciones',mantenimientos:'operaciones',calendario:'operaciones',materiales:'operaciones',
-  pagos:'finanzas',proveedores:'finanzas',compras:'finanzas','ventas-maquinas':'finanzas',contratos:'finanzas',
+  pagos:'finanzas',proveedores:'finanzas',compras:'finanzas','ventas-maquinas':'finanzas',contratos:'finanzas',leasing:'finanzas',
   envios:'logistica',transportistas:'logistica',limpiezas:'logistica',logistica:'logistica',
-  leads:'comercial',embudo:'comercial',
   reportes:'sistema',auditoria:'sistema',configuracion:'sistema',usuarios:'sistema'
 };
 function navigate(view){
@@ -55,6 +53,12 @@ function navigate(view){
   document.getElementById('pageTitle').textContent=viewTitles[view]||view;
   const dashBtn=document.getElementById('dashboardHomeBtn');
   if(dashBtn)dashBtn.style.display=view==='dashboard'?'none':'inline-flex';
+  // Sync bottom nav active state
+  document.querySelectorAll('.bottom-nav-btn').forEach(b=>b.classList.remove('active'));
+  const bnavBtn=document.querySelector('[data-bnav="'+view+'"]');
+  if(bnavBtn)bnavBtn.classList.add('active');
+  // Scroll to top on view change
+  window.scrollTo({top:0,behavior:'smooth'});
   closeSidebar();
   if(view==='dashboard')renderDashboard();
   if(view==='operadoras')renderOperadoras();
@@ -75,6 +79,7 @@ function navigate(view){
   if(view==='proveedores')renderProveedores();
   if(view==='compras')renderCompras();
   if(view==='ventas-maquinas')renderVentasMaquinas();
+  if(view==='leasing')renderLeasing();
   if(view==='contratos')renderContratos();
   if(view==='transportistas')initTransportistas();
   if(view==='whatsapp'){renderWA('pendientes');updateWABadge();}
@@ -82,8 +87,6 @@ function navigate(view){
   if(view==='configuracion')renderConfiguracion();
   if(view==='reportes')renderReportes();
   if(view==='auditoria')renderAuditoria();
-  if(view==='leads')renderLeads();
-  if(view==='embudo')renderEmbudo();
   if(view==='materiales')renderMateriales();
 }
 function toggleSidebar(){
